@@ -24,14 +24,81 @@ Papers:
 
 		1.	The algorithm used in PCL to perform point cloud alignment/registration, based on point feature histogram.
 
+	-	4-Points Congruent Sets for Robust Pairwise Surface Registration
+	http://vecg.cs.ucl.ac.uk/Projects/SmartGeometry/fpcs/paper_docs/fpcs_sig_08.pdf
+
+		1. There is an experimental implementation of this algo in CloudCompare.
+
+	- Generalizing Hough Transform to detect arbitrary shapes
+	http://www.eng.tau.ac.il/~cvapps/Supplement/%5B%201981%20%5D%20Generalizing%20the%20Hough%20Transform%20to%20Detect%20Arbitrary%20Shapes.pdf
+
 Tutorials:
+	-	Compile and install PCL on Ubuntu based systems: https://larrylisky.com/2014/03/03/installing-pcl-on-ubuntu/	
 	-	Align a new point cloud to a template with PCL: http://pointclouds.org/documentation/tutorials/template_alignment.php
 
 Lexique:
 	-	NDT: Normal Distribution Transform
 	-	ICP: Iterative Closest Point
 	-	RANSAC: RANdom SAmple Consensus
-	-	SAC-IA: Sample Consensus Initial Alignment
+	-	SAC-IA: SAmple Consensus Initial Alignment
+	-	4PCS: Four Points Congruent Sets
+	-	PCA: Principal Component Analysis
+	-	Hough transform
+	-	GMM: Gaussian Mixture Model
+	-	KDE: Kernel Density Estimates
+	-	Rigid transform: is a geometric transformation of a Euclidean space that preserves the Euclidean distance between every pair of points.
 
-Misc:
-	-	Compile and install PCL on Ubuntu based systems: https://larrylisky.com/2014/03/03/installing-pcl-on-ubuntu/ 
+Common Tools and implemented registration algorithms:
+	-	CloudCompare:
+			1. ICP
+			2. Match bounding-box centers
+			3. Picking point pairs
+	-	PCL:
+			1. SAC-IA
+
+Background work:
+
+Related Work:
+	There exists local and global methods, achieving respectively fine and coarse registration/alignment.
+	- Local: These methods assume an initialization close to the optimal transformation and significant overlap between the two point clouds, or they become unreliable and tend to get stuck in local minima.
+		1. ICP [1, 2]: The most common. Many variants using different cost functions and minimization processes.
+		2. NDT [3, 4]: Normal distribution transforms represents the scans as a stuctured GMM. Has been shown to be more robust than ICP in certain cases[5].
+		3. Methods using correlation of KDE for alignment[6]. Scale poorly with number of points.
+		4. Methods using GMMs[7]. mixture models infered by nonparametric clustering algorithms(DP-means[8], DP-vMF-means[9]). This enables processing of large PCs by compressing the data.
+
+	- Global: These methods make no prior assumptions about the transformation or overlap. These are often used to initialise local methods.
+		1. 3D-surface-feature-based algorithms: Consist of the following steps. Extract local features, obtain matches between features in the 2 PCs and finally estimate the relative pose using RANSAC[10] or other robust estimators[15].
+			a. FPFH[11].
+			b. Global registration using a new local descriptor: Integral volume descriptor[12].
+			c. Computing spin images for each point, but is based on meshes[13].
+			d. 4-Points congruent sets[14].
+		These are vulnerable to repetitive scene elements and large fraction of incorrect feature matches. The following papers tries to solve the later.
+			e. Based on game theory[16].
+			f. Fusion coarse and fine registration in 1 step. Try to optimize one objective function[17].
+		2. Statistical properties of the PCs:
+			a. Separate rotational and translational alignment[18]. Rotation is obtained by maximizing the convolution of the peaks of the extended Gaussian images (EGI) of the two surface normal sets. After that the transation is found by fast fourier transform.
+			b. Similarly for 2d scans.
+			c. GO-ICP[19].
+
+
+
+References:
+	1. P. J. Besl and N. D. McKay. A method for registration of 3-D shapes. TPAMI, 14(2):239–256, 1992.
+	2. S. Rusinkiewicz and M. Levoy. Efficient variants of the ICP algorithm. In 3-D Digital Imaging and Modeling, 2001.
+	3. M. Magnusson, A. Lilienthal, and T. Duckett. Scan registration for autonomous mining vehicles using 3D-NDT. Journal of Field Robotics, 24(10):803–827, 2007.
+	4. P. Biber and W. Straßer. The normal distributions transform: A new approach to laser scan matching. InIROS, 2003.
+	5. M. Magnusson, A. Nüchter, C. Lörken, A. J. Lilienthal, and J. Hertzberg.  Evaluation of 3D registration reliability and speed-a comparison of ICP and NDT. In ICRA, 2009.
+	6. Y. Tsin and T. Kanade. A correlation-based approach to robust point set registration. In ECCV, 2004.
+	7. B. Jian and B. C. Vemuri. Robust point set registration using gaussian mixture models. PAMI, 33(8):1633–1645, 2011.
+	8. B. Kulis and M. I. Jordan. Revisiting k-means: New algorithms via Bayesian nonparametrics. In ICML, 2012.
+	9. J. Straub, T. Campbell, J. P. How, and J. W. Fisher III. Small-variance nonparametric clustering on the hypersphere.  In CVPR, 2015.
+	10. M. Fischler and R. Bolles. Random sample consensus: a paradigm for model fitting with applications to image analysis and automated cartography. Communications of the ACM,24(6):381–395, 1981.
+	11. R. B. Rusu, N. Blodow, and M. Beetz. Fast point feature histograms (FPFH) for 3D registration. In ICRA, 2009.
+	12. N. Gelfand, N. J. Mitra, L. J. Guibas, and H. Pottmann. Robust global registration.  In Symposium on Geometry Processing, volume 2, page 5, 2005.
+	13. A. E. Johnson and M. Hebert. Surface matching for object recognition in complex three-dimensional scenes. Image and Vision Computing, 16(9):635–651, 1998.
+	14. D. Aiger, N. J. Mitra, and D. Cohen-Or. 4-points congruent sets for robust pairwise surface registration. In ACM TOG,volume 27, page 85, 2008.
+	15. P. J. Huber.Robust statistics. Springer, 1981.
+	16. A. Albarelli, E. Rodolà, and A. Torsello. Fast and accurate surface alignment through an isometry-enforcing game. Pattern Recognition, 48(7):2209–2226, 2015.
+	17. Q.-Y. Zhou, J. Park, and V. Koltun. Fast global registration.In ECCV, 2016.
+	18. A. Makadia, A. Patterson, and K. Daniilidis. Fully automatic registration of 3D point clouds. In CVPR, 2006.
+	19. J. Yang, H. Li, and Y. Jia. Go-ICP: Solving 3D registration efficiently and globally optimally. In ICCV, 2013.
