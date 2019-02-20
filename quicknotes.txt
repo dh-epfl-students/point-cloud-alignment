@@ -1,3 +1,5 @@
+Master project on automated geographical alignment of large point clouds through their simplification.
+
 Papers:
 	-	Efficient Global Point Cloud Alignment Using Bayesian Nonparametric Mixtures.
 		1.	Align two similar point clouds -> The sample of "harder" point cloud used to test the algo has an average overlap of 84%, LIDAR scans.
@@ -47,6 +49,9 @@ Lexique:
 	-	GMM: Gaussian Mixture Model
 	-	KDE: Kernel Density Estimates
 	-	Rigid transform: is a geometric transformation of a Euclidean space that preserves the Euclidean distance between every pair of points.
+	-	SO(3): Special Orthogonal matrices forming the 3D rotation group.
+	-	SPC: the simultaneous pose and correspondence problem.
+
 
 Common Tools and implemented registration algorithms:
 	-	CloudCompare:
@@ -78,7 +83,10 @@ Related Work:
 		2. Statistical properties of the PCs:
 			a. Separate rotational and translational alignment[18]. Rotation is obtained by maximizing the convolution of the peaks of the extended Gaussian images (EGI) of the two surface normal sets. After that the transation is found by fast fourier transform.
 			b. Similarly for 2d scans.
-			c. GO-ICP[19].
+			c. Branch and Bound Optimizations to search of rotation space: Axis aligned Rotation space search: Global search over SO(3) using Lipschitz optimization [20, 21]. GO-ICP[19]: Nests box and ball. GOGMA[22]: Use similar approach with a convolution of GMMs. All these approach are computationally expensive because the complexity of BB is exponential in the dimension.
+			[23] Introduce a novel refinable tesselation consisting of a 4D tetrahedron to approximate the space of rotation more uniformly.
+
+	I did only found algorithms that perform registration of point clouds to point clouds, or meshes to meshes. But nothing on the registration to a simplified form.
 
 
 
@@ -102,3 +110,6 @@ References:
 	17. Q.-Y. Zhou, J. Park, and V. Koltun. Fast global registration.In ECCV, 2016.
 	18. A. Makadia, A. Patterson, and K. Daniilidis. Fully automatic registration of 3D point clouds. In CVPR, 2006.
 	19. J. Yang, H. Li, and Y. Jia. Go-ICP: Solving 3D registration efficiently and globally optimally. In ICCV, 2013.
+	20. H. Li and R. Hartley. The 3D-3D registration problem revisited. InICCV, 2007.
+	21. R. I. Hartley and F. Kahl. Global optimization through rotation space search. IJCV, 82(1):64–79, 2009.
+	22. D. Campbell and L. Petersson. Gogma: Globally-optimal gaussian mixture alignment. In CVPR, June 2016.
