@@ -53,3 +53,4 @@ other/*
 *.csv
 Presentation/*
 Report/*
+State_of_the_art_testing/PCL/cloud_alignment-build/*
