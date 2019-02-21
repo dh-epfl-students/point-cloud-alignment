@@ -7,12 +7,19 @@ using namespace std;
 
 int main()
 {
-    string filename = "/home/loris/Documents/EPFL/Master/Master_Project/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safe.ply";
+    string filename1 = "/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safe.ply";
+    string filename2 = "/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safeTarget.ply";
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr target(new pcl::PointCloud<pcl::PointXYZ>);
 
-    if(pcl::io::loadPLYFile(filename, *cloud) == -1) {
-        PCL_ERROR("Could not read ply file\n");
+    if(pcl::io::loadPLYFile(filename1, *cloud) == -1) {
+        PCL_ERROR("Could not read point cloud ply file\n");
+        return EXIT_FAILURE;
+    }
+
+    if(pcl::io::loadPLYFile(filename2, *target) == -1) {
+        PCL_ERROR("Could not read target cloud ply file\n");
         return EXIT_FAILURE;
     }
 
@@ -22,7 +29,8 @@ int main()
          << std::endl;
 
     pcl::visualization::CloudViewer viewer("Simple cloud viewer");
-    viewer.showCloud(cloud);
+    //viewer.showCloud(cloud);
+    viewer.showCloud(target);
 
     while(!viewer.wasStopped()) {}
 

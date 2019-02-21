@@ -1,5 +1,9 @@
 Master project on automated geographical alignment of large point clouds through their simplification.
 
+TODOs:
+-	Collect and review State-of-the-art publications
+-	Clean plane segmentation algorithm
+
 Papers:
 	-	Efficient Global Point Cloud Alignment Using Bayesian Nonparametric Mixtures.
 		1.	Align two similar point clouds -> The sample of "harder" point cloud used to test the algo has an average overlap of 84%, LIDAR scans.
@@ -51,15 +55,17 @@ Lexique:
 	-	Rigid transform: is a geometric transformation of a Euclidean space that preserves the Euclidean distance between every pair of points.
 	-	SO(3): Special Orthogonal matrices forming the 3D rotation group.
 	-	SPC: the simultaneous pose and correspondence problem.
+	-	SLAM: Simultaneous Localization And Mapping.
 
 
 Common Tools and implemented registration algorithms:
 	-	CloudCompare:
 			1. ICP
-			2. Match bounding-box centers
-			3. Picking point pairs
+			2. Picking point pairs: Not automated
 	-	PCL:
 			1. SAC-IA
+			2. FPCS[14]
+			3. a lot more: http://docs.pointclouds.org/1.8.1/group__registration.html
 
 Background work:
 
@@ -86,7 +92,7 @@ Related Work:
 			c. Branch and Bound Optimizations to search of rotation space: Axis aligned Rotation space search: Global search over SO(3) using Lipschitz optimization [20, 21]. GO-ICP[19]: Nests box and ball. GOGMA[22]: Use similar approach with a convolution of GMMs. All these approach are computationally expensive because the complexity of BB is exponential in the dimension.
 			[23] Introduce a novel refinable tesselation consisting of a 4D tetrahedron to approximate the space of rotation more uniformly.
 
-	I did only found algorithms that perform registration of point clouds to point clouds, or meshes to meshes. But nothing on the registration to a simplified form.
+	I did only found algorithms that perform registration of point clouds to point clouds, or meshes to meshes. But nothing on the registration to a simplified form like basic blocks city mesh.
 
 
 
