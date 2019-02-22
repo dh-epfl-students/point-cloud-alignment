@@ -4,6 +4,7 @@
 #include <pcl/io/ply_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/common/transforms.h>
+#include <pcl/filters/voxel_grid.h>
 
 #include "feature_cloud.h"
 #include "template_alignment.h"
@@ -33,8 +34,18 @@ int main()
     trans.translation() << -centroid.x(), -centroid.y(), -centroid.z();
     pcl::transformPointCloud(*cloud, *cloud, trans);
 
+    // downsampling the point cloud
+    const float voxel_grid_size = 0.5f;
+    pcl::VoxelGrid<pcl::PointXYZ> vox_grid;
+    vox_grid.setInputCloud (cloud);
+    vox_grid.setLeafSize (voxel_grid_size, voxel_grid_size, voxel_grid_size);
+    //vox_grid.filter (*cloud); // Please see this http://www.pcl-developers.org/Possible-problem-in-new-VoxelGrid-implementation-from-PCL-1-5-0-td5490361.html
+    pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud (new pcl::PointCloud<pcl::PointXYZ>);
+    vox_grid.filter (*tempCloud);
+    cloud = tempCloud;
+
     // Create transform
-    float theta = M_PI / 10.0f;
+    float theta = M_PI / 4.0f;
 
     Eigen::Affine3f transform = Eigen::Affine3f::Identity();
     transform.rotate(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitZ()));
@@ -76,6 +87,17 @@ int main()
 
     // Print the alignment fitness score (values less than 0.00002 are good)
     std::printf ("Best fitness score: %f\n", best_alignment.fitness_score);
+
+    // Print the rotation matrix and translation vector
+    Eigen::Matrix3f rotation = best_alignment.final_transformation.block<3,3>(0, 0);
+    Eigen::Vector3f translation = best_alignment.final_transformation.block<3,1>(0, 3);
+
+    std::printf ("\n");
+    std::printf ("    | %6.3f %6.3f %6.3f | \n", rotation (0,0), rotation (0,1), rotation (0,2));
+    std::printf ("R = | %6.3f %6.3f %6.3f | \n", rotation (1,0), rotation (1,1), rotation (1,2));
+    std::printf ("    | %6.3f %6.3f %6.3f | \n", rotation (2,0), rotation (2,1), rotation (2,2));
+    std::printf ("\n");
+    std::printf ("t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr best_cloud(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::transformPointCloud(*transformed_cloud, *best_cloud, best_alignment.final_transformation);
