@@ -26,9 +26,9 @@ class TemplateAlignment
       min_sample_distance_ (0.05f),
       max_correspondence_distance_ (0.01f*0.01f),
       nr_iterations_ (100),
-      approx_overlap(0.9),
-      voxel_size(5.0f),
-      abort_score(0),
+      approx_overlap(0.1),
+      voxel_size(0.01f),
+      abort_score(0.0),
       nr_threads(4)
     {
       // Initialize the parameters in the Sample Consensus Initial Alignment (SAC-IA) algorithm
@@ -77,12 +77,14 @@ class TemplateAlignment
       result.final_transformation = sac_ia_.getFinalTransformation ();
     }
 
-    // Align the given template cloud to the target specified by setTargetCloud() using 4PCS initial alignment
+    // Align the given template cloud to the target specified by setTargetCloud() using KFPCS initial alignment
     void alignKFPCS(FeatureCloud &template_cloud, TemplateAlignment::Result &result) {
         kfpcs_ia_.setInputCloud(template_cloud.getPointCloud());
 
         pcl::PointCloud<pcl::PointXYZ> registration_output;
         kfpcs_ia_.align(registration_output);
+
+        cout << "Size of registered cloud: " << registration_output.size() << endl;
 
         result.fitness_score = (float)kfpcs_ia_.getFitnessScore();
         result.final_transformation = kfpcs_ia_.getFinalTransformation();

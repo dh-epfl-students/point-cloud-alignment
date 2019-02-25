@@ -56,6 +56,7 @@ Lexique:
 	-	SO(3): Special Orthogonal matrices forming the 3D rotation group.
 	-	SPC: the simultaneous pose and correspondence problem.
 	-	SLAM: Simultaneous Localization And Mapping.
+	-	Diameter of a point set: Given a set V of B points in ¢d, the diameter of V is the maximum Euclidean distance between any two points of V.
 
 
 Common Tools and implemented registration algorithms:
@@ -91,7 +92,7 @@ Related Work:
 		4PCS enhancements:
 			g. Keypoints-based-4PCS (KFPCS) [23]. Implemented in PCL.
 		2. Statistical properties of the PCs:
-			a. Separate rotational and translational alignment[18]. Rotation is obtained by maximizing the convolution of the peaks of the extended Gaussian images (EGI) of the two surface normal sets. After that the transation is found by fast fourier transform.
+			a. Separate rotational and translational alignment[18]. Rotation is obtained by maximizing the convolution of the peaks of the extended Gaussian images (EGI) of the two surface normal sets. After that the translation is found by fast fourier transform.
 			b. Similarly for 2d scans.
 			c. Branch and Bound Optimizations to search of rotation space: Axis aligned Rotation space search: Global search over SO(3) using Lipschitz optimization [20, 21]. GO-ICP[19]: Nests box and ball. GOGMA[22]: Use similar approach with a convolution of GMMs. All these approach are computationally expensive because the complexity of BB is exponential in the dimension.
 			[23] Introduce a novel refinable tesselation consisting of a 4D tetrahedron to approximate the space of rotation more uniformly.

@@ -1,10 +1,18 @@
 #pragma once
 
+#include <iostream>
+#include <string>
+
 #include <pcl/io/ply_io.h>
+#include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/features/fpfh.h>
+
+#include <boost/filesystem.hpp>
+
+using namespace std;
 
 class FeatureCloud
 {
@@ -33,10 +41,21 @@ class FeatureCloud
 
     // Load and process the cloud in the given PLY file
     void
-    loadInputCloud (const std::string &pcd_file)
+    loadInputCloud (const std::string &filename)
     {
+      cout << "Loading " << filename << endl;
+      string extension = boost::filesystem::extension(filename);
       xyz_ = PointCloud::Ptr (new PointCloud);
-      pcl::io::loadPLYFile (pcd_file, *xyz_);
+
+      if(extension.compare(".ply") == 0) {
+        pcl::io::loadPLYFile (filename, *xyz_);
+      } else if(extension.compare(".pcd") == 0) {
+        pcl::io::loadPCDFile(filename, *xyz_);
+      } else {
+        cout << "Trying to load uncompatible file with extension: " << extension << endl;
+        exit(EXIT_FAILURE);
+      }
+
       processInput ();
     }
 
