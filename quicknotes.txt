@@ -33,7 +33,7 @@ Papers:
 	-	4-Points Congruent Sets for Robust Pairwise Surface Registration
 	http://vecg.cs.ucl.ac.uk/Projects/SmartGeometry/fpcs/paper_docs/fpcs_sig_08.pdf
 
-		1. There is an experimental implementation of this algo in CloudCompare.
+		1. There is an experimental implementation of this algo in CloudCompare. But it crashes...
 
 	- Generalizing Hough Transform to detect arbitrary shapes
 	http://www.eng.tau.ac.il/~cvapps/Supplement/%5B%201981%20%5D%20Generalizing%20the%20Hough%20Transform%20to%20Detect%20Arbitrary%20Shapes.pdf
@@ -65,6 +65,7 @@ Common Tools and implemented registration algorithms:
 	-	PCL:
 			1. SAC-IA
 			2. FPCS[14]
+			3. KFPCS[]
 			3. a lot more: http://docs.pointclouds.org/1.8.1/group__registration.html
 
 Background work:
@@ -82,10 +83,13 @@ Related Work:
 			a. FPFH[11].
 			b. Global registration using a new local descriptor: Integral volume descriptor[12].
 			c. Computing spin images for each point, but is based on meshes[13].
-			d. 4-Points congruent sets[14].
+			d. 4-Points congruent sets[14]. 4PCS is the state-of-the-art global registration algorithm.
 		These are vulnerable to repetitive scene elements and large fraction of incorrect feature matches. The following papers tries to solve the later.
 			e. Based on game theory[16].
 			f. Fusion coarse and fine registration in 1 step. Try to optimize one objective function[17].
+
+		4PCS enhancements:
+			g. Keypoints-based-4PCS (KFPCS) [23]. Implemented in PCL.
 		2. Statistical properties of the PCs:
 			a. Separate rotational and translational alignment[18]. Rotation is obtained by maximizing the convolution of the peaks of the extended Gaussian images (EGI) of the two surface normal sets. After that the transation is found by fast fourier transform.
 			b. Similarly for 2d scans.
@@ -119,3 +123,4 @@ References:
 	20. H. Li and R. Hartley. The 3D-3D registration problem revisited. InICCV, 2007.
 	21. R. I. Hartley and F. Kahl. Global optimization through rotation space search. IJCV, 82(1):64–79, 2009.
 	22. D. Campbell and L. Petersson. Gogma: Globally-optimal gaussian mixture alignment. In CVPR, June 2016.
+	23. Theiler, P., Wegner, J.D., & Schindler, K. (2013). MARKERLESS POINT CLOUD REGISTRATION WITH KEYPOINT-BASED 4-POINTS CONGRUENT SETS.

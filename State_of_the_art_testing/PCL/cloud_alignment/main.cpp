@@ -35,7 +35,8 @@ int main()
     pcl::transformPointCloud(*cloud, *cloud, trans);
 
     // downsampling the point cloud
-    const float voxel_grid_size = 0.5f;
+    // This does not seem to improve the computation time by a lot.
+    const float voxel_grid_size = 5.0f;
     pcl::VoxelGrid<pcl::PointXYZ> vox_grid;
     vox_grid.setInputCloud (cloud);
     vox_grid.setLeafSize (voxel_grid_size, voxel_grid_size, voxel_grid_size);

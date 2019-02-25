@@ -5,7 +5,6 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/features/fpfh.h>
-//#include <pcl/registration/ia_ransac.h>
 
 class FeatureCloud
 {
@@ -18,8 +17,8 @@ class FeatureCloud
 
     FeatureCloud () :
       search_method_xyz_ (new SearchMethod),
-      normal_radius_ (0.1f),
-      feature_radius_ (0.1f)
+      normal_radius_ (0.5f),
+      feature_radius_ (0.5f)
     {}
 
     ~FeatureCloud () {}
