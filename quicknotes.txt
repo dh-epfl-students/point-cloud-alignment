@@ -1,8 +1,11 @@
 Master project on automated geographical alignment of large point clouds through their simplification.
 
 TODOs:
--	Collect and review State-of-the-art publications
--	Clean plane segmentation algorithm
+-	Collect and review State-of-the-art publications.
+-	Test state of the art algos with our PCs.
+	-	KFPCS: Does not work at all!
+	-	SAC-IA: Does not Work
+-	Clean plane segmentation algorithm and port it to PCL.
 
 Papers:
 	-	Efficient Global Point Cloud Alignment Using Bayesian Nonparametric Mixtures.
@@ -66,7 +69,7 @@ Common Tools and implemented registration algorithms:
 	-	PCL:
 			1. SAC-IA
 			2. FPCS[14]
-			3. KFPCS[]
+			3. KFPCS[23]
 			3. a lot more: http://docs.pointclouds.org/1.8.1/group__registration.html
 
 Background work:
@@ -95,7 +98,7 @@ Related Work:
 			a. Separate rotational and translational alignment[18]. Rotation is obtained by maximizing the convolution of the peaks of the extended Gaussian images (EGI) of the two surface normal sets. After that the translation is found by fast fourier transform.
 			b. Similarly for 2d scans.
 			c. Branch and Bound Optimizations to search of rotation space: Axis aligned Rotation space search: Global search over SO(3) using Lipschitz optimization [20, 21]. GO-ICP[19]: Nests box and ball. GOGMA[22]: Use similar approach with a convolution of GMMs. All these approach are computationally expensive because the complexity of BB is exponential in the dimension.
-			[23] Introduce a novel refinable tesselation consisting of a 4D tetrahedron to approximate the space of rotation more uniformly.
+			[24] Introduce a novel refinable tesselation consisting of a 4D tetrahedron to approximate the space of rotation more uniformly.
 
 	I did only found algorithms that perform registration of point clouds to point clouds, or meshes to meshes. But nothing on the registration to a simplified form like basic blocks city mesh.
 
@@ -125,3 +128,4 @@ References:
 	21. R. I. Hartley and F. Kahl. Global optimization through rotation space search. IJCV, 82(1):64–79, 2009.
 	22. D. Campbell and L. Petersson. Gogma: Globally-optimal gaussian mixture alignment. In CVPR, June 2016.
 	23. Theiler, P., Wegner, J.D., & Schindler, K. (2013). MARKERLESS POINT CLOUD REGISTRATION WITH KEYPOINT-BASED 4-POINTS CONGRUENT SETS.
+	24. Efficient Global Point Cloud Alignment using Bayesian Nonparametric Mixtures. Julian Straub, Trevor Campbell, Jonathan P. How, John W. Fisher III 

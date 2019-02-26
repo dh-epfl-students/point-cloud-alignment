@@ -6,6 +6,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/common/transforms.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/passthrough.h>
 
 #include "feature_cloud.h"
 #include "template_alignment.h"
@@ -16,12 +17,12 @@ int main()
 {
     string filename = "/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safe.ply";
     string personfile = "/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/person.pcd";
-    string templatefile = "/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/object_template_0.pcd";
+    string templatefile = "/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/object_template_5.pcd";
 
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
-    if(pcl::io::loadPCDFile(personfile, *cloud) == -1) {
+    if(pcl::io::loadPLYFile(filename, *cloud) == -1) {
         PCL_ERROR("Could not read point cloud ply file\n");
         return EXIT_FAILURE;
     }
@@ -30,17 +31,25 @@ int main()
          << cloud->width * cloud->height
          << " data points from point cloud in ply format."
          << std::endl;
-/*
+
     // First center the target point cloud
     Eigen::Vector4f centroid = Eigen::Vector4f::UnitZ();
     pcl::compute3DCentroid(*cloud, centroid);
     Eigen::Affine3f trans = Eigen::Affine3f::Identity();
     trans.translation() << -centroid.x(), -centroid.y(), -centroid.z();
     pcl::transformPointCloud(*cloud, *cloud, trans);
+/*
+    // Preprocess the cloud by...
+    // ...removing distant points
+    const float depth_limit = 1.0;
+    pcl::PassThrough<pcl::PointXYZ> pass;
+    pass.setInputCloud (cloud);
+    pass.setFilterFieldName ("z");
+    pass.setFilterLimits (0, depth_limit);
+    pass.filter (*cloud);
 */
     // downsampling the point cloud
-    // This does not seem to improve the computation time by a lot.
-    const float voxel_grid_size = 0.01f;
+    const float voxel_grid_size = 0.5f;
     pcl::VoxelGrid<pcl::PointXYZ> vox_grid;
     vox_grid.setInputCloud (cloud);
     vox_grid.setLeafSize (voxel_grid_size, voxel_grid_size, voxel_grid_size);
@@ -48,7 +57,7 @@ int main()
     pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud (new pcl::PointCloud<pcl::PointXYZ>);
     vox_grid.filter (*tempCloud);
     cloud = tempCloud;
-    /*
+
     // Create transform
     float theta = M_PI / 4.0f;
 
@@ -58,15 +67,14 @@ int main()
     // Executing the transformation
     pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud (new pcl::PointCloud<pcl::PointXYZ> ());
     pcl::transformPointCloud (*cloud, *transformed_cloud, transform);
-    */
 
     FeatureCloud target_cloud;
     target_cloud.setInputCloud(cloud);
     //target_cloud.loadInputCloud(personfile);
 
     FeatureCloud template_cloud;
-    //template_cloud.setInputCloud(transformed_cloud);
-    template_cloud.loadInputCloud(templatefile);
+    template_cloud.setInputCloud(transformed_cloud);
+    //template_cloud.loadInputCloud(templatefile);
 
     TemplateAlignment template_align;
     template_align.addTemplateCloud(template_cloud);

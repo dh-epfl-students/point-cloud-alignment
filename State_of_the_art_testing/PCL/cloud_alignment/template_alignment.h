@@ -26,8 +26,8 @@ class TemplateAlignment
       min_sample_distance_ (0.05f),
       max_correspondence_distance_ (0.01f*0.01f),
       nr_iterations_ (100),
-      approx_overlap(0.1),
-      voxel_size(0.01f),
+      approx_overlap(1.0),
+      voxel_size(0.5f),
       abort_score(0.0),
       nr_threads(4)
     {

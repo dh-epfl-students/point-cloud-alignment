@@ -25,8 +25,8 @@ class FeatureCloud
 
     FeatureCloud () :
       search_method_xyz_ (new SearchMethod),
-      normal_radius_ (0.5f),
-      feature_radius_ (0.5f)
+      normal_radius_ (0.02f),
+      feature_radius_ (0.02f)
     {}
 
     ~FeatureCloud () {}
