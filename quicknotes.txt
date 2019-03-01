@@ -5,6 +5,7 @@ TODOs:
 -	Test state of the art algos with our PCs.
 	-	KFPCS: Does not work at all!
 	-	SAC-IA: Does not Work
+	-	Tryed to test [24] but i did not manage to compile the code.
 -	Clean plane segmentation algorithm and port it to PCL.
 
 Papers:
