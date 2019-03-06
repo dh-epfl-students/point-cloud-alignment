@@ -20,7 +20,7 @@ public:
 
     PointCloud::Ptr getPointCloud();
     NormalCloud::Ptr getNormalCloud();
-    KdTreeFLANN::Ptr getKdTree();
+    KdTreeFlann::Ptr getKdTree();
 
 private:
     bool is_started = false;
@@ -28,7 +28,7 @@ private:
 
     PointCloud::Ptr p_cloud;
     NormalCloud::Ptr p_normals;
-    KdTreeFLANN::Ptr p_kdtree;
+    KdTreeFlann::Ptr p_kdtree;
 
     void mainloop();
 };

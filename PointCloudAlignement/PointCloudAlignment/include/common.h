@@ -17,7 +17,7 @@ typedef Eigen::Matrix3f mat3;
 
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 typedef pcl::PointCloud<pcl::Normal> NormalCloud;
-typedef pcl::KdTreeFLANN<pcl::PointXYZ> KdTreeFLANN;
+typedef pcl::KdTreeFLANN<pcl::PointXYZ> KdTreeFlann;
 
 inline float squaredDistance(vec3 p1, vec3 p2) {
     vec3 p = p1 - p2;

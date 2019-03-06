@@ -15,7 +15,8 @@ int PlaneSegmentation::init(string cloud_file)
     cout << "Pointcloud containing " << p_cloud->points.size() << " points loaded." << endl;
 
     // Fill kdtree search strucuture
-
+    p_kdtree = KdTreeFlann::Ptr(new KdTreeFlann);
+    p_kdtree->setInputCloud(p_cloud);
 
     cout << "Starting to compute normal cloud..." << endl;
 
@@ -25,6 +26,7 @@ int PlaneSegmentation::init(string cloud_file)
     nc.computeNormalCloud(p_cloud, p_kdtree, p_normals);
 
     is_ready = true;
+    return EXIT_SUCCESS;
 }
 
 bool PlaneSegmentation::isReady()
