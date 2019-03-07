@@ -13,4 +13,5 @@ public:
 
 private:
     float estimateKForPoint(int p_id, PointCloud::Ptr cloud_in, KdTreeFlann::Ptr kdTree);
+    float computeCurvature(PointCloud::Ptr cloud, vector<int> indices, vector<float> sqrd_distances, Point3 p);
 };

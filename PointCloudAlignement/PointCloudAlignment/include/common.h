@@ -15,6 +15,7 @@ typedef Eigen::Vector3d vec3d;
 typedef Eigen::Matrix4f mat4;
 typedef Eigen::Matrix3f mat3;
 
+typedef pcl::PointXYZ Point3;
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 typedef pcl::PointCloud<pcl::Normal> NormalCloud;
 typedef pcl::KdTreeFLANN<pcl::PointXYZ> KdTreeFlann;

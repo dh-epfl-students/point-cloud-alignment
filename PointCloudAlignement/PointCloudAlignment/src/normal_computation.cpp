@@ -25,21 +25,51 @@ void NormalComputation::computeNormalCloud(PointCloud::Ptr cloud_in, KdTreeFlann
 
 float NormalComputation::estimateKForPoint(int p_id, PointCloud::Ptr cloud_in, KdTreeFlann::Ptr kdTree_in)
 {
+    int thread_id = omp_get_thread_num();
+
     float d1(1), d2(4), e(0.1), max_k(50), max_count(10), sigma(0.2);
     int k(15), count(0);
 
-    float r_old, r_new, density, curv;
-    pcl::PointXYZ p = cloud_in->points.at(p_id);
+    float r_new, density, curv;
+    Point3 p = cloud_in->points.at(p_id);
 
     do {
         vector<int> indices;
-        vector<float> sqrt_distances;
-        kdTree_in->nearestKSearchT(p, k, indices, sqrt_distances);
+        vector<float> sqrd_distances;
+        kdTree_in->nearestKSearchT(p, k, indices, sqrd_distances);
 
+        cout << "Thread " << thread_id << ": Point " << p_id << " neighborhood size: " << indices.size() << endl;
 
+        // Compute density estimation using 
+        // the squared distance to farest neighbor found.
+        density = k / (M_PI * sqrd_distances.back());
+
+        curv = computeCurvature(cloud_in, indices, sqrd_distances, p);
+
+        r_new = approxR(curv, d1, d2, sigma, e, density);
+
+        k = std::ceil(M_PI * density * r_new * r_new);
+        k = std::max(10, k);
+        k = std::min(50, k);
 
         count++;
     } while(k < max_k && count < max_count);
 
     return k;
+}
+
+float NormalComputation::computeCurvature(PointCloud::Ptr cloud, vector<int> indices, vector<float> sqrd_distances, Point3 p)
+{
+    if(indices.size() <= 3) return 0.0f;
+
+    float avgDist(0.0f);
+    for_each(sqrd_distances.begin(), sqrd_distances.end(), [&avgDist](const float d)
+        {
+            avgDist += std::sqrt(d);
+        }
+    );
+    avgDist /= sqrd_distances.size();
+
+    // Estimate best fit plane for the indices found.
+
 }
