@@ -18,8 +18,8 @@ public:
 
     void stop();
 
-    PointCloud::Ptr getPointCloud();
-    NormalCloud::Ptr getNormalCloud();
+    PointCloud::Ptr getPointCloud() { return this->p_cloud; }
+    NormalCloud::Ptr getNormalCloud() { return this->p_normals; }
     KdTreeFlann::Ptr getKdTree();
 
 private:

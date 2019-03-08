@@ -40,29 +40,12 @@ int main()
     pcl::visualization::PCLVisualizer::Ptr viewer = setupViewer();
 
     algo.init(pcFile);
-/*
-    PointCloud::Ptr p_cloud(new PointCloud);
-    if(pcl::io::loadPLYFile(pcFile, *p_cloud) == -1) {
-        PCL_ERROR("Could not read given ply file\n");
-        return EXIT_FAILURE;
-    }
 
-    // Compute normals estimations
-    pcl::NormalEstimationOMP<pcl::PointXYZ, pcl::Normal> ne;
-    ne.setInputCloud(p_cloud);
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr p_tree(new pcl::search::KdTree<pcl::PointXYZ>());
-    ne.setSearchMethod(p_tree);
-    //ne.setRadiusSearch(10);
-    ne.setKSearch(25);
-    NormalCloud::Ptr p_normals(new NormalCloud);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color(algo.getPointCloud(), 0, 255, 0);
+    viewer->addPointCloud(algo.getPointCloud(), single_color, "point_cloud");
 
-    ne.compute(*p_normals);
+    viewer->addPointCloudNormals<pcl::PointXYZ, pcl::Normal>(algo.getPointCloud(), algo.getNormalCloud(), 1, 1, "normals");
 
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color(p_cloud, 0, 255, 0);
-    viewer->addPointCloud(p_cloud, single_color, "point_cloud");
-
-    viewer->addPointCloudNormals<pcl::PointXYZ, pcl::Normal>(p_cloud, p_normals, 5, 1, "normals");
-*/
     // Drawing loop
     while(!viewer->wasStopped()) {
         viewer->spinOnce(100);

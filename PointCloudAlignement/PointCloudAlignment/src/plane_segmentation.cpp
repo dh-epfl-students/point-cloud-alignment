@@ -25,6 +25,8 @@ int PlaneSegmentation::init(string cloud_file)
     NormalComputation nc;
     nc.computeNormalCloud(p_cloud, p_kdtree, p_normals);
 
+    cout << "Normal computation successfully ended." << endl;
+
     is_ready = true;
     return EXIT_SUCCESS;
 }

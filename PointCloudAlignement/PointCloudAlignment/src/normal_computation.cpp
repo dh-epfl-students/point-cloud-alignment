@@ -14,11 +14,20 @@ void NormalComputation::computeNormalCloud(PointCloud::Ptr cloud_in, KdTreeFlann
             int thread_id = omp_get_thread_num();
             // compute appropriate K value for current point
             int k = estimateKForPoint(i, cloud_in, kdTree_in);
-            cout << "Thread " << thread_id << " Point " << i << " with k=" << k << endl;
+            //cout << "Thread " << thread_id << " Point " << i << " with k=" << k << endl;
 
             // get K neighborhood indices
+            vector<int> indices;
+            vector<float> sqrd_distances;
+            kdTree_in->nearestKSearch(cloud_in->points.at(i), k, indices, sqrd_distances);
 
             // compute normal
+            pcl::NormalEstimationOMP<Point3, pcl::Normal> ne;
+            vec4 plane_parameters;
+            float curvature;
+            ne.computePointNormal(*cloud_in, indices, plane_parameters, curvature);
+
+            normals_out->points[i] = pcl::Normal(plane_parameters.x(), plane_parameters.y(), plane_parameters.z());
         }
     }
 }
@@ -34,11 +43,11 @@ float NormalComputation::estimateKForPoint(int p_id, PointCloud::Ptr cloud_in, K
     Point3 p = cloud_in->points.at(p_id);
 
     do {
-        vector<int> indices;
+        boost::shared_ptr<vector<int>> indices(new vector<int>);
         vector<float> sqrd_distances;
-        kdTree_in->nearestKSearchT(p, k, indices, sqrd_distances);
+        kdTree_in->nearestKSearchT(p, k, *indices, sqrd_distances);
 
-        cout << "Thread " << thread_id << ": Point " << p_id << " neighborhood size: " << indices.size() << endl;
+        //cout << "Thread " << thread_id << ": Point " << p_id << " neighborhood size: " << indices->size() << endl;
 
         // Compute density estimation using 
         // the squared distance to farest neighbor found.
@@ -58,9 +67,9 @@ float NormalComputation::estimateKForPoint(int p_id, PointCloud::Ptr cloud_in, K
     return k;
 }
 
-float NormalComputation::computeCurvature(PointCloud::Ptr cloud, vector<int> indices, vector<float> sqrd_distances, Point3 p)
+float NormalComputation::computeCurvature(PointCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices, vector<float> sqrd_distances, Point3 p)
 {
-    if(indices.size() <= 3) return 0.0f;
+    if(indices->size() <= 3) return 0.0f;
 
     float avgDist(0.0f);
     for_each(sqrd_distances.begin(), sqrd_distances.end(), [&avgDist](const float d)
@@ -71,5 +80,8 @@ float NormalComputation::computeCurvature(PointCloud::Ptr cloud, vector<int> ind
     avgDist /= sqrd_distances.size();
 
     // Estimate best fit plane for the indices found.
+    Plane plane;
+    Plane::estimatePlane(cloud, indices, plane);
 
+    return 2.0f * plane.distanceTo(vec3(p.x, p.y, p.z)) / (avgDist * avgDist);
 }

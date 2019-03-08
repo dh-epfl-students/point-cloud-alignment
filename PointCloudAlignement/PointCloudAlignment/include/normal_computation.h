@@ -5,6 +5,7 @@
 #include <pcl/features/normal_3d_omp.h>
 
 #include "common.h"
+#include "plane.h"
 
 
 class NormalComputation {
@@ -13,5 +14,5 @@ public:
 
 private:
     float estimateKForPoint(int p_id, PointCloud::Ptr cloud_in, KdTreeFlann::Ptr kdTree);
-    float computeCurvature(PointCloud::Ptr cloud, vector<int> indices, vector<float> sqrd_distances, Point3 p);
+    float computeCurvature(PointCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices, vector<float> sqrd_distances, Point3 p);
 };
