@@ -41,10 +41,11 @@ int main()
 
     algo.init(pcFile);
 
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color(algo.getPointCloud(), 0, 255, 0);
-    viewer->addPointCloud(algo.getPointCloud(), single_color, "point_cloud");
+    pcl::visualization::PointCloudColorHandlerGenericField<Point3N> curv(algo.getPointCloud(), "curvature");
+    //pcl::visualization::PointCloudColorHandlerCustom<Point3N> single_color(algo.getPointCloud(), 0, 255, 0);
+    viewer->addPointCloud(algo.getPointCloud(), curv, "point_cloud");
 
-    viewer->addPointCloudNormals<pcl::PointXYZ, pcl::Normal>(algo.getPointCloud(), algo.getNormalCloud(), 1, 1, "normals");
+    //viewer->addPointCloudNormals<Point3N, Point3N>(algo.getPointCloud(), algo.getPointCloud(), 1, 1, "normals");
 
     // Drawing loop
     while(!viewer->wasStopped()) {

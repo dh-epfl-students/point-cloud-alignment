@@ -2,7 +2,7 @@
 
 int PlaneSegmentation::init(string cloud_file)
 {
-    p_cloud = PointCloud::Ptr(new PointCloud);
+    p_cloud = PointNormalCloud::Ptr(new PointNormalCloud);
 
     int r = pcl::io::loadPCDFile(cloud_file, *p_cloud);
 
@@ -20,10 +20,10 @@ int PlaneSegmentation::init(string cloud_file)
 
     cout << "Starting to compute normal cloud..." << endl;
 
-    p_normals = NormalCloud::Ptr(new NormalCloud);
+    //p_normals = NormalCloud::Ptr(new NormalCloud);
 
     NormalComputation nc;
-    nc.computeNormalCloud(p_cloud, p_kdtree, p_normals);
+    nc.computeNormalCloud(p_cloud, p_kdtree/*, p_normals*/);
 
     cout << "Normal computation successfully ended." << endl;
 
@@ -58,10 +58,4 @@ void PlaneSegmentation::stop()
 void PlaneSegmentation::mainloop()
 {
 
-}
-
-bool PlaneSegmentation::checkAreaForValidPlane(int p_id, vector<int> &indices_in)
-{
-    Eigen::VectorXf pfh_histogram;
-    pcl::computePointPFHSignature(*p_cloud, *p_normals, indices_in, 1, &pfh_histogram);
 }

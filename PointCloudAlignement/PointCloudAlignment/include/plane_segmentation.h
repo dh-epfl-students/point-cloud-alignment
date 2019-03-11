@@ -9,9 +9,14 @@
 #include "common.h"
 #include "normal_computation.h"
 
+#define PHASE1_ITERATIONS 3
+#define MIN_STABLE_SIZE 100
+
 class PlaneSegmentation {
 public:
     int init(string cloud_file);
+
+    void setViewerUpdateCallback(void* callback);
 
     bool isReady();
 
@@ -19,18 +24,21 @@ public:
 
     void stop();
 
-    PointCloud::Ptr getPointCloud() { return this->p_cloud; }
-    NormalCloud::Ptr getNormalCloud() { return this->p_normals; }
-    KdTreeFlann::Ptr getKdTree();
+    PointNormalCloud::Ptr getPointCloud() { return this->p_cloud; }
+    KdTreeFlann::Ptr getKdTree() { return this->p_kdtree; }
 
 private:
     bool is_started = false;
     bool is_ready = false;
 
-    PointCloud::Ptr p_cloud;
-    NormalCloud::Ptr p_normals;
+    PointNormalCloud::Ptr p_cloud;
     KdTreeFlann::Ptr p_kdtree;
 
     void mainloop();
-    bool checkAreaForValidPlane();
+    int adjustStartLocation();
+
+    void segmentPlane();
+    void performFirstPhase();
+    void performSndPhase();
+    void performOneStep();
 };

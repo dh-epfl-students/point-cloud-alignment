@@ -25,10 +25,10 @@ void Plane::cartesianToNormal(vec3 &n, float &d) {
     n = v.normalized();
 }
 
-void Plane::estimatePlane(PointCloud::Ptr cloud_in, boost::shared_ptr<vector<int>> indices_in, Plane &plane) {
+void Plane::estimatePlane(PointNormalCloud::Ptr cloud_in, boost::shared_ptr<vector<int>> indices_in, Plane &plane) {
     // Get list of points
-    PointCloud::Ptr cloud_f(new PointCloud);
-    pcl::ExtractIndices<Point3> iFilter(false);
+    PointNormalCloud::Ptr cloud_f(new PointNormalCloud);
+    pcl::ExtractIndices<Point3N> iFilter(false);
     iFilter.setInputCloud(cloud_in);
     iFilter.setIndices(indices_in);
     iFilter.filter(*cloud_f);

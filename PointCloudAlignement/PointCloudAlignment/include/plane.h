@@ -20,7 +20,7 @@ public:
     float distanceTo(vec3 p);
     void cartesianToNormal(vec3 &n, float &d);
 
-    static void estimatePlane(PointCloud::Ptr cloud_in, boost::shared_ptr<vector<int> > indices_in, Plane &plane);
+    static void estimatePlane(PointNormalCloud::Ptr cloud_in, boost::shared_ptr<vector<int> > indices_in, Plane &plane);
 private:
     float a, b, c, d;
     vec4 center;

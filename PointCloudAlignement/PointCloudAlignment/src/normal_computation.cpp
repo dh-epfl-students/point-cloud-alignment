@@ -1,53 +1,47 @@
 #include "normal_computation.h"
 
-void NormalComputation::computeNormalCloud(PointCloud::Ptr cloud_in, KdTreeFlann::Ptr kdTree_in, NormalCloud::Ptr normals_out)
+void NormalComputation::computeNormalCloud(PointNormalCloud::Ptr cloud_in, KdTreeFlann::Ptr kdTree_in)
 {
-    // resize normals_out.points to size of cloud_in
-    normals_out->resize(cloud_in->size());
-
     // parallel for loop on each point p in cloud_in
-    #pragma omp parallel
+    #pragma omp parallel for schedule(dynamic)
+    for(int i = 0; i < cloud_in->size(); ++i)
     {
-        #pragma omp for schedule(dynamic)
-        for(int i = 0; i < cloud_in->size(); ++i)
-        {
-            int thread_id = omp_get_thread_num();
-            // compute appropriate K value for current point
-            int k = estimateKForPoint(i, cloud_in, kdTree_in);
-            //cout << "Thread " << thread_id << " Point " << i << " with k=" << k << endl;
+        // compute appropriate K value for current point
+        int k = estimateKForPoint(i, cloud_in, kdTree_in);
 
-            // get K neighborhood indices
-            vector<int> indices;
-            vector<float> sqrd_distances;
-            kdTree_in->nearestKSearch(cloud_in->points.at(i), k, indices, sqrd_distances);
+        // get K neighborhood indices
+        vector<int> indices;
+        vector<float> sqrd_distances;
+        kdTree_in->nearestKSearch(cloud_in->points.at(i), k, indices, sqrd_distances);
 
-            // compute normal
-            pcl::NormalEstimationOMP<Point3, pcl::Normal> ne;
-            vec4 plane_parameters;
-            float curvature;
-            ne.computePointNormal(*cloud_in, indices, plane_parameters, curvature);
+        // compute normal
+        pcl::NormalEstimationOMP<Point3N, pcl::Normal> ne;
+        vec4 plane_parameters;
+        float curvature;
+        ne.computePointNormal(*cloud_in, indices, plane_parameters, curvature);
 
-            normals_out->points[i] = pcl::Normal(plane_parameters.x(), plane_parameters.y(), plane_parameters.z());
-        }
+        Point3N pn = pcl::PointNormal(cloud_in->points[i]);
+        pn.normal[0] = plane_parameters.x();
+        pn.normal[1] = plane_parameters.y();
+        pn.normal[2] = plane_parameters.z();
+        pn.curvature = curvature;
+
+        cloud_in->points[i] = pn;
     }
 }
 
-float NormalComputation::estimateKForPoint(int p_id, PointCloud::Ptr cloud_in, KdTreeFlann::Ptr kdTree_in)
+float NormalComputation::estimateKForPoint(int p_id, PointNormalCloud::Ptr cloud_in, KdTreeFlann::Ptr kdTree_in)
 {
-    //int thread_id = omp_get_thread_num();
-
     float d1(1), d2(4), e(0.1), max_k(50), max_count(10), sigma(0.2);
     int k(15), count(0);
 
     float r_new, density, curv;
-    Point3 p = cloud_in->points.at(p_id);
+    Point3N p = cloud_in->points.at(p_id);
 
     do {
         boost::shared_ptr<vector<int>> indices(new vector<int>);
         vector<float> sqrd_distances;
         kdTree_in->nearestKSearchT(p, k, *indices, sqrd_distances);
-
-        //cout << "Thread " << thread_id << ": Point " << p_id << " neighborhood size: " << indices->size() << endl;
 
         // Compute density estimation using 
         // the squared distance to farest neighbor found.
@@ -67,7 +61,7 @@ float NormalComputation::estimateKForPoint(int p_id, PointCloud::Ptr cloud_in, K
     return k;
 }
 
-float NormalComputation::computeCurvature(PointCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices, vector<float> sqrd_distances, Point3 p)
+float NormalComputation::computeCurvature(PointNormalCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices, vector<float> sqrd_distances, Point3N p)
 {
     if(indices->size() <= 3) return 0.0f;
 
