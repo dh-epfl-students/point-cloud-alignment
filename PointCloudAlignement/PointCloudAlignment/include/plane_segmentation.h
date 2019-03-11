@@ -4,6 +4,7 @@
 
 #include <pcl/io/ply_io.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/features/pfh.h>
 
 #include "common.h"
 #include "normal_computation.h"
@@ -31,4 +32,5 @@ private:
     KdTreeFlann::Ptr p_kdtree;
 
     void mainloop();
+    bool checkAreaForValidPlane();
 };

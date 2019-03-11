@@ -44,9 +44,24 @@ void PlaneSegmentation::start_pause()
     }
 
     is_started = !is_started;
+
+    if(!is_started) return;
+
+
 }
 
 void PlaneSegmentation::stop()
 {
     is_started = false;
+}
+
+void PlaneSegmentation::mainloop()
+{
+
+}
+
+bool PlaneSegmentation::checkAreaForValidPlane(int p_id, vector<int> &indices_in)
+{
+    Eigen::VectorXf pfh_histogram;
+    pcl::computePointPFHSignature(*p_cloud, *p_normals, indices_in, 1, &pfh_histogram);
 }

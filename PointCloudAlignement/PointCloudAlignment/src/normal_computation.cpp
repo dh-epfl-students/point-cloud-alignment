@@ -8,7 +8,7 @@ void NormalComputation::computeNormalCloud(PointCloud::Ptr cloud_in, KdTreeFlann
     // parallel for loop on each point p in cloud_in
     #pragma omp parallel
     {
-        #pragma omp for
+        #pragma omp for schedule(dynamic)
         for(int i = 0; i < cloud_in->size(); ++i)
         {
             int thread_id = omp_get_thread_num();
@@ -34,7 +34,7 @@ void NormalComputation::computeNormalCloud(PointCloud::Ptr cloud_in, KdTreeFlann
 
 float NormalComputation::estimateKForPoint(int p_id, PointCloud::Ptr cloud_in, KdTreeFlann::Ptr kdTree_in)
 {
-    int thread_id = omp_get_thread_num();
+    //int thread_id = omp_get_thread_num();
 
     float d1(1), d2(4), e(0.1), max_k(50), max_count(10), sigma(0.2);
     int k(15), count(0);
