@@ -22,6 +22,7 @@
 
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/visualization/impl/pcl_visualizer.hpp>
+#include <pcl/visualization/impl/point_cloud_geometry_handlers.hpp>
 
 namespace pcl
 {
