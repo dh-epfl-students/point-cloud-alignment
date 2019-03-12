@@ -24,15 +24,15 @@ public:
 
     void stop();
 
-    PointNormalCloud::Ptr getPointCloud() { return this->p_cloud; }
-    KdTreeFlann::Ptr getKdTree() { return this->p_kdtree; }
+    PointNormalKCloud::Ptr getPointCloud() { return this->p_cloud; }
+    KdTreeFlannK::Ptr getKdTree() { return this->p_kdtree; }
 
 private:
     bool is_started = false;
     bool is_ready = false;
 
-    PointNormalCloud::Ptr p_cloud;
-    KdTreeFlann::Ptr p_kdtree;
+    PointNormalKCloud::Ptr p_cloud;
+    KdTreeFlannK::Ptr p_kdtree;
 
     void mainloop();
     int adjustStartLocation();

@@ -2,9 +2,7 @@
 
 #include <Eigen/Core>
 
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl/search/kdtree.h>
+#include "point_normal_k.h"
 
 using namespace std;
 
@@ -14,10 +12,6 @@ typedef Eigen::Vector4f vec4;
 typedef Eigen::Vector3d vec3d;
 typedef Eigen::Matrix4f mat4;
 typedef Eigen::Matrix3f mat3;
-
-typedef pcl::PointNormal Point3N;
-typedef pcl::PointCloud<Point3N> PointNormalCloud;
-typedef pcl::KdTreeFLANN<Point3N> KdTreeFlann;
 
 inline float squaredDistance(vec3 p1, vec3 p2) {
     vec3 p = p1 - p2;

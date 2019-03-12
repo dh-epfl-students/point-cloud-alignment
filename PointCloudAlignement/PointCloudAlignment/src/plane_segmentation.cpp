@@ -2,7 +2,7 @@
 
 int PlaneSegmentation::init(string cloud_file)
 {
-    p_cloud = PointNormalCloud::Ptr(new PointNormalCloud);
+    p_cloud = PointNormalKCloud::Ptr(new PointNormalKCloud);
 
     int r = pcl::io::loadPCDFile(cloud_file, *p_cloud);
 
@@ -15,15 +15,13 @@ int PlaneSegmentation::init(string cloud_file)
     cout << "Pointcloud containing " << p_cloud->points.size() << " points loaded." << endl;
 
     // Fill kdtree search strucuture
-    p_kdtree = KdTreeFlann::Ptr(new KdTreeFlann);
+    p_kdtree = KdTreeFlannK::Ptr(new KdTreeFlannK);
     p_kdtree->setInputCloud(p_cloud);
 
     cout << "Starting to compute normal cloud..." << endl;
 
-    //p_normals = NormalCloud::Ptr(new NormalCloud);
-
     NormalComputation nc;
-    nc.computeNormalCloud(p_cloud, p_kdtree/*, p_normals*/);
+    nc.computeNormalCloud(p_cloud, p_kdtree);
 
     cout << "Normal computation successfully ended." << endl;
 

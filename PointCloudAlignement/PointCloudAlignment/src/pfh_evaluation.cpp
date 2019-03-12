@@ -1,9 +1,9 @@
 #include "pfh_evaluation.h"
 
-bool PFHEvaluation::isValidPlane(PointNormalCloud::Ptr points, vector<int> &indices)
+bool PFHEvaluation::isValidPlane(PointNormalKCloud::Ptr points, vector<int> &indices)
 {
     Eigen::VectorXf pfh_histogram;
-    pcl::PFHEstimation<Point3N, Point3N, pcl::PFHSignature125> pfh;
+    pcl::PFHEstimation<PointNormalK, PointNormalK, pcl::PFHSignature125> pfh;
     pfh.computePointPFHSignature(*points, *points, indices, 5, pfh_histogram);
 
     cout << "PFHSignature125 dimensions: " << pfh_histogram.rows() << ", " << pfh_histogram.cols() << endl;

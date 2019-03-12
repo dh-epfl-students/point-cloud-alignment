@@ -1,10 +1,10 @@
 #include <iostream>
 #include <string>
 
-#include "common.h"
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
+#include "common.h"
 #include "plane_segmentation.h"
 
 using namespace std;
@@ -41,7 +41,7 @@ int main()
 
     algo.init(pcFile);
 
-    pcl::visualization::PointCloudColorHandlerGenericField<Point3N> curv(algo.getPointCloud(), "curvature");
+    pcl::visualization::PointCloudColorHandlerGenericField<PointNormalK> curv(algo.getPointCloud(), "curvature");
     //pcl::visualization::PointCloudColorHandlerCustom<Point3N> single_color(algo.getPointCloud(), 0, 255, 0);
     viewer->addPointCloud(algo.getPointCloud(), curv, "point_cloud");
 

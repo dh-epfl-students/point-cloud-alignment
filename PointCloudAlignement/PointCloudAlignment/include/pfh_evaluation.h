@@ -14,7 +14,7 @@ public:
     PFHEvaluation(){}
     ~PFHEvaluation(){}
 
-    static bool isValidPlane(PointNormalCloud::Ptr points, vector<int> &indices_in);
+    static bool isValidPlane(PointNormalKCloud::Ptr points, vector<int> &indices_in);
 
 private:
     bool isInInterval(float mean, float dev, float ref);

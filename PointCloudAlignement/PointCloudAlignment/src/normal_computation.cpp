@@ -1,6 +1,6 @@
 #include "normal_computation.h"
 
-void NormalComputation::computeNormalCloud(PointNormalCloud::Ptr cloud_in, KdTreeFlann::Ptr kdTree_in)
+void NormalComputation::computeNormalCloud(PointNormalKCloud::Ptr cloud_in, KdTreeFlannK::Ptr kdTree_in)
 {
     // parallel for loop on each point p in cloud_in
     #pragma omp parallel for schedule(dynamic)
@@ -15,28 +15,29 @@ void NormalComputation::computeNormalCloud(PointNormalCloud::Ptr cloud_in, KdTre
         kdTree_in->nearestKSearch(cloud_in->points.at(i), k, indices, sqrd_distances);
 
         // compute normal
-        pcl::NormalEstimationOMP<Point3N, pcl::Normal> ne;
+        pcl::NormalEstimationOMP<PointNormalK, pcl::Normal> ne;
         vec4 plane_parameters;
         float curvature;
         ne.computePointNormal(*cloud_in, indices, plane_parameters, curvature);
 
-        Point3N pn = pcl::PointNormal(cloud_in->points[i]);
-        pn.normal[0] = plane_parameters.x();
-        pn.normal[1] = plane_parameters.y();
-        pn.normal[2] = plane_parameters.z();
+        PointNormalK pn = PointNormalK(cloud_in->points[i]);
+        pn.normal_x = plane_parameters.x();
+        pn.normal_y = plane_parameters.y();
+        pn.normal_z = plane_parameters.z();
         pn.curvature = curvature;
+        pn.k = k;
 
         cloud_in->points[i] = pn;
     }
 }
 
-float NormalComputation::estimateKForPoint(int p_id, PointNormalCloud::Ptr cloud_in, KdTreeFlann::Ptr kdTree_in)
+float NormalComputation::estimateKForPoint(int p_id, PointNormalKCloud::Ptr cloud_in, KdTreeFlannK::Ptr kdTree_in)
 {
     float d1(1), d2(4), e(0.1), max_k(50), max_count(10), sigma(0.2);
     int k(15), count(0);
 
     float r_new, density, curv;
-    Point3N p = cloud_in->points.at(p_id);
+    PointNormalK p = cloud_in->points.at(p_id);
 
     do {
         boost::shared_ptr<vector<int>> indices(new vector<int>);
@@ -61,7 +62,7 @@ float NormalComputation::estimateKForPoint(int p_id, PointNormalCloud::Ptr cloud
     return k;
 }
 
-float NormalComputation::computeCurvature(PointNormalCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices, vector<float> sqrd_distances, Point3N p)
+float NormalComputation::computeCurvature(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices, vector<float> sqrd_distances, PointNormalK p)
 {
     if(indices->size() <= 3) return 0.0f;
 
