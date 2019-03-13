@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 
+#include <omp.h>
+
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
@@ -11,6 +13,7 @@ using namespace std;
 
 PlaneSegmentation algo;
 bool isNormalDisplayed = false;
+pcl::visualization::PCLVisualizer::Ptr p_viewer;
 
 void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
                       void* viewer_void)
@@ -55,8 +58,16 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     }
 }
 
+void display_update_callback(PointNormalKCloud::Ptr p_cloud)
+{
+    p_viewer->updatePointCloud<PointNormalK>(p_cloud, "point_cloud");
+}
+
+function<void(PointNormalKCloud::Ptr)> display_update_callable = &display_update_callback;
+
 // Start and setup viewer
-pcl::visualization::PCLVisualizer::Ptr setupViewer() {
+pcl::visualization::PCLVisualizer::Ptr setupViewer()
+{
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
     viewer->setBackgroundColor(0.1, 0.1, 0.1);
     //viewer->addCoordinateSystem(5.0);
@@ -71,16 +82,30 @@ int main()
 {
     string pcFile("/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safe.ply");
 
-    pcl::visualization::PCLVisualizer::Ptr viewer = setupViewer();
+    p_viewer = setupViewer();
 
-    algo.init(pcFile);
+    algo.init(pcFile, &display_update_callback);
 
     pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> single_color(algo.getPointCloud(), 0, 255, 0);
-    viewer->addPointCloud(algo.getPointCloud(), single_color, "point_cloud");
+    p_viewer->addPointCloud(algo.getPointCloud(), single_color, "point_cloud");
 
-    // Drawing loop
-    while(!viewer->wasStopped()) {
-        viewer->spinOnce(100);
+    // Start plane segmentation thread
+    #pragma omp parallel
+    {
+        #pragma omp master
+        {
+            // Drawing loop
+            while(!p_viewer->wasStopped())
+            {
+                p_viewer->spinOnce(100);
+            }
+            algo.stop();
+        }
+
+        #pragma omp single nowait
+        {
+            algo.runMainLoop();
+        }
     }
 
     return 0;

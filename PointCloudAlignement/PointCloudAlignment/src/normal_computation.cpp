@@ -64,7 +64,7 @@ float NormalComputation::estimateKForPoint(int p_id, PointNormalKCloud::Ptr clou
 
 float NormalComputation::computeCurvature(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices, vector<float> sqrd_distances, PointNormalK p)
 {
-    if(indices->size() <= 3) return 0.0f;
+    if(indices->size() <= 3) return 1.0f;
 
     float avgDist(0.0f);
     for_each(sqrd_distances.begin(), sqrd_distances.end(), [&avgDist](const float d)
