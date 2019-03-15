@@ -54,7 +54,7 @@ float NormalComputation::estimateKForPoint(int p_id, PointNormalKCloud::Ptr clou
 
         k = std::ceil(M_PI * density * r_new * r_new);
         k = std::max(10, k);
-        k = std::min(50, k);
+        k = std::min(max_k, k);
 
         count++;
     } while(k < max_k && count < max_count);
