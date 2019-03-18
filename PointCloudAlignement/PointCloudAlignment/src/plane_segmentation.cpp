@@ -44,6 +44,8 @@ int PlaneSegmentation::init(string cloud_file)
     // Initialize remaining variables
     safety_distance = 0;
 
+    //TODO: initialize segmented_points_container
+
     is_ready = true;
     return EXIT_SUCCESS;
 }
@@ -90,6 +92,11 @@ void PlaneSegmentation::stop()
     dont_quit = false;
 }
 
+void PlaneSegmentation::stop_current_plane_segmentation()
+{
+    is_started = false;
+}
+
 bool PlaneSegmentation::initRegionGrowth()
 {
     // Get first neighborhood
@@ -131,13 +138,56 @@ void PlaneSegmentation::performRegionGrowth()
 {
     while(is_started)
     {
+        cout << "Segmenting plane " << current_run.plane_nb << ": iteration " << current_run.iteration << endl;
+
         //TODO: Check for termination conditions
+        if(segmented_points_container.getNbOfSegmentedPoints() > 0.8 * p_cloud->size())
+        {
+            //Stop, majority of points have been segmented -> Success
+            stop();
+            return;
+        }
+
+        current_run.prev_size = current_run.p_nghbrs_indices->indices.size();
 
         //TODO: If first 3 iterations, check area for valid plane
+        if(current_run.iteration == PHASE1_ITERATIONS)
+        {
+            if(!PFHEvaluation::isValidPlane(p_cloud,
+                                            current_run.p_nghbrs_indices->indices))
+            {
+                //TODO: Add to exclusion
+
+                stop_current_plane_segmentation();
+                return;
+            }
+            else
+            {
+                // We are on a plane -> increase search radius to speed things up
+                current_run.max_search_distance *= 2.0f;
+                current_run.epsilon *= 2.0f;
+            }
+        }
 
         //TODO: Check if neighborhood has shrinked
+        if(current_run.p_nghbrs_indices->indices.size() < 3)
+        {
+            stop_current_plane_segmentation();
+            return;
+        }
 
         //TODO: Compute current plane
+        if(current_run.p_nghbrs_indices->indices.size() < MIN_STABLE_SIZE)
+        {
+            Plane curr_plane;
+            boost::shared_ptr<vector<int>> ptr_nbhrs_indices(new vector<int>(current_run.p_nghbrs_indices->indices));
+            Plane::estimatePlane(p_cloud, ptr_nbhrs_indices, curr_plane);
+            current_run.plane = curr_plane;
+
+            //TODO: Update normal and epsilon
+            current_run.n = curr_plane.getNormal();
+            current_run.epsilon = curr_plane.getStdDevWith(p_cloud, current_run.p_nghbrs_indices);
+        }
 
         //TODO: Find new candidates
 
@@ -146,6 +196,8 @@ void PlaneSegmentation::performRegionGrowth()
         //TODO: Add good candidate to neighborhood
 
         //TODO: Check for region growth
+
+        current_run.iteration++;
     }
 }
 
@@ -167,11 +219,12 @@ float PlaneSegmentation::getMeanOfMinDistances()
     float acc(0);
 
     #pragma omp parallel for shared(acc)
-    for(int i : current_run.p_nghbrs_indices->indices)
+    for(int i = 0; i < current_run.p_nghbrs_indices->indices.size(); ++i)
     {
+        int p_id = current_run.p_nghbrs_indices->indices[i];
         vector<int> indices(K);
         vector<float> sqrd_distances(K);
-        p_kdtree->nearestKSearch(p_cloud->points[i], K, indices, sqrd_distances);
+        p_kdtree->nearestKSearch(p_cloud->points[p_id], K, indices, sqrd_distances);
         float dist = std::sqrt(sqrd_distances[1]);
 
         #pragma omp critical

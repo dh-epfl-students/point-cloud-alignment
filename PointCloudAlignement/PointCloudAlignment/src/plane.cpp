@@ -11,6 +11,46 @@ void Plane::setCenter(vec4 p) {
     this->center = p;
 }
 
+vec3 Plane::getNormal()
+{
+    vec3 n(a, b, c);
+    return n.normalized();
+}
+
+float Plane::getStdDevWith(PointNormalKCloud::Ptr cloud, PointIndices::Ptr indices)
+{
+    vector<float> distances;
+    distances.resize(indices->indices.size());
+    float dist_mean(0);
+
+    #pragma omp parallel for shared(distances, dist_mean)
+    for(int i = 0; i < indices->indices.size(); ++i)
+    {
+        float d = this->distanceTo(cloud->points[indices->indices[i]]);
+        distances[i] = d;
+
+        #pragma omp critical
+        dist_mean += d;
+    }
+
+    dist_mean /= (float)indices->indices.size();
+
+    float dev(0);
+    for(float i: distances)
+    {
+        dev += std::pow(i - dist_mean, 2.0f);
+    }
+    dev /= (float)indices->indices.size();
+
+    return std::sqrt(dev);
+}
+
+float Plane::distanceTo(PointNormalK p)
+{
+    vec3 p_tmp(p.x, p.y, p.z);
+    return this->distanceTo(p_tmp);
+}
+
 float Plane::distanceTo(vec3 p) {
     vec3 n(0, 0, 0);
     float d(0);

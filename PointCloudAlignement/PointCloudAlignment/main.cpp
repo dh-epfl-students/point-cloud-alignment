@@ -84,7 +84,8 @@ int main()
 
     p_viewer = setupViewer();
 
-    algo.init(pcFile, &display_update_callback);
+    algo.init(pcFile);
+    algo.setViewerUpdateCallback(display_update_callable);
 
     pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> single_color(algo.getPointCloud(), 0, 255, 0);
     p_viewer->addPointCloud(algo.getPointCloud(), single_color, "point_cloud");

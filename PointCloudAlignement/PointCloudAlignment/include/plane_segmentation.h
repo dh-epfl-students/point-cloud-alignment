@@ -11,9 +11,11 @@
 
 #include "common.h"
 #include "normal_computation.h"
+#include "segmented_points_container.h"
+#include "pfh_evaluation.h"
 
 #define PHASE1_ITERATIONS 3
-#define MIN_STABLE_SIZE 100
+#define MIN_STABLE_SIZE 60
 
 class PlaneSegmentation {
 public:
@@ -42,25 +44,31 @@ private:
         PointNormalK root_p;
         PointIndices::Ptr p_nghbrs_indices;
         PointIndices::Ptr p_new_points_indices;
+        Plane plane;
         int iteration;
         int plane_nb;
         int prev_size;
         float max_search_distance;
+        float epsilon;
+        vec3 n;
 
         _RunProperties(): p_nghbrs_indices(new PointIndices),
                             p_new_points_indices(new PointIndices),
                             iteration(0), plane_nb(0), prev_size(0),
-                            max_search_distance(0) {}
+                            max_search_distance(0), epsilon(0), n(0, 0, 0) {}
 
         inline void setupNextPlane(PointNormalK &p)
         {
+            plane = Plane();
             root_p = p;
             plane_nb++;
             iteration = 0;
             prev_size = 0;
             max_search_distance = 0;
+            epsilon = 0;
             p_nghbrs_indices->indices.clear();
             p_new_points_indices->indices.clear();
+            n = vec3(0, 0, 0);
         }
     } RunProperties;
 
@@ -69,8 +77,9 @@ private:
     bool dont_quit = true;
 
     float safety_distance;
-    //float max_distance;
+
     RunProperties current_run;
+    SegmentedPointsContainer segmented_points_container;
 
     function<void(PointNormalKCloud::Ptr)> display_update_callable;
 
@@ -86,4 +95,5 @@ private:
     bool initRegionGrowth();
     void performRegionGrowth();
     void performOneStep();
+    void stop_current_plane_segmentation();
 };
