@@ -190,6 +190,18 @@ void PlaneSegmentation::performRegionGrowth()
         }
 
         //TODO: Find new candidates
+        vector<int> candidates;
+        if(current_run.iteration < PHASE1_ITERATIONS 
+            || current_run.p_nghbrs_indices->indices.size() < MIN_STABLE_SIZE 
+            || current_run.p_new_points_indices->indices.empty())
+        {
+            getNeighborsOf(current_run.p_nghbrs_indices, current_run.max_search_distance, candidates);
+        }
+        else
+        {
+            getNeighborsOf(current_run.p_new_points_indices, current_run.max_search_distance, candidates);
+        }
+        
 
         //TODO: Test them with current plane
 
@@ -256,4 +268,20 @@ int PlaneSegmentation::getRegionGrowingStartLocation()
     */
 
     return tmp_indices.at(0);
+}
+
+void PlaneSegmentation::getNeighborsOf(PointIndices::Ptr indices_in, float search_d, vector<int> indices_out)
+{
+    vector<vector<int>> candidates_lists(omp_get_num_threads());
+
+    #pragma omp parallel for shared(candidates_lists)
+    for(int i = 0; i < indices_in->indices.size(); ++i)
+    {
+        int p_id = indices_in->indices[i];
+        vector<int> candidates;
+        vector<float> distances;
+        p_kdtree->radiusSearch(p_cloud->points[p_id], search_d, candidates, distances);
+
+        //TODO: this!!!
+    }
 }

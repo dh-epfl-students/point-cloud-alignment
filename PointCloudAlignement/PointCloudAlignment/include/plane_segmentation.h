@@ -90,6 +90,7 @@ private:
 
     float getMeanOfMinDistances();
     int getRegionGrowingStartLocation();
+    void getNeighborsOf(PointIndices::Ptr indices_in, float search_d, vector<int> indices_out);
 
     void segmentPlane();
     bool initRegionGrowth();
