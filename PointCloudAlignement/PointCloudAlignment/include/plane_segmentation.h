@@ -47,7 +47,7 @@ private:
         Plane plane;
         int iteration;
         int plane_nb;
-        int prev_size;
+        size_t prev_size;
         float max_search_distance;
         float epsilon;
         vec3 n;
@@ -57,19 +57,8 @@ private:
                             iteration(0), plane_nb(0), prev_size(0),
                             max_search_distance(0), epsilon(0), n(0, 0, 0) {}
 
-        inline void setupNextPlane(PointNormalK &p)
-        {
-            plane = Plane();
-            root_p = p;
-            plane_nb++;
-            iteration = 0;
-            prev_size = 0;
-            max_search_distance = 0;
-            epsilon = 0;
-            p_nghbrs_indices->indices.clear();
-            p_new_points_indices->indices.clear();
-            n = vec3(0, 0, 0);
-        }
+        void setupNextPlane(PointNormalK &p);
+        void addToNeighborhood(vector<int> &new_points);
     } RunProperties;
 
     bool is_started = false;
@@ -77,6 +66,12 @@ private:
     bool dont_quit = true;
 
     float safety_distance;
+
+    /**
+     * @brief Max angle in radians between two normals to be
+     * considered in the same plane
+     */
+    float max_normal_angle = 0.349066f; // = 20°
 
     RunProperties current_run;
     SegmentedPointsContainer segmented_points_container;
@@ -90,7 +85,7 @@ private:
 
     float getMeanOfMinDistances();
     int getRegionGrowingStartLocation();
-    void getNeighborsOf(PointIndices::Ptr indices_in, float search_d, vector<int> indices_out);
+    void getNeighborsOf(PointIndices::Ptr indices_in, float search_d, vector<int> &indices_out);
 
     void segmentPlane();
     bool initRegionGrowth();

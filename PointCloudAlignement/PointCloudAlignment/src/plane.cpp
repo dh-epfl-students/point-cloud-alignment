@@ -24,7 +24,7 @@ float Plane::getStdDevWith(PointNormalKCloud::Ptr cloud, PointIndices::Ptr indic
     float dist_mean(0);
 
     #pragma omp parallel for shared(distances, dist_mean)
-    for(int i = 0; i < indices->indices.size(); ++i)
+    for(size_t i = 0; i < indices->indices.size(); ++i)
     {
         float d = this->distanceTo(cloud->points[indices->indices[i]]);
         distances[i] = d;
@@ -96,4 +96,18 @@ void Plane::estimatePlane(PointNormalKCloud::Ptr cloud_in, boost::shared_ptr<vec
 
     plane.setCoeffs(a, b, c, d);
     plane.setCenter(center);
+}
+
+bool Plane::pointInPlane(PointNormalK p, float epsilon)
+{
+    //TODO: It may be necessary to reorient the normal vector.
+
+    vec3 v(p.x, p.y, p.z);
+    return std::abs(vec3(a, b, c).dot(v) + d) <= epsilon;
+}
+
+bool Plane::normalInPlane(PointNormalK p, float max_angle)
+{
+    vec3 pn(p.normal_x, p.normal_y, p.normal_z);
+    return fabs(getNormal().dot(pn)) <= max_angle;
 }

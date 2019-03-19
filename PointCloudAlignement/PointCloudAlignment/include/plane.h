@@ -22,6 +22,8 @@ public:
     void cartesianToNormal(vec3 &n, float &d);
     vec3 getNormal();
     float getStdDevWith(PointNormalKCloud::Ptr cloud, PointIndices::Ptr indices);
+    bool pointInPlane(PointNormalK p, float epsilon);
+    bool normalInPlane(PointNormalK p, float max_angle);
 
     static void estimatePlane(PointNormalKCloud::Ptr cloud_in, boost::shared_ptr<vector<int> > indices_in, Plane &plane);
 private:

@@ -26,11 +26,11 @@ inline float distance(vec3 p1, vec3 p2) {
     return std::sqrt(squaredDistance(p1, p2));
 }
 
-inline std::vector<uint> intersect_sets(std::vector<uint> &v1, std::vector<uint> &v2) {
+inline std::vector<int> intersect_sets(std::vector<int> &v1, std::vector<int> &v2) {
     std::sort(v1.begin(), v1.end());
     std::sort(v2.begin(), v2.end());
 
-    std::vector<uint> vOut;
+    std::vector<int> vOut;
     std::set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(), std::back_inserter(vOut));
 
     return vOut;
