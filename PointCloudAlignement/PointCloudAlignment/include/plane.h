@@ -5,6 +5,7 @@
 
 #include <pcl/filters/extract_indices.h>
 #include <pcl/features/normal_3d_omp.h>
+#include <pcl/ModelCoefficients.h>
 
 #include "common.h"
 
@@ -21,7 +22,8 @@ public:
     float distanceTo(vec3 p);
     void cartesianToNormal(vec3 &n, float &d);
     vec3 getNormal();
-    float getStdDevWith(PointNormalKCloud::Ptr cloud, PointIndices::Ptr indices);
+    pcl::ModelCoefficients getModelCoefficients();
+    float getStdDevWith(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices);
     bool pointInPlane(PointNormalK p, float epsilon);
     bool normalInPlane(PointNormalK p, float max_angle);
 

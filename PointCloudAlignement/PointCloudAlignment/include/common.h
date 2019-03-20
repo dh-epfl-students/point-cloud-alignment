@@ -15,8 +15,6 @@ typedef Eigen::Vector3d vec3d;
 typedef Eigen::Matrix4f mat4;
 typedef Eigen::Matrix3f mat3;
 
-typedef pcl::PointIndices PointIndices;
-
 inline float squaredDistance(vec3 p1, vec3 p2) {
     vec3 p = p1 - p2;
     return p.dot(p);

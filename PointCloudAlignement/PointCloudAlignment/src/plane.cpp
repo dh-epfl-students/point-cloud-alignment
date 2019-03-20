@@ -1,13 +1,15 @@
 #include "plane.h"
 
-void Plane::setCoeffs(float a, float b, float c, float d) {
+void Plane::setCoeffs(float a, float b, float c, float d)
+{
     this->a = a;
     this->b = b;
     this->c = c;
     this->d = d;
 }
 
-void Plane::setCenter(vec4 p) {
+void Plane::setCenter(vec4 p)
+{
     this->center = p;
 }
 
@@ -17,30 +19,41 @@ vec3 Plane::getNormal()
     return n.normalized();
 }
 
-float Plane::getStdDevWith(PointNormalKCloud::Ptr cloud, PointIndices::Ptr indices)
+pcl::ModelCoefficients Plane::getModelCoefficients()
+{
+    pcl::ModelCoefficients coeffs;
+    coeffs.values.push_back(a);
+    coeffs.values.push_back(b);
+    coeffs.values.push_back(c);
+    coeffs.values.push_back(d);
+
+    return coeffs;
+}
+
+float Plane::getStdDevWith(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices)
 {
     vector<float> distances;
-    distances.resize(indices->indices.size());
+    distances.resize(indices->size());
     float dist_mean(0);
 
     #pragma omp parallel for shared(distances, dist_mean)
-    for(size_t i = 0; i < indices->indices.size(); ++i)
+    for(size_t i = 0; i < indices->size(); ++i)
     {
-        float d = this->distanceTo(cloud->points[indices->indices[i]]);
+        float d = this->distanceTo(cloud->points[indices->at(i)]);
         distances[i] = d;
 
         #pragma omp critical
         dist_mean += d;
     }
 
-    dist_mean /= (float)indices->indices.size();
+    dist_mean /= static_cast<float>(indices->size());
 
     float dev(0);
     for(float i: distances)
     {
         dev += std::pow(i - dist_mean, 2.0f);
     }
-    dev /= (float)indices->indices.size();
+    dev /= static_cast<float>(indices->size());
 
     return std::sqrt(dev);
 }
@@ -100,14 +113,13 @@ void Plane::estimatePlane(PointNormalKCloud::Ptr cloud_in, boost::shared_ptr<vec
 
 bool Plane::pointInPlane(PointNormalK p, float epsilon)
 {
-    //TODO: It may be necessary to reorient the normal vector.
-
     vec3 v(p.x, p.y, p.z);
-    return std::abs(vec3(a, b, c).dot(v) + d) <= epsilon;
+    return std::fabs(vec3(a, b, c).dot(v) + d) <= epsilon;
 }
 
 bool Plane::normalInPlane(PointNormalK p, float max_angle)
 {
+    //TODO: It may be necessary to reorient the normal vector.
     vec3 pn(p.normal_x, p.normal_y, p.normal_z);
     return fabs(getNormal().dot(pn)) <= max_angle;
 }

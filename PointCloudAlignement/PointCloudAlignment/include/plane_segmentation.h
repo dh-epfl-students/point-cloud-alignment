@@ -15,13 +15,14 @@
 #include "pfh_evaluation.h"
 
 #define PHASE1_ITERATIONS 3
-#define MIN_STABLE_SIZE 60
+#define MIN_STABLE_SIZE 100
 
 class PlaneSegmentation {
 public:
     int init(string cloud_file);
 
     void setViewerUpdateCallback(function<void(PointNormalKCloud::Ptr)> callable);
+    void setAddPlaneCallback(function<void(pcl::ModelCoefficients, float, float, float)> callable);
 
     bool isReady();
 
@@ -42,8 +43,8 @@ private:
     typedef struct _RunProperties
     {
         PointNormalK root_p;
-        PointIndices::Ptr p_nghbrs_indices;
-        PointIndices::Ptr p_new_points_indices;
+        boost::shared_ptr<vector<int>> p_nghbrs_indices;
+        boost::shared_ptr<vector<int>> p_new_points_indices;
         Plane plane;
         int iteration;
         int plane_nb;
@@ -52,8 +53,8 @@ private:
         float epsilon;
         vec3 n;
 
-        _RunProperties(): p_nghbrs_indices(new PointIndices),
-                            p_new_points_indices(new PointIndices),
+        _RunProperties(): p_nghbrs_indices(new vector<int>(0)),
+                            p_new_points_indices(new vector<int>(0)),
                             iteration(0), plane_nb(0), prev_size(0),
                             max_search_distance(0), epsilon(0), n(0, 0, 0) {}
 
@@ -77,19 +78,21 @@ private:
     SegmentedPointsContainer segmented_points_container;
 
     function<void(PointNormalKCloud::Ptr)> display_update_callable;
+    function<void(pcl::ModelCoefficients, float, float, float)> add_plane_callable;
 
     PointNormalKCloud::Ptr p_cloud;
     KdTreeFlannK::Ptr p_kdtree;
-    PointIndices::Ptr p_indices;
-    PointIndices::Ptr p_excluded_indices;
+    boost::shared_ptr<vector<int>> p_indices;
+    boost::shared_ptr<vector<int>> p_excluded_indices;
 
     float getMeanOfMinDistances();
     int getRegionGrowingStartLocation();
-    void getNeighborsOf(PointIndices::Ptr indices_in, float search_d, vector<int> &indices_out);
+    void getNeighborsOf(boost::shared_ptr<vector<int>> indices_in, float search_d, vector<int> &indices_out);
 
     void segmentPlane();
     bool initRegionGrowth();
     void performRegionGrowth();
     void performOneStep();
     void stop_current_plane_segmentation();
+    void exclude_points(vector<int> indices);
 };

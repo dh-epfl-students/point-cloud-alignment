@@ -14,6 +14,7 @@ using namespace std;
 PlaneSegmentation algo;
 bool isNormalDisplayed = false;
 pcl::visualization::PCLVisualizer::Ptr p_viewer;
+int plane_nb = 0;
 
 void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
                       void* viewer_void)
@@ -63,7 +64,15 @@ void display_update_callback(PointNormalKCloud::Ptr p_cloud)
     p_viewer->updatePointCloud<PointNormalK>(p_cloud, "point_cloud");
 }
 
+void add_plane_callback(pcl::ModelCoefficients coeffs, float x, float y, float z)
+{
+    string plane_n = "plane" + plane_nb;
+    p_viewer->addPlane(coeffs, x, y, z, plane_n);
+    ++plane_nb;
+}
+
 function<void(PointNormalKCloud::Ptr)> display_update_callable = &display_update_callback;
+function<void(pcl::ModelCoefficients, float, float, float)> add_plane_callable = &add_plane_callback;
 
 // Start and setup viewer
 pcl::visualization::PCLVisualizer::Ptr setupViewer()
@@ -86,6 +95,7 @@ int main()
 
     algo.init(pcFile);
     algo.setViewerUpdateCallback(display_update_callable);
+    algo.setAddPlaneCallback(add_plane_callable);
 
     pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> single_color(algo.getPointCloud(), 0, 255, 0);
     p_viewer->addPointCloud(algo.getPointCloud(), single_color, "point_cloud");

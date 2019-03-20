@@ -17,37 +17,37 @@ void PlaneSegmentation::RunProperties::setupNextPlane(PointNormalK &p)
     prev_size = 0;
     max_search_distance = 0;
     epsilon = 0;
-    p_nghbrs_indices->indices.clear();
-    p_new_points_indices->indices.clear();
+    p_nghbrs_indices->clear();
+    p_new_points_indices->clear();
     n = vec3(0, 0, 0);
 }
 
 void PlaneSegmentation::RunProperties::addToNeighborhood(vector<int> &new_points)
 {
     if(iteration < PHASE1_ITERATIONS ||
-            p_nghbrs_indices->indices.size() < MIN_STABLE_SIZE)
+            p_nghbrs_indices->size() < MIN_STABLE_SIZE)
     {
-        new_points.swap(p_nghbrs_indices->indices);
+        new_points.swap(*p_nghbrs_indices);
     }
     else
     {
-        if(p_new_points_indices->indices.empty())
+        if(p_new_points_indices->empty())
         {
             // It is the first time new_points vector will be used
-            new_points.swap(p_nghbrs_indices->indices);
-            p_new_points_indices->indices.reserve(p_nghbrs_indices->indices.size());
-            p_new_points_indices->indices.insert(p_new_points_indices->indices.end(),
-                                                 p_nghbrs_indices->indices.begin(),
-                                                 p_nghbrs_indices->indices.end());
+            new_points.swap(*p_nghbrs_indices);
+            p_new_points_indices->reserve(p_nghbrs_indices->size());
+            p_new_points_indices->insert(p_new_points_indices->end(),
+                                                 p_nghbrs_indices->begin(),
+                                                 p_nghbrs_indices->end());
         }
         else
         {
-            new_points.swap(p_new_points_indices->indices);
-            p_nghbrs_indices->indices.reserve(p_nghbrs_indices->indices.size() +
-                                              p_new_points_indices->indices.size());
-            p_nghbrs_indices->indices.insert(p_nghbrs_indices->indices.end(),
-                                             p_new_points_indices->indices.begin(),
-                                             p_new_points_indices->indices.end());
+            new_points.swap(*p_new_points_indices);
+            p_nghbrs_indices->reserve(p_nghbrs_indices->size() +
+                                              p_new_points_indices->size());
+            p_nghbrs_indices->insert(p_nghbrs_indices->end(),
+                                             p_new_points_indices->begin(),
+                                             p_new_points_indices->end());
         }
     }
 }
@@ -70,14 +70,13 @@ int PlaneSegmentation::init(string cloud_file)
 
     cout << "Pointcloud containing " << p_cloud->points.size() << " points loaded." << endl;
 
-    p_excluded_indices = PointIndices::Ptr(new PointIndices);
-    p_indices = PointIndices::Ptr(new PointIndices);
-    p_indices->indices.resize(p_cloud->points.size());
+    p_excluded_indices = boost::shared_ptr<vector<int>>(new vector<int>(0));
+    p_indices = boost::shared_ptr<vector<int>>(new vector<int>(p_cloud->points.size()));
 
     #pragma omp parallel for
-    for(int i = 0; i < p_cloud->points.size(); ++i)
+    for(size_t i = 0; i < p_cloud->points.size(); ++i)
     {
-        p_indices->indices[i] = i;
+        p_indices->at(i) = static_cast<int>(i);
     }
 
     cout << "PointIndices is filled" << endl;
@@ -107,6 +106,11 @@ void PlaneSegmentation::setViewerUpdateCallback(function<void(PointNormalKCloud:
     display_update_callable = callable;
 }
 
+void PlaneSegmentation::setAddPlaneCallback(function<void(pcl::ModelCoefficients, float, float, float)> callable)
+{
+    add_plane_callable = callable;
+}
+
 bool PlaneSegmentation::isReady()
 {
     return this->is_ready;
@@ -129,6 +133,8 @@ void PlaneSegmentation::runMainLoop()
     {
         while(is_started && (index = getRegionGrowingStartLocation()) != -1)
         {
+            cout << "Starting new plane segmentation from index: " << index << endl;
+
             // Start of a new plane segmentation
             // -> reinitialise variables
             current_run.setupNextPlane(p_cloud->points[index]);
@@ -146,7 +152,8 @@ void PlaneSegmentation::stop()
 
 void PlaneSegmentation::stop_current_plane_segmentation()
 {   
-    is_started = false;
+    //TODO: dunno
+    //is_started = false;
 }
 
 bool PlaneSegmentation::initRegionGrowth()
@@ -154,7 +161,7 @@ bool PlaneSegmentation::initRegionGrowth()
     // Get first neighborhood
     vector<float> sqr_distances(current_run.root_p.k);
     p_kdtree->nearestKSearch(current_run.root_p, current_run.root_p.k,
-                             current_run.p_nghbrs_indices->indices,
+                             *current_run.p_nghbrs_indices,
                              sqr_distances);
 
     // Compute mean of min distances in the neighborhood
@@ -176,6 +183,7 @@ bool PlaneSegmentation::initRegionGrowth()
         // consider them again.
 
         //TODO: Add to exclusion list
+        exclude_points(*current_run.p_nghbrs_indices);
 
         return false;
     }
@@ -200,52 +208,56 @@ void PlaneSegmentation::performRegionGrowth()
             return;
         }
 
-        current_run.prev_size = current_run.p_nghbrs_indices->indices.size();
+        current_run.prev_size = current_run.p_nghbrs_indices->size();
 
         //TODO: If first 3 iterations, check area for valid plane
         if(current_run.iteration == PHASE1_ITERATIONS)
         {
-            if(!PFHEvaluation::isValidPlane(p_cloud,
-                                            current_run.p_nghbrs_indices->indices))
+            if(!PFHEvaluation::isValidPlane(p_cloud, *current_run.p_nghbrs_indices))
             {
-                //TODO: Add to exclusion
+                // Add to exclusion
+                exclude_points(*current_run.p_nghbrs_indices);
 
                 stop_current_plane_segmentation();
                 return;
             }
-            else
-            {
-                // We are on a plane -> increase search radius to speed things up
-                current_run.max_search_distance *= 2.0f;
-                current_run.epsilon *= 2.0f;
-            }
+
+            // We are on a plane -> increase search radius to speed things up
+            current_run.max_search_distance *= 2.0f;
+            current_run.epsilon *= 2.0f;
         }
 
         //TODO: Check if neighborhood has shrinked
-        if(current_run.p_nghbrs_indices->indices.size() < 3)
+        if(current_run.p_nghbrs_indices->size() < 3)
         {
+            exclude_points(*current_run.p_nghbrs_indices);
             stop_current_plane_segmentation();
             return;
         }
 
         //TODO: Compute current plane
-        if(current_run.p_nghbrs_indices->indices.size() < MIN_STABLE_SIZE)
+        if(current_run.p_nghbrs_indices->size() < MIN_STABLE_SIZE)
         {
             Plane curr_plane;
-            boost::shared_ptr<vector<int>> ptr_nbhrs_indices(new vector<int>(current_run.p_nghbrs_indices->indices));
-            Plane::estimatePlane(p_cloud, ptr_nbhrs_indices, curr_plane);
+            Plane::estimatePlane(p_cloud, current_run.p_nghbrs_indices, curr_plane);
             current_run.plane = curr_plane;
 
             //TODO: Update normal and epsilon
             current_run.n = curr_plane.getNormal();
-            current_run.epsilon = curr_plane.getStdDevWith(p_cloud, current_run.p_nghbrs_indices);
+            current_run.epsilon = 2.0f * curr_plane.getStdDevWith(p_cloud, current_run.p_nghbrs_indices);
+
+            // Display plane
+            if(current_run.iteration == 0)
+            {
+                add_plane_callable(current_run.plane.getModelCoefficients(), current_run.root_p.x, current_run.root_p.y, current_run.root_p.z);
+            }
         }
 
         //TODO: Find new candidates
         vector<int> candidates;
         if(current_run.iteration < PHASE1_ITERATIONS 
-            || current_run.p_nghbrs_indices->indices.size() < MIN_STABLE_SIZE 
-            || current_run.p_new_points_indices->indices.empty())
+            || current_run.p_nghbrs_indices->size() < MIN_STABLE_SIZE
+            || current_run.p_new_points_indices->empty())
         {
             getNeighborsOf(current_run.p_nghbrs_indices, current_run.max_search_distance, candidates);
         }
@@ -281,11 +293,16 @@ void PlaneSegmentation::performRegionGrowth()
         current_run.addToNeighborhood(points_in_plane);
 
         //TODO: Update available Indices
+        if(current_run.p_nghbrs_indices->size() > MIN_STABLE_SIZE)
+        {
+            exclude_points(*current_run.p_new_points_indices);
+        }
 
         //TODO: Check for region growth
-        if(current_run.prev_size == current_run.p_nghbrs_indices->indices.size())
+        if(current_run.prev_size == current_run.p_nghbrs_indices->size())
         {
-
+            cout << "Plane growth stopped" << endl;
+            //TODO: store segmented plane
         }
         else
         {
@@ -302,8 +319,6 @@ void PlaneSegmentation::segmentPlane()
     {
         performRegionGrowth();
     }
-
-    is_started = false;
 }
 
 float PlaneSegmentation::getMeanOfMinDistances()
@@ -312,9 +327,9 @@ float PlaneSegmentation::getMeanOfMinDistances()
     float acc(0);
 
     #pragma omp parallel for shared(acc)
-    for(size_t i = 0; i < current_run.p_nghbrs_indices->indices.size(); ++i)
+    for(size_t i = 0; i < current_run.p_nghbrs_indices->size(); ++i)
     {
-        int p_id = current_run.p_nghbrs_indices->indices[i];
+        int p_id = current_run.p_nghbrs_indices->at(i);
         vector<int> indices(K);
         vector<float> sqrd_distances(K);
         p_kdtree->nearestKSearch(p_cloud->points[p_id], K, indices, sqrd_distances);
@@ -324,15 +339,15 @@ float PlaneSegmentation::getMeanOfMinDistances()
         acc += dist;
     }
 
-    return acc / current_run.p_nghbrs_indices->indices.size();
+    return acc / current_run.p_nghbrs_indices->size();
 }
 
 int PlaneSegmentation::getRegionGrowingStartLocation()
 {
-    if(p_indices->indices.size() == 0) return -1;
+    if(p_indices->size() == 0) return -1;
 
     // Copy indices
-    vector<int> tmp_indices(p_indices->indices);
+    vector<int> tmp_indices(*p_indices);
     sort(tmp_indices.begin(), tmp_indices.end(), [this](const int &lhs, const int &rhs){
         return this->p_cloud->points[lhs].curvature < this->p_cloud->points[rhs].curvature;
     });
@@ -351,17 +366,18 @@ int PlaneSegmentation::getRegionGrowingStartLocation()
     return tmp_indices.at(0);
 }
 
-void PlaneSegmentation::getNeighborsOf(PointIndices::Ptr indices_in, float search_d, vector<int> &indices_out)
+void PlaneSegmentation::getNeighborsOf(boost::shared_ptr<vector<int>> indices_in, float search_d, vector<int> &indices_out)
 {
-    vector<vector<int>> candidates_lists(indices_in->indices.size());
+    vector<vector<int>> candidates_lists(indices_in->size());
     size_t total_size = 0;
 
     #pragma omp parallel for shared(candidates_lists, total_size)
-    for(size_t i = 0; i < indices_in->indices.size(); ++i)
+    for(size_t i = 0; i < indices_in->size(); ++i)
     {
-        int p_id = indices_in->indices[i];
+        int p_id = indices_in->at(i);
         vector<float> distances;
-        p_kdtree->radiusSearch(p_cloud->points[p_id], search_d, candidates_lists[i], distances);
+        //p_kdtree->radiusSearch(p_cloud->points[p_id], search_d, candidates_lists[i], distances);
+        p_kdtree->nearestKSearchT(p_cloud->points[p_id], p_cloud->points[p_id].k, candidates_lists[i], distances);
 
         #pragma omp critical
         total_size += candidates_lists[i].size();
@@ -379,4 +395,23 @@ void PlaneSegmentation::getNeighborsOf(PointIndices::Ptr indices_in, float searc
     sort(indices_out.begin(), indices_out.end());
     vector<int>::iterator it = unique(indices_out.begin(), indices_out.end());
     indices_out.resize(std::distance(indices_out.begin(), it));
+}
+
+void PlaneSegmentation::exclude_points(vector<int> indices)
+{
+    if(indices.empty()) return;
+
+    // Ensure that the given list is sorted
+    sort(indices.begin(), indices.end());
+
+    // Add points to exclusion list
+    p_excluded_indices->insert(p_excluded_indices->end(), indices.begin(), indices.end());
+
+    // Remove points from available indices list
+    boost::shared_ptr<vector<int>> tmp(new vector<int>(0));
+    set_difference(p_indices->begin(), p_indices->end(), indices.begin(), indices.end(), back_inserter(*tmp));
+    p_indices = tmp;
+
+    // Update searching tree indices
+    p_kdtree->setInputCloud(p_cloud, p_indices);
 }
