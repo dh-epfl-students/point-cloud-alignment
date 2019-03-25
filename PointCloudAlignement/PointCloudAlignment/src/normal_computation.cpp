@@ -4,7 +4,7 @@ void NormalComputation::computeNormalCloud(PointNormalKCloud::Ptr cloud_in, KdTr
 {
     // parallel for loop on each point p in cloud_in
     #pragma omp parallel for schedule(dynamic)
-    for(int i = 0; i < cloud_in->size(); ++i)
+    for(size_t i = 0; i < cloud_in->size(); ++i)
     {
         // compute appropriate K value for current point
         int k = estimateKForPoint(i, cloud_in, kdTree_in);
@@ -20,18 +20,15 @@ void NormalComputation::computeNormalCloud(PointNormalKCloud::Ptr cloud_in, KdTr
         float curvature;
         ne.computePointNormal(*cloud_in, indices, plane_parameters, curvature);
 
-        PointNormalK pn = PointNormalK(cloud_in->points[i]);
-        pn.normal_x = plane_parameters.x();
-        pn.normal_y = plane_parameters.y();
-        pn.normal_z = plane_parameters.z();
-        pn.curvature = curvature;
-        pn.k = k;
-
-        cloud_in->points[i] = pn;
+        cloud_in->points[i].normal_x = plane_parameters.x();
+        cloud_in->points[i].normal_y = plane_parameters.y();
+        cloud_in->points[i].normal_z = plane_parameters.z();
+        cloud_in->points[i].curvature = curvature;
+        cloud_in->points[i].k = k;
     }
 }
 
-float NormalComputation::estimateKForPoint(int p_id, PointNormalKCloud::Ptr cloud_in, KdTreeFlannK::Ptr kdTree_in)
+int NormalComputation::estimateKForPoint(int p_id, PointNormalKCloud::Ptr cloud_in, KdTreeFlannK::Ptr kdTree_in)
 {
     float d1(1), d2(4), e(0.1), max_k(50), max_count(10), sigma(0.2);
     int k(15), count(0);
@@ -54,7 +51,7 @@ float NormalComputation::estimateKForPoint(int p_id, PointNormalKCloud::Ptr clou
 
         k = std::ceil(M_PI * density * r_new * r_new);
         k = std::max(10, k);
-        k = std::min((int)max_k, k);
+        k = std::fmin(max_k, k);
 
         count++;
     } while(k < max_k && count < max_count);

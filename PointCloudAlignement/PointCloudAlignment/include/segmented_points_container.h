@@ -15,7 +15,8 @@ public:
     void addPlane(PointNormalKCloud::Ptr cloud);
     void addExcludedPoints(PointNormalKCloud::Ptr cloud);
     int getNbOfSegmentedPoints();
-    int getNbOfExcludedPoints();
+    size_t getNbOfExcludedPoints();
+    ivec3 getNextPlaneColor();
 
 private:
     int segmented_points;

@@ -8,8 +8,9 @@
 // PlaneSegmentation::RunProperties
 // ========================================================================================== //
 
-void PlaneSegmentation::RunProperties::setupNextPlane(PointNormalK &p)
+void PlaneSegmentation::RunProperties::setupNextPlane(int index, PointNormalK &p)
 {
+    p_index = index;
     plane = Plane();
     root_p = p;
     plane_nb++;
@@ -101,7 +102,7 @@ int PlaneSegmentation::init(string cloud_file)
     return EXIT_SUCCESS;
 }
 
-void PlaneSegmentation::setViewerUpdateCallback(function<void(PointNormalKCloud::Ptr)> callable)
+void PlaneSegmentation::setViewerUpdateCallback(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> callable)
 {
     display_update_callable = callable;
 }
@@ -137,10 +138,26 @@ void PlaneSegmentation::runMainLoop()
 
             // Start of a new plane segmentation
             // -> reinitialise variables
-            current_run.setupNextPlane(p_cloud->points[index]);
+            current_run.setupNextPlane(index, p_cloud->points[index]);
 
             segmentPlane();
         }
+    }
+}
+
+void PlaneSegmentation::runOneStep()
+{
+    int index;
+
+    if(is_plane_initialized)
+    {
+        is_plane_initialized = regionGrowthOneStep();
+    }
+    else if((index = getRegionGrowingStartLocation()) != -1)
+    {
+        current_run.setupNextPlane(index, p_cloud->points[index]);
+        initRegionGrowth();
+        is_plane_initialized = true;
     }
 }
 
@@ -158,8 +175,11 @@ void PlaneSegmentation::stop_current_plane_segmentation()
 
 bool PlaneSegmentation::initRegionGrowth()
 {
+    current_run.p_nghbrs_indices->clear();
+
     // Get first neighborhood
     vector<float> sqr_distances(current_run.root_p.k);
+
     p_kdtree->nearestKSearch(current_run.root_p, current_run.root_p.k,
                              *current_run.p_nghbrs_indices,
                              sqr_distances);
@@ -167,12 +187,12 @@ bool PlaneSegmentation::initRegionGrowth()
     // Compute mean of min distances in the neighborhood
     current_run.max_search_distance = 2.0f * getMeanOfMinDistances();
 
-    float dist_to_kth = std::sqrt(sqr_distances[current_run.root_p.k]);
+    float dist_to_kth = std::sqrt(sqr_distances[current_run.root_p.k - 1]);
 
     // At 10th iteration, we ensure that we are not trying to
     // segment an already treated zone.
     if(current_run.plane_nb > 10 &&
-            (dist_to_kth > 3 * safety_distance / (float)current_run.plane_nb))
+            (dist_to_kth > 3 * safety_distance / static_cast<float>(current_run.plane_nb)))
     {
         // This means that the algo is looking an area
         // that has probably been already processed and is
@@ -191,6 +211,10 @@ bool PlaneSegmentation::initRegionGrowth()
     // Update safety distance.
     safety_distance += dist_to_kth;
 
+    //DEBUG Display selected points in red
+    color_points(*current_run.p_nghbrs_indices, ivec3(15, 255, 15));
+    color_point(current_run.p_index, ivec3(15, 15, 255));
+
     return true;
 }
 
@@ -198,117 +222,134 @@ void PlaneSegmentation::performRegionGrowth()
 {
     while(is_started)
     {
-        cout << "Segmenting plane " << current_run.plane_nb << ": iteration " << current_run.iteration << endl;
+        if(!regionGrowthOneStep()) return;
+    }
+}
 
-        //TODO: Check for termination conditions
-        if(segmented_points_container.getNbOfSegmentedPoints() > 0.8 * p_cloud->size())
+bool PlaneSegmentation::regionGrowthOneStep()
+{
+    cout << "Segmenting plane " << current_run.plane_nb << ": iteration " << current_run.iteration << endl;
+
+    //TODO: Check for termination conditions
+    if(segmented_points_container.getNbOfSegmentedPoints() > 0.8 * p_cloud->size())
+    {
+        //Stop, majority of points have been segmented -> Success
+        stop();
+        return false;
+    }
+
+    current_run.prev_size = current_run.p_nghbrs_indices->size();
+
+    //TODO: If first 3 iterations, check area for valid plane
+    if(current_run.iteration == PHASE1_ITERATIONS)
+    {
+        if(!PFHEvaluation::isValidPlane(p_cloud, *current_run.p_nghbrs_indices))
         {
-            //Stop, majority of points have been segmented -> Success
-            stop();
-            return;
-        }
-
-        current_run.prev_size = current_run.p_nghbrs_indices->size();
-
-        //TODO: If first 3 iterations, check area for valid plane
-        if(current_run.iteration == PHASE1_ITERATIONS)
-        {
-            if(!PFHEvaluation::isValidPlane(p_cloud, *current_run.p_nghbrs_indices))
-            {
-                // Add to exclusion
-                exclude_points(*current_run.p_nghbrs_indices);
-
-                stop_current_plane_segmentation();
-                return;
-            }
-
-            // We are on a plane -> increase search radius to speed things up
-            current_run.max_search_distance *= 2.0f;
-            current_run.epsilon *= 2.0f;
-        }
-
-        //TODO: Check if neighborhood has shrinked
-        if(current_run.p_nghbrs_indices->size() < 3)
-        {
+            cout << "Current plane is invalid" << endl;
+            // Add to exclusion
             exclude_points(*current_run.p_nghbrs_indices);
+
             stop_current_plane_segmentation();
-            return;
+            return false;
         }
 
-        //TODO: Compute current plane
-        if(current_run.p_nghbrs_indices->size() < MIN_STABLE_SIZE)
+        cout << "Current plane is valid" << endl;
+
+        // We are on a plane -> increase search radius to speed things up
+        current_run.max_search_distance *= 2.0f;
+        current_run.epsilon *= 2.0f;
+    }
+
+    //TODO: Check if neighborhood has shrinked
+    if(current_run.p_nghbrs_indices->size() < 3)
+    {
+        cout << "Current plane has shrinked" << endl;
+
+        exclude_points(*current_run.p_nghbrs_indices);
+        stop_current_plane_segmentation();
+        return false;
+    }
+
+    //TODO: Compute current plane
+    if(current_run.p_nghbrs_indices->size() < MIN_STABLE_SIZE)
+    {
+        Plane curr_plane;
+        Plane::estimatePlane(p_cloud, current_run.p_nghbrs_indices, curr_plane);
+        current_run.plane = curr_plane;
+
+        //TODO: Update normal and epsilon
+        current_run.n = curr_plane.getNormal();
+        current_run.epsilon = 2.0f * curr_plane.getStdDevWith(p_cloud, current_run.p_nghbrs_indices);
+
+        // Display plane
+        /*
+        if(current_run.iteration == 0)
         {
-            Plane curr_plane;
-            Plane::estimatePlane(p_cloud, current_run.p_nghbrs_indices, curr_plane);
-            current_run.plane = curr_plane;
+            add_plane_callable(current_run.plane.getModelCoefficients(), current_run.root_p.x, current_run.root_p.y, current_run.root_p.z);
+        }
+        */
+    }
 
-            //TODO: Update normal and epsilon
-            current_run.n = curr_plane.getNormal();
-            current_run.epsilon = 2.0f * curr_plane.getStdDevWith(p_cloud, current_run.p_nghbrs_indices);
+    //TODO: Find new candidates
+    vector<int> candidates;
+    if(current_run.iteration < PHASE1_ITERATIONS
+        || current_run.p_nghbrs_indices->size() < MIN_STABLE_SIZE
+        || current_run.p_new_points_indices->empty())
+    {
+        getNeighborsOf(current_run.p_nghbrs_indices, current_run.max_search_distance, candidates);
+    }
+    else
+    {
+        getNeighborsOf(current_run.p_new_points_indices, current_run.max_search_distance, candidates);
+    }
 
-            // Display plane
-            if(current_run.iteration == 0)
+    //DEBUG color points found in red
+    color_points(*current_run.p_nghbrs_indices, ivec3(255, 0, 0));
+
+    //TODO: Test them with current plane
+    //TODO: Move that to its own function
+    vector<int> points_in_plane;
+
+    for(size_t i = 0; i < candidates.size(); ++i)
+    {
+        int index = candidates[i];
+        if(current_run.plane.pointInPlane(p_cloud->points[index], current_run.epsilon))
+        {
+            if(current_run.iteration > PHASE1_ITERATIONS)
             {
-                add_plane_callable(current_run.plane.getModelCoefficients(), current_run.root_p.x, current_run.root_p.y, current_run.root_p.z);
-            }
-        }
-
-        //TODO: Find new candidates
-        vector<int> candidates;
-        if(current_run.iteration < PHASE1_ITERATIONS 
-            || current_run.p_nghbrs_indices->size() < MIN_STABLE_SIZE
-            || current_run.p_new_points_indices->empty())
-        {
-            getNeighborsOf(current_run.p_nghbrs_indices, current_run.max_search_distance, candidates);
-        }
-        else
-        {
-            getNeighborsOf(current_run.p_new_points_indices, current_run.max_search_distance, candidates);
-        }
-
-        //TODO: Test them with current plane
-        //TODO: Move that to its own function
-        vector<int> points_in_plane;
-
-        for(size_t i = 0; i < candidates.size(); ++i)
-        {
-            int index = candidates[i];
-            if(current_run.plane.pointInPlane(p_cloud->points[index], current_run.epsilon))
-            {
-                if(current_run.iteration > PHASE1_ITERATIONS)
-                {
-                    if(current_run.plane.normalInPlane(p_cloud->points[index], max_normal_angle))
-                    {
-                        points_in_plane.push_back(index);
-                    }
-                }
-                else
+                if(current_run.plane.normalInPlane(p_cloud->points[index], max_normal_angle))
                 {
                     points_in_plane.push_back(index);
                 }
             }
-        }
-
-        //TODO: Add good candidates to neighborhood
-        current_run.addToNeighborhood(points_in_plane);
-
-        //TODO: Update available Indices
-        if(current_run.p_nghbrs_indices->size() > MIN_STABLE_SIZE)
-        {
-            exclude_points(*current_run.p_new_points_indices);
-        }
-
-        //TODO: Check for region growth
-        if(current_run.prev_size == current_run.p_nghbrs_indices->size())
-        {
-            cout << "Plane growth stopped" << endl;
-            //TODO: store segmented plane
-        }
-        else
-        {
-            current_run.iteration++;
+            else
+            {
+                points_in_plane.push_back(index);
+            }
         }
     }
+
+    //TODO: Add good candidates to neighborhood
+    current_run.addToNeighborhood(points_in_plane);
+
+    //TODO: Update available Indices
+    if(current_run.p_nghbrs_indices->size() > MIN_STABLE_SIZE)
+    {
+        exclude_points(*current_run.p_new_points_indices);
+    }
+
+    //TODO: Check for region growth
+    if(current_run.prev_size == current_run.p_nghbrs_indices->size())
+    {
+        cout << "Plane growth stopped" << endl;
+        //TODO: store segmented plane
+    }
+    else
+    {
+        current_run.iteration++;
+    }
+
+    return true;
 }
 
 void PlaneSegmentation::segmentPlane()
@@ -414,4 +455,20 @@ void PlaneSegmentation::exclude_points(vector<int> indices)
 
     // Update searching tree indices
     p_kdtree->setInputCloud(p_cloud, p_indices);
+
+    // Update point display
+    this->display_update_callable(p_cloud, ivec3(255, 0, 0), indices);
+}
+
+void PlaneSegmentation::color_points(vector<int> indices, ivec3 color)
+{
+    //ivec3 c = segmented_points_container.getNextPlaneColor();
+    this->display_update_callable(p_cloud, color, indices);
+}
+
+void PlaneSegmentation::color_point(int index, ivec3 color)
+{
+    vector<int> indices;
+    indices.push_back(index);
+    this->display_update_callable(p_cloud, color, indices);
 }

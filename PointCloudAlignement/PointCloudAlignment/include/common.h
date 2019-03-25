@@ -8,6 +8,7 @@
 
 using namespace std;
 
+typedef Eigen::Vector3i ivec3;
 typedef Eigen::Vector2f vec2;
 typedef Eigen::Vector3f vec3;
 typedef Eigen::Vector4f vec4;

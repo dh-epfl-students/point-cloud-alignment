@@ -114,7 +114,7 @@ void Plane::estimatePlane(PointNormalKCloud::Ptr cloud_in, boost::shared_ptr<vec
 bool Plane::pointInPlane(PointNormalK p, float epsilon)
 {
     vec3 v(p.x, p.y, p.z);
-    return std::fabs(vec3(a, b, c).dot(v) + d) <= epsilon;
+    return std::fabs(vec3(a, b, c).normalized().dot(v) + d) <= epsilon;
 }
 
 bool Plane::normalInPlane(PointNormalK p, float max_angle)

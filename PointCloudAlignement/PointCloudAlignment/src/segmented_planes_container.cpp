@@ -11,7 +11,7 @@ void SegmentedPointsContainer::addPlane(PointNormalKCloud::Ptr cloud)
     this->segmented_points += cloud->points.size();
 }
 
-int SegmentedPointsContainer::getNbOfExcludedPoints()
+size_t SegmentedPointsContainer::getNbOfExcludedPoints()
 {
     return excluded_points->size();
 }
@@ -19,4 +19,9 @@ int SegmentedPointsContainer::getNbOfExcludedPoints()
 int SegmentedPointsContainer::getNbOfSegmentedPoints()
 {
     return segmented_points;
+}
+
+ivec3 SegmentedPointsContainer::getNextPlaneColor()
+{
+    return ivec3(15, 255, 15);
 }
