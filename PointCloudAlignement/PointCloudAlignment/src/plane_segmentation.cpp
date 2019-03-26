@@ -8,9 +8,10 @@
 // PlaneSegmentation::RunProperties
 // ========================================================================================== //
 
-void PlaneSegmentation::RunProperties::setupNextPlane(int index, PointNormalK &p)
+void PlaneSegmentation::RunProperties::setupNextPlane(int index, PointNormalK &p, ivec3 color)
 {
     p_index = index;
+    curr_color = color;
     plane = Plane();
     root_p = p;
     plane_nb++;
@@ -96,7 +97,8 @@ int PlaneSegmentation::init(string cloud_file)
     // Initialize remaining variables
     safety_distance = 0;
 
-    //TODO: initialize segmented_points_container
+    // Initialize segmented_points_container
+    p_segmented_points_container = SegmentedPointsContainer::Ptr(new SegmentedPointsContainer);
 
     is_ready = true;
     return EXIT_SUCCESS;
@@ -138,8 +140,7 @@ void PlaneSegmentation::runMainLoop()
 
             // Start of a new plane segmentation
             // -> reinitialise variables
-            current_run.setupNextPlane(index, p_cloud->points[index]);
-
+            current_run.setupNextPlane(index, p_cloud->points[index], p_segmented_points_container->getNextPlaneColor());
             segmentPlane();
         }
     }
@@ -155,7 +156,7 @@ void PlaneSegmentation::runOneStep()
     }
     else if((index = getRegionGrowingStartLocation()) != -1)
     {
-        current_run.setupNextPlane(index, p_cloud->points[index]);
+        current_run.setupNextPlane(index, p_cloud->points[index], p_segmented_points_container->getNextPlaneColor());
         initRegionGrowth();
         is_plane_initialized = true;
     }
@@ -211,7 +212,7 @@ bool PlaneSegmentation::initRegionGrowth()
     // Update safety distance.
     safety_distance += dist_to_kth;
 
-    //DEBUG Display selected points in red
+    //DEBUG Display selected points in green and root point in blue
     color_points(*current_run.p_nghbrs_indices, ivec3(15, 255, 15));
     color_point(current_run.p_index, ivec3(15, 15, 255));
 
@@ -231,7 +232,7 @@ bool PlaneSegmentation::regionGrowthOneStep()
     cout << "Segmenting plane " << current_run.plane_nb << ": iteration " << current_run.iteration << endl;
 
     //TODO: Check for termination conditions
-    if(segmented_points_container.getNbOfSegmentedPoints() > 0.8 * p_cloud->size())
+    if(p_segmented_points_container->getNbOfSegmentedPoints() > 0.8 * p_cloud->size())
     {
         //Stop, majority of points have been segmented -> Success
         stop();
@@ -303,8 +304,8 @@ bool PlaneSegmentation::regionGrowthOneStep()
         getNeighborsOf(current_run.p_new_points_indices, current_run.max_search_distance, candidates);
     }
 
-    //DEBUG color points found in red
-    color_points(*current_run.p_nghbrs_indices, ivec3(255, 0, 0));
+    //DEBUG color points found in yellow
+    color_points(candidates, ivec3(255, 255, 0));
 
     //TODO: Test them with current plane
     //TODO: Move that to its own function
@@ -335,14 +336,25 @@ bool PlaneSegmentation::regionGrowthOneStep()
     //TODO: Update available Indices
     if(current_run.p_nghbrs_indices->size() > MIN_STABLE_SIZE)
     {
-        exclude_points(*current_run.p_new_points_indices);
+        exclude_from_search(*current_run.p_new_points_indices);
+
+        // Color added points in green
+        color_points(*current_run.p_new_points_indices, ivec3(15, 255, 15));
+    } else {
+        // Color added points in green
+        color_points(*current_run.p_nghbrs_indices, ivec3(15, 255, 15));
     }
 
     //TODO: Check for region growth
     if(current_run.prev_size == current_run.p_nghbrs_indices->size())
     {
-        cout << "Plane growth stopped" << endl;
+        cout << "Plane growth stopped, registering plane" << endl;
+
         //TODO: store segmented plane
+        SegmentedPointsContainer::SegmentedPlane plane(current_run.plane_nb, current_run.curr_color, *current_run.p_nghbrs_indices, current_run.plane);
+        p_segmented_points_container->addSegmentedPoints(plane);
+        color_points(*current_run.p_nghbrs_indices, current_run.curr_color);
+        exclude_from_search(*current_run.p_nghbrs_indices);
     }
     else
     {
@@ -409,6 +421,8 @@ int PlaneSegmentation::getRegionGrowingStartLocation()
 
 void PlaneSegmentation::getNeighborsOf(boost::shared_ptr<vector<int>> indices_in, float search_d, vector<int> &indices_out)
 {
+    cout << "Searching distance : " << search_d << endl;
+
     vector<vector<int>> candidates_lists(indices_in->size());
     size_t total_size = 0;
 
@@ -438,15 +452,10 @@ void PlaneSegmentation::getNeighborsOf(boost::shared_ptr<vector<int>> indices_in
     indices_out.resize(std::distance(indices_out.begin(), it));
 }
 
-void PlaneSegmentation::exclude_points(vector<int> indices)
+void PlaneSegmentation::exclude_from_search(vector<int> indices)
 {
-    if(indices.empty()) return;
-
     // Ensure that the given list is sorted
     sort(indices.begin(), indices.end());
-
-    // Add points to exclusion list
-    p_excluded_indices->insert(p_excluded_indices->end(), indices.begin(), indices.end());
 
     // Remove points from available indices list
     boost::shared_ptr<vector<int>> tmp(new vector<int>(0));
@@ -455,14 +464,24 @@ void PlaneSegmentation::exclude_points(vector<int> indices)
 
     // Update searching tree indices
     p_kdtree->setInputCloud(p_cloud, p_indices);
+}
+
+void PlaneSegmentation::exclude_points(vector<int> indices)
+{
+    if(indices.empty()) return;
+
+    // Add points to exclusion list
+    p_excluded_indices->insert(p_excluded_indices->end(), indices.begin(), indices.end());
+
+    // Remove points from search tree
+    exclude_from_search(indices);
 
     // Update point display
-    this->display_update_callable(p_cloud, ivec3(255, 0, 0), indices);
+    this->display_update_callable(p_cloud, p_segmented_points_container->getMiscColor(), indices);
 }
 
 void PlaneSegmentation::color_points(vector<int> indices, ivec3 color)
 {
-    //ivec3 c = segmented_points_container.getNextPlaneColor();
     this->display_update_callable(p_cloud, color, indices);
 }
 

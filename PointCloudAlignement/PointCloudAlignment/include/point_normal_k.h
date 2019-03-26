@@ -61,28 +61,6 @@ namespace pcl
             k = 0;
         }
     };
-
-    /*
-    class PNKPointRepresentation : public PointRepresentation <PointNormalK>
-    {
-        using PointRepresentation<PointNormalK>::nr_dimensions_;
-
-    public:
-        PNKPointRepresentation()
-        {
-            nr_dimensions_ = 3;
-        }
-
-        // Override the copyToFloatArray method to define our feature vector
-        virtual void copyToFloatArray (const PointNormalK &p, float * out) const
-        {
-            // < x, y, z >
-            out[0] = p.x;
-            out[1] = p.y;
-            out[2] = p.z;
-        }
-    };
-    */
 }
 
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::_PointNormalK,
@@ -92,10 +70,11 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::_PointNormalK,
                                    (float, normal_x, normal_x)
                                    (float, normal_y, normal_y)
                                    (float, normal_z, normal_z)
-                                   (uint32_t, rgb, rgb)
+                                   (uint32_t, rgba, rgba)
                                    (uint8_t, r, r)
                                    (uint8_t, g, g)
                                    (uint8_t, b, b)
+                                   (uint8_t, a, a)
                                    (float, curvature, curvature)
                                    (int, k, k)
 )

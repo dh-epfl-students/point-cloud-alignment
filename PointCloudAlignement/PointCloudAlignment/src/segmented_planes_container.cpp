@@ -1,19 +1,19 @@
 #include "segmented_points_container.h"
 
-void SegmentedPointsContainer::addExcludedPoints(PointNormalKCloud::Ptr cloud)
+void SegmentedPointsContainer::addExcludedPoints(vector<int> point_list)
 {
-    *excluded_points += *cloud;
+    excluded_points.insert(excluded_points.end(), point_list.begin(), point_list.end());
 }
 
-void SegmentedPointsContainer::addPlane(PointNormalKCloud::Ptr cloud)
+void SegmentedPointsContainer::addSegmentedPoints(SegmentedPointsContainer::SegmentedPlane plane)
 {
-    this->planes_list.push_back(cloud);
-    this->segmented_points += cloud->points.size();
+    this->planes_list.push_back(plane);
+    this->segmented_points += plane.indices_list.size();
 }
 
 size_t SegmentedPointsContainer::getNbOfExcludedPoints()
 {
-    return excluded_points->size();
+    return excluded_points.size();
 }
 
 int SegmentedPointsContainer::getNbOfSegmentedPoints()
@@ -23,5 +23,10 @@ int SegmentedPointsContainer::getNbOfSegmentedPoints()
 
 ivec3 SegmentedPointsContainer::getNextPlaneColor()
 {
-    return ivec3(15, 255, 15);
+    ivec3 c = *curr_color;
+
+    curr_color++;
+    curr_color = curr_color == color_list.end()? color_list.begin() : curr_color;
+
+    return c;
 }

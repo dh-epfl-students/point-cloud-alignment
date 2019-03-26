@@ -13,6 +13,7 @@ using namespace std;
 
 PlaneSegmentation algo;
 bool isNormalDisplayed = false;
+bool pc_has_changed = false;
 pcl::visualization::PCLVisualizer::Ptr p_viewer;
 int plane_nb = 0;
 
@@ -76,12 +77,12 @@ void display_update_callback(PointNormalKCloud::Ptr p_cloud, ivec3 color, vector
 {
     for(int i: indices)
     {
-        p_cloud->points[i].r = static_cast<uint8_t>(color.x());
-        p_cloud->points[i].g = static_cast<uint8_t>(color.y());
-        p_cloud->points[i].b = static_cast<uint8_t>(color.z());
+        p_cloud->points[i].rgba = static_cast<uint8_t>(color.x()) << 16 |
+                                  static_cast<uint8_t>(color.y()) << 8 |
+                                  static_cast<uint8_t>(color.z());
     }
 
-    p_viewer->updatePointCloud<PointNormalK>(p_cloud, "point_cloud");
+    pc_has_changed = true;
 }
 
 void add_plane_callback(pcl::ModelCoefficients coeffs, float x, float y, float z)
@@ -99,7 +100,7 @@ function<void(pcl::ModelCoefficients, float, float, float)> add_plane_callable =
 pcl::visualization::PCLVisualizer::Ptr setupViewer()
 {
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
-    viewer->setBackgroundColor(0.1, 0.1, 0.1);
+    viewer->setBackgroundColor(0.2, 0.2, 0.2);
     //viewer->addCoordinateSystem(5.0);
     viewer->initCameraParameters();
 
@@ -118,7 +119,6 @@ int main()
     algo.setViewerUpdateCallback(display_update_callable);
     algo.setAddPlaneCallback(add_plane_callable);
 
-    //pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> single_color(algo.getPointCloud(), 0, 255, 0);
     pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(algo.getPointCloud());
     p_viewer->addPointCloud(algo.getPointCloud(), rgb, "point_cloud");
     p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
@@ -132,6 +132,16 @@ int main()
             // Drawing loop
             while(!p_viewer->wasStopped())
             {
+                if(pc_has_changed)
+                {
+                    pc_has_changed = false;
+
+                    // The function updatePointCloud doesn't work, thus it is necessary to remove and add the cloud
+                    p_viewer->removePointCloud("point_cloud");
+                    p_viewer->addPointCloud(algo.getPointCloud(), rgb, "point_cloud");
+                    p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
+                }
+
                 p_viewer->spinOnce(100);
             }
             algo.stop();

@@ -36,7 +36,6 @@ public:
 
     PointNormalKCloud::Ptr getPointCloud() { return this->p_cloud; }
     KdTreeFlannK::Ptr getKdTree() { return this->p_kdtree; }
-    //Octree::Ptr getOctree() { return this->p_octree; }
 
 private:
     /**
@@ -46,6 +45,7 @@ private:
     typedef struct _RunProperties
     {
         int p_index;
+        ivec3 curr_color;
         PointNormalK root_p;
         boost::shared_ptr<vector<int>> p_nghbrs_indices;
         boost::shared_ptr<vector<int>> p_new_points_indices;
@@ -62,7 +62,7 @@ private:
                             iteration(0), plane_nb(0), prev_size(0),
                             max_search_distance(0), epsilon(0), n(0, 0, 0) {}
 
-        void setupNextPlane(int index, PointNormalK &p);
+        void setupNextPlane(int index, PointNormalK &p, ivec3 color);
         void addToNeighborhood(vector<int> &new_points);
     } RunProperties;
 
@@ -80,14 +80,14 @@ private:
     float max_normal_angle = 0.349066f; // = 20°
 
     RunProperties current_run;
-    SegmentedPointsContainer segmented_points_container;
+    SegmentedPointsContainer::Ptr p_segmented_points_container;
 
     function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> display_update_callable;
     function<void(pcl::ModelCoefficients, float, float, float)> add_plane_callable;
 
     PointNormalKCloud::Ptr p_cloud;
     KdTreeFlannK::Ptr p_kdtree;
-    //Octree::Ptr p_octree;
+
     boost::shared_ptr<vector<int>> p_indices;
     boost::shared_ptr<vector<int>> p_excluded_indices;
 
@@ -102,6 +102,7 @@ private:
     void performOneStep();
     void stop_current_plane_segmentation();
     void exclude_points(vector<int> indices);
+    void exclude_from_search(vector<int> indices);
     void color_points(vector<int> indices, ivec3 color);
     void color_point(int index, ivec3 color);
 };
