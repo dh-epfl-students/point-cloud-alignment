@@ -16,7 +16,8 @@ void Plane::setCenter(vec4 p)
 vec3 Plane::getNormal()
 {
     vec3 n(a, b, c);
-    return n.normalized();
+    n.normalize();
+    return n;
 }
 
 pcl::ModelCoefficients Plane::getModelCoefficients()
@@ -32,8 +33,7 @@ pcl::ModelCoefficients Plane::getModelCoefficients()
 
 float Plane::getStdDevWith(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices)
 {
-    vector<float> distances;
-    distances.resize(indices->size());
+    vector<float> distances(indices->size());
     float dist_mean(0);
 
     #pragma omp parallel for shared(distances, dist_mean)
@@ -49,11 +49,11 @@ float Plane::getStdDevWith(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vecto
     dist_mean /= static_cast<float>(indices->size());
 
     float dev(0);
-    for(float i: distances)
+    for(float j: distances)
     {
-        dev += std::pow(i - dist_mean, 2.0f);
+        dev += std::pow(j - dist_mean, 2.0f);
     }
-    dev /= static_cast<float>(indices->size());
+    dev /= static_cast<float>(distances.size());
 
     return std::sqrt(dev);
 }
@@ -64,7 +64,8 @@ float Plane::distanceTo(PointNormalK p)
     return this->distanceTo(p_tmp);
 }
 
-float Plane::distanceTo(vec3 p) {
+float Plane::distanceTo(vec3 p)
+{
     vec3 n(0, 0, 0);
     float d(0);
     this->cartesianToNormal(n, d);
@@ -72,13 +73,15 @@ float Plane::distanceTo(vec3 p) {
     return fabs(n.dot(p) + d);
 }
 
-void Plane::cartesianToNormal(vec3 &n, float &d) {
+void Plane::cartesianToNormal(vec3 &n, float &d)
+{
     vec3 v(a, b, c);
     d = this->d / v.norm();
     n = v.normalized();
 }
 
-void Plane::estimatePlane(PointNormalKCloud::Ptr cloud_in, boost::shared_ptr<vector<int>> indices_in, Plane &plane) {
+void Plane::estimatePlane(PointNormalKCloud::Ptr cloud_in, boost::shared_ptr<vector<int>> indices_in, Plane &plane)
+{
     // Get list of points
     PointNormalKCloud::Ptr cloud_f(new PointNormalKCloud);
     pcl::ExtractIndices<PointNormalK> iFilter(false);
@@ -93,11 +96,13 @@ void Plane::estimatePlane(PointNormalKCloud::Ptr cloud_in, boost::shared_ptr<vec
     Eigen::MatrixXf m;
     pcl::demeanPointCloud(*cloud_f, center, m);
 
-    //cout << "Optimisation matrix dimension: " << m.rows() << " " << m.cols() << endl;
+    cout << "Optimisation matrix dimension: " << m.rows() << " " << m.cols() << endl;
 
     // Compute svd decomposition
     Eigen::JacobiSVD<Eigen::MatrixXf> svd(m.block(0,0, 3, m.cols()), Eigen::ComputeThinU);
     Eigen::MatrixXf u = svd.matrixU();
+
+    cout << "U matrix dimension: " << u.rows() << " " << u.cols() << endl;
 
     //Extract plane parameters
     float a = u(0, 2);
@@ -113,12 +118,18 @@ void Plane::estimatePlane(PointNormalKCloud::Ptr cloud_in, boost::shared_ptr<vec
 
 bool Plane::pointInPlane(PointNormalK p, float epsilon)
 {
-    return this->distanceTo(p) <= (2.0f*epsilon);
+    //return this->distanceTo(p) <= (2.0f*epsilon);
+    vec3 v(p.x, p.y, p.z);
+    return abs(vec3(a, b, c).dot(v) + d) <= (2.0f*epsilon);
 }
 
 bool Plane::normalInPlane(PointNormalK p, float max_angle)
 {
-    //TODO: It may be necessary to reorient the normal vector.
+    vec3 n = getNormal();
     vec3 pn(p.normal_x, p.normal_y, p.normal_z);
-    return fabs(getNormal().dot(pn)) <= max_angle;
+
+    //It may be necessary to reorient the normal vector.
+    n = (acos(pn.dot(n)) <= acos(pn.dot(-n)))? n : -n;
+
+    return fabs(acos(pn.dot(n))) <= max_angle;
 }

@@ -15,7 +15,7 @@
 #include "pfh_evaluation.h"
 
 #define PHASE1_ITERATIONS 3
-#define MIN_STABLE_SIZE 100
+#define MIN_STABLE_SIZE 200
 
 class PlaneSegmentation {
 public:
@@ -36,6 +36,8 @@ public:
 
     PointNormalKCloud::Ptr getPointCloud() { return this->p_cloud; }
     KdTreeFlannK::Ptr getKdTree() { return this->p_kdtree; }
+    PointNormalKCloud::Ptr getAvailablePointCloud();
+    PointNormalKCloud::Ptr getExcludedPointCloud();
 
 private:
     /**
@@ -102,7 +104,7 @@ private:
     void performOneStep();
     void stop_current_plane_segmentation();
     void exclude_points(vector<int> indices);
-    void exclude_from_search(vector<int> indices);
+    void exclude_from_search(vector<int> &indices);
     void color_points(vector<int> indices, ivec3 color);
     void color_point(int index, ivec3 color);
 };

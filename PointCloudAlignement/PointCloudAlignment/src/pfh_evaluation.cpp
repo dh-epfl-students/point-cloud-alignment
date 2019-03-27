@@ -11,9 +11,10 @@ bool PFHEvaluation::isValidPlane(PointNormalKCloud::Ptr points, vector<int> &ind
     cout << "PFHSignature125 dimensions: " << pfh_histogram.rows() << ", " << pfh_histogram.cols() << endl;
     for(int i = 0; i < pfh_histogram.rows(); ++i)
     {
-        cout << pfh_histogram[i] << " ";
+        cout << i << ": " << pfh_histogram[i] << " ";
     }
     cout << endl;
 
-    return true;
+    //TODO: enhance this part
+    return pfh_histogram[62] > 30;
 }

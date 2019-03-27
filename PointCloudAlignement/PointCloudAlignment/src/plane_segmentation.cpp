@@ -29,12 +29,14 @@ void PlaneSegmentation::RunProperties::addToNeighborhood(vector<int> &new_points
     if(iteration < PHASE1_ITERATIONS ||
             p_nghbrs_indices->size() < MIN_STABLE_SIZE)
     {
+        cout << "Iteration " << iteration << ": Adding points to neighborhood list only." << endl;
         new_points.swap(*p_nghbrs_indices);
     }
     else
     {
         if(p_new_points_indices->empty())
         {
+            cout << "Iteration " << iteration << ": First time adding to new point list." << endl;
             // It is the first time new_points vector will be used
             new_points.swap(*p_nghbrs_indices);
             p_new_points_indices->reserve(p_nghbrs_indices->size());
@@ -44,6 +46,8 @@ void PlaneSegmentation::RunProperties::addToNeighborhood(vector<int> &new_points
         }
         else
         {
+            cout << "Iteration " << iteration << ": Swaping to new point list and adding to neighborhood list." << endl;
+
             new_points.swap(*p_new_points_indices);
             p_nghbrs_indices->reserve(p_nghbrs_indices->size() +
                                               p_new_points_indices->size());
@@ -52,6 +56,8 @@ void PlaneSegmentation::RunProperties::addToNeighborhood(vector<int> &new_points
                                              p_new_points_indices->end());
         }
     }
+
+    cout << "End of neighborhood add. Current status is " << p_nghbrs_indices->size() << " points in neighborhood and " << p_new_points_indices->size() << " points in new points list." << endl;
 }
 
 // ========================================================================================== //
@@ -87,12 +93,15 @@ int PlaneSegmentation::init(string cloud_file)
     p_kdtree = KdTreeFlannK::Ptr(new KdTreeFlannK);
     p_kdtree->setInputCloud(p_cloud);
 
-    cout << "Starting to compute normal cloud..." << endl;
+    if(p_cloud->points[0].k == 0)
+    {
+        cout << "Loaded point cloud is not precomputed, starting preprocessing." << endl;
 
-    NormalComputation nc;
-    nc.computeNormalCloud(p_cloud, p_kdtree);
+        NormalComputation nc;
+        nc.computeNormalCloud(p_cloud, p_kdtree);
 
-    cout << "Normal computation successfully ended." << endl;
+        cout << "Normal computation successfully ended." << endl;
+    }
 
     // Initialize remaining variables
     safety_distance = 0;
@@ -216,6 +225,8 @@ bool PlaneSegmentation::initRegionGrowth()
     color_points(*current_run.p_nghbrs_indices, ivec3(15, 255, 15));
     color_point(current_run.p_index, ivec3(15, 15, 255));
 
+    cout << "Starting plane " << current_run.plane_nb << " at index " << current_run.p_index << endl;
+
     return true;
 }
 
@@ -229,11 +240,13 @@ void PlaneSegmentation::performRegionGrowth()
 
 bool PlaneSegmentation::regionGrowthOneStep()
 {
-    cout << "Segmenting plane " << current_run.plane_nb << ": iteration " << current_run.iteration << endl;
+    cout << "Plane " << current_run.plane_nb << ": iteration " << current_run.iteration << " current size " << current_run.p_nghbrs_indices->size() << endl;
 
     //TODO: Check for termination conditions
     if(p_segmented_points_container->getNbOfSegmentedPoints() > 0.8 * p_cloud->size())
     {
+        cout << "Majority of points have been segemted -> Success" << endl;
+
         //Stop, majority of points have been segmented -> Success
         stop();
         return false;
@@ -262,25 +275,32 @@ bool PlaneSegmentation::regionGrowthOneStep()
     }
 
     //TODO: Check if neighborhood has shrinked
-    if(current_run.p_nghbrs_indices->size() < 3)
+    if(current_run.p_nghbrs_indices->size() < 4)
     {
         cout << "Current plane has shrinked" << endl;
 
-        exclude_points(*current_run.p_nghbrs_indices);
+        // Exclude starting point
+        vector<int> rootP;
+        rootP.push_back(current_run.p_index);
+        exclude_points(rootP);
         stop_current_plane_segmentation();
         return false;
     }
 
     //TODO: Compute current plane
-    if(current_run.p_nghbrs_indices->size() < MIN_STABLE_SIZE)
+    if(current_run.iteration < PHASE1_ITERATIONS ||
+            current_run.p_nghbrs_indices->size() < MIN_STABLE_SIZE)
     {
+        cout << "Computing new plane parameters" << endl;
         Plane curr_plane;
         Plane::estimatePlane(p_cloud, current_run.p_nghbrs_indices, curr_plane);
         current_run.plane = curr_plane;
 
         //TODO: Update normal and epsilon
-        current_run.n = curr_plane.getNormal();
+        //current_run.n = curr_plane.getNormal();
         current_run.epsilon = 2.0f * curr_plane.getStdDevWith(p_cloud, current_run.p_nghbrs_indices);
+
+        cout << "Epsilon = " << current_run.epsilon << endl;
 
         // Display plane
         /*
@@ -293,7 +313,7 @@ bool PlaneSegmentation::regionGrowthOneStep()
 
     //TODO: Find new candidates
     vector<int> candidates;
-    if(current_run.iteration < PHASE1_ITERATIONS
+    if(current_run.iteration <= PHASE1_ITERATIONS
         || current_run.p_nghbrs_indices->size() < MIN_STABLE_SIZE
         || current_run.p_new_points_indices->empty())
     {
@@ -303,6 +323,8 @@ bool PlaneSegmentation::regionGrowthOneStep()
     {
         getNeighborsOf(current_run.p_new_points_indices, current_run.max_search_distance, candidates);
     }
+
+    cout << "Found " << candidates.size() << " candidates." << endl;
 
     //DEBUG color points found in yellow
     color_points(candidates, ivec3(255, 255, 0));
@@ -316,7 +338,7 @@ bool PlaneSegmentation::regionGrowthOneStep()
         int index = candidates[i];
         if(current_run.plane.pointInPlane(p_cloud->points[index], current_run.epsilon))
         {
-            if(current_run.iteration > PHASE1_ITERATIONS)
+            if(current_run.iteration >= PHASE1_ITERATIONS)
             {
                 if(current_run.plane.normalInPlane(p_cloud->points[index], max_normal_angle))
                 {
@@ -330,11 +352,13 @@ bool PlaneSegmentation::regionGrowthOneStep()
         }
     }
 
+    cout << "Number of candidates in plane: " << points_in_plane.size() << endl;
+
     //TODO: Add good candidates to neighborhood
     current_run.addToNeighborhood(points_in_plane);
 
     //TODO: Update available Indices
-    if(current_run.p_nghbrs_indices->size() > MIN_STABLE_SIZE)
+    if(current_run.p_nghbrs_indices->size() > MIN_STABLE_SIZE && current_run.iteration > PHASE1_ITERATIONS)
     {
         exclude_from_search(*current_run.p_new_points_indices);
 
@@ -348,16 +372,19 @@ bool PlaneSegmentation::regionGrowthOneStep()
     //TODO: Check for region growth
     if(current_run.prev_size == current_run.p_nghbrs_indices->size())
     {
-        cout << "Plane growth stopped, registering plane" << endl;
+        cout << "Plane growth stopped, registering plane containing " << current_run.p_nghbrs_indices->size() << " points." << endl;
 
         //TODO: store segmented plane
         SegmentedPointsContainer::SegmentedPlane plane(current_run.plane_nb, current_run.curr_color, *current_run.p_nghbrs_indices, current_run.plane);
         p_segmented_points_container->addSegmentedPoints(plane);
         color_points(*current_run.p_nghbrs_indices, current_run.curr_color);
         exclude_from_search(*current_run.p_nghbrs_indices);
+
+        return false;
     }
     else
     {
+        cout << "End of iteration nb " << current_run.iteration << ". New nb of points in plane: " << current_run.p_nghbrs_indices->size() << endl;
         current_run.iteration++;
     }
 
@@ -452,7 +479,7 @@ void PlaneSegmentation::getNeighborsOf(boost::shared_ptr<vector<int>> indices_in
     indices_out.resize(std::distance(indices_out.begin(), it));
 }
 
-void PlaneSegmentation::exclude_from_search(vector<int> indices)
+void PlaneSegmentation::exclude_from_search(vector<int> &indices)
 {
     // Ensure that the given list is sorted
     sort(indices.begin(), indices.end());
@@ -461,6 +488,8 @@ void PlaneSegmentation::exclude_from_search(vector<int> indices)
     boost::shared_ptr<vector<int>> tmp(new vector<int>(0));
     set_difference(p_indices->begin(), p_indices->end(), indices.begin(), indices.end(), back_inserter(*tmp));
     p_indices = tmp;
+
+    cout << "Adding " << indices.size() << " to exclusion list" << endl;
 
     // Update searching tree indices
     p_kdtree->setInputCloud(p_cloud, p_indices);
@@ -490,4 +519,26 @@ void PlaneSegmentation::color_point(int index, ivec3 color)
     vector<int> indices;
     indices.push_back(index);
     this->display_update_callable(p_cloud, color, indices);
+}
+
+PointNormalKCloud::Ptr PlaneSegmentation::getAvailablePointCloud()
+{
+    PointNormalKCloud::Ptr filtered(new PointNormalKCloud);
+    pcl::ExtractIndices<PointNormalK> extract;
+    extract.setInputCloud(p_cloud);
+    extract.setIndices(p_indices);
+    extract.setNegative(false);
+    extract.filter(*filtered);
+    return filtered;
+}
+
+PointNormalKCloud::Ptr PlaneSegmentation::getExcludedPointCloud()
+{
+    PointNormalKCloud::Ptr filtered(new PointNormalKCloud);
+    pcl::ExtractIndices<PointNormalK> extract;
+    extract.setInputCloud(p_cloud);
+    extract.setIndices(p_indices);
+    extract.setNegative(true);
+    extract.filter(*filtered);
+    return filtered;
 }

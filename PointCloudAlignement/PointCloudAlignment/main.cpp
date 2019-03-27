@@ -13,6 +13,7 @@ using namespace std;
 
 PlaneSegmentation algo;
 bool isNormalDisplayed = false;
+bool isExclusionDisplayed = false;
 bool pc_has_changed = false;
 pcl::visualization::PCLVisualizer::Ptr p_viewer;
 int plane_nb = 0;
@@ -67,6 +68,46 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     {
         algo.runOneStep();
     }
+    else if(event.getKeySym() == "F6" && event.keyDown())
+    {
+        string filename = "myPC.ply";
+
+        cout << "Saving ply file " << filename << endl;
+
+        // Writing PC to file
+        pcl::io::savePLYFile(filename, *algo.getPointCloud());
+    }
+    else if(event.getKeySym() == "F7" && event.keyDown())
+    {
+        if(isExclusionDisplayed)
+        {
+            cout << "Remove clouds" << endl;
+
+            viewer->removePointCloud("available_cloud");
+            viewer->removePointCloud("excluded_cloud");
+            isExclusionDisplayed = false;
+        }
+        else
+        {
+            cout << "Display clouds" << endl;
+
+            PointNormalKCloud::Ptr red_c = algo.getExcludedPointCloud();
+            PointNormalKCloud::Ptr green_c = algo.getAvailablePointCloud();
+
+            // Display the available points in green and excluded points in red
+            pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> red(red_c, 255, 15, 15);
+            pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> green(green_c, 15, 255, 15);
+
+            // Add 2 point clouds: 1 for available, 1 for excluded
+            viewer->addPointCloud(green_c, green, "available_cloud");
+            viewer->addPointCloud(red_c, red, "excluded_cloud");
+
+            viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "available_cloud");
+            viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "excluded_cloud");
+
+            isExclusionDisplayed = true;
+        }
+    }
     else if(event.keyDown())
     {
         cout << event.getKeySym() << ", " << event.getKeyCode() << endl;
@@ -112,10 +153,11 @@ pcl::visualization::PCLVisualizer::Ptr setupViewer()
 int main()
 {
     string pcFile("/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safe.ply");
+    string pcFileWithPreprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Default/myPC.ply");
 
     p_viewer = setupViewer();
 
-    algo.init(pcFile);
+    algo.init(pcFileWithPreprocessed);
     algo.setViewerUpdateCallback(display_update_callable);
     algo.setAddPlaneCallback(add_plane_callable);
 
