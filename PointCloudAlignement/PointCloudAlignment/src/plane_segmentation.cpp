@@ -151,6 +151,8 @@ void PlaneSegmentation::runMainLoop()
             current_run.setupNextPlane(index, p_cloud->points[index], p_segmented_points_container->getNextPlaneColor());
             segmentPlane();
         }
+
+        dont_quit = index == -1? false: true;
     }
 }
 
@@ -204,6 +206,8 @@ bool PlaneSegmentation::initRegionGrowth()
 
         // Thus, we add the points to exclusion list since we don't want to
         // consider them again.
+
+        cout << "Trying to start segmentation in already classified area. Point index: " << current_run.p_index << endl;
 
         // Add to exclusion list
         exclude_points(*current_run.p_nghbrs_indices);
@@ -419,7 +423,11 @@ float PlaneSegmentation::getMeanOfMinDistances()
 
 int PlaneSegmentation::getRegionGrowingStartLocation()
 {
-    if(p_indices->size() == 0) return -1;
+    if(p_indices->size() == 0)
+    {
+        cout << "No available index. Segmentation stopped." << endl;
+        return -1;
+    }
 
     // Copy indices
     vector<int> tmp_indices(*p_indices);
@@ -504,6 +512,17 @@ void PlaneSegmentation::exclude_points(vector<int> indices)
 
     // Update point display
     this->display_update_callable(p_cloud, p_segmented_points_container->getMiscColor(), indices);
+}
+
+void PlaneSegmentation::filterOutCurvature(float max_curvature)
+{
+    // Fill vector of points' indices to exclude
+    vector<int> indices;
+    copy_if(p_indices->begin(), p_indices->end(), back_inserter(indices), [&max_curvature, this](int index){
+        return this->p_cloud->points[index].curvature > max_curvature;
+    });
+
+    exclude_points(indices);
 }
 
 void PlaneSegmentation::color_points(vector<int> indices, ivec3 color)

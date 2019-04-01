@@ -36,6 +36,8 @@ public:
 
     void stop();
 
+    void filterOutCurvature(float max_curvature);
+
     PointNormalKCloud::Ptr getPointCloud() { return this->p_cloud; }
     KdTreeFlannK::Ptr getKdTree() { return this->p_kdtree; }
     PointNormalKCloud::Ptr getAvailablePointCloud();

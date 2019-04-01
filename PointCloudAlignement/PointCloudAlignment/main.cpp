@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <limits>
 
 #include <omp.h>
 
@@ -107,6 +108,15 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
 
             isExclusionDisplayed = true;
         }
+    }
+    else if(event.getKeySym() == "F8" && event.keyDown())
+    {
+        // Filter out points with high curvature
+        float max_curvature = 0.035f;
+
+        cout << "Filtering out points with curvature greater than " << max_curvature << endl;
+
+        algo.filterOutCurvature(max_curvature);
     }
     else if(event.keyDown())
     {
