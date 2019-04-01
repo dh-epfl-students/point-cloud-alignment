@@ -34,7 +34,7 @@ namespace pcl
         PCL_ADD_NORMAL4D
         PCL_ADD_RGB
         float curvature;
-        int k;
+        float k;
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     } EIGEN_ALIGN16;
 
@@ -76,7 +76,7 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::_PointNormalK,
                                    (uint8_t, b, b)
                                    (uint8_t, a, a)
                                    (float, curvature, curvature)
-                                   (int, k, k)
+                                   (float, k, k)
 )
 POINT_CLOUD_REGISTER_POINT_WRAPPER(pcl::PointNormalK, pcl::_PointNormalK)
 

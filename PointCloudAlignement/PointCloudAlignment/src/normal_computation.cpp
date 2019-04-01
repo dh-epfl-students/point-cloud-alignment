@@ -30,7 +30,7 @@ void NormalComputation::computeNormalCloud(PointNormalKCloud::Ptr cloud_in, KdTr
 
 int NormalComputation::estimateKForPoint(int p_id, PointNormalKCloud::Ptr cloud_in, KdTreeFlannK::Ptr kdTree_in)
 {
-    float d1(1), d2(4), e(0.1), max_k(50), max_count(10), sigma(0.2);
+    float d1(1), d2(4), e(0.1), max_count(10), sigma(0.2);
     int k(15), count(0);
 
     float r_new, density, curv;
@@ -51,10 +51,10 @@ int NormalComputation::estimateKForPoint(int p_id, PointNormalKCloud::Ptr cloud_
 
         k = std::ceil(M_PI * density * r_new * r_new);
         k = std::max(10, k);
-        k = std::fmin(max_k, k);
+        k = std::fmin(MAX_K, k);
 
         count++;
-    } while(k < max_k && count < max_count);
+    } while(k < MAX_K && count < max_count);
 
     return k;
 }

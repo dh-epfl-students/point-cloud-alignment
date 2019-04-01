@@ -7,6 +7,8 @@
 #include "common.h"
 #include "plane.h"
 
+#define MAX_K 50
+
 
 class NormalComputation {
 public:

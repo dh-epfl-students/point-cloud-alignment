@@ -16,5 +16,5 @@ bool PFHEvaluation::isValidPlane(PointNormalKCloud::Ptr points, vector<int> &ind
     cout << endl;
 
     //TODO: enhance this part
-    return pfh_histogram[62] > 30;
+    return pfh_histogram[62] > PLANE_TRESHOLD;
 }

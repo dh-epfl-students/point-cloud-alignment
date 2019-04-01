@@ -16,6 +16,8 @@
 
 #define PHASE1_ITERATIONS 3
 #define MIN_STABLE_SIZE 200
+#define MIN_PLANE_SIZE 10
+#define MAX_ITERATIONS 100
 
 class PlaneSegmentation {
 public:
@@ -57,12 +59,11 @@ private:
         size_t prev_size;
         float max_search_distance;
         float epsilon;
-        vec3 n;
 
         _RunProperties(): p_index(0), p_nghbrs_indices(new vector<int>(0)),
                             p_new_points_indices(new vector<int>(0)),
                             iteration(0), plane_nb(0), prev_size(0),
-                            max_search_distance(0), epsilon(0), n(0, 0, 0) {}
+                            max_search_distance(0), epsilon(0) {}
 
         void setupNextPlane(int index, PointNormalK &p, ivec3 color);
         void addToNeighborhood(vector<int> &new_points);
@@ -102,7 +103,7 @@ private:
     void performRegionGrowth();
     bool regionGrowthOneStep();
     void performOneStep();
-    void stop_current_plane_segmentation();
+    bool planeHasShrinked();
     void exclude_points(vector<int> indices);
     void exclude_from_search(vector<int> &indices);
     void color_points(vector<int> indices, ivec3 color);
