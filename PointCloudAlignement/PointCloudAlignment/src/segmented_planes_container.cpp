@@ -5,6 +5,11 @@ void SegmentedPointsContainer::addExcludedPoints(vector<int> point_list)
     excluded_points.insert(excluded_points.end(), point_list.begin(), point_list.end());
 }
 
+void SegmentedPointsContainer::addExcludedPoint(int p_id)
+{
+    excluded_points.push_back(p_id);
+}
+
 void SegmentedPointsContainer::addSegmentedPoints(SegmentedPointsContainer::SegmentedPlane plane)
 {
     this->planes_list.push_back(plane);
@@ -19,6 +24,11 @@ size_t SegmentedPointsContainer::getNbOfExcludedPoints()
 int SegmentedPointsContainer::getNbOfSegmentedPoints()
 {
     return segmented_points;
+}
+
+size_t SegmentedPointsContainer::getNbPlanes()
+{
+    return planes_list.size();
 }
 
 ivec3 SegmentedPointsContainer::getNextPlaneColor()

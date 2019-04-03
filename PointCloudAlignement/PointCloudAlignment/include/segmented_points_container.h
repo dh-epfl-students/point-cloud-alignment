@@ -49,8 +49,10 @@ public:
 
     void addSegmentedPoints(SegmentedPlane plane);
     void addExcludedPoints(vector<int> point_list);
+    void addExcludedPoint(int p_id);
     int getNbOfSegmentedPoints();
     size_t getNbOfExcludedPoints();
+    size_t getNbPlanes();
     ivec3 getNextPlaneColor();
     ivec3 getMiscColor() { return misc_color; }
 

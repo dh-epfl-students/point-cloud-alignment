@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.6.2)
 set(CMAKE_CXX_FLAGS "-std=c++11 -pthread")
 
 find_package(PCL 1.9 REQUIRED)
+find_package(OpenMP)
 
 # For CMake < 3.9, we need to make the target ourselves
 if(NOT TARGET OpenMP::OpenMP_CXX)

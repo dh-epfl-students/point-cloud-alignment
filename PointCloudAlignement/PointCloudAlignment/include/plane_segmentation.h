@@ -15,16 +15,24 @@
 #include "pfh_evaluation.h"
 
 #define PHASE1_ITERATIONS 3
-#define MIN_STABLE_SIZE 200
+#define MIN_STABLE_SIZE 100
 #define MIN_PLANE_SIZE 10
 #define MAX_ITERATIONS 100
+
+/**
+ * @brief Max angle in radians between two normals to be
+ * considered in the same plane. Examples: 0.349066f = 20°, 0.261799 = 15°
+ */
+#define MAX_NORMAL_ANGLE 0.261799f // = 15°
+
 
 class PlaneSegmentation {
 public:
     int init(string cloud_file);
-
+    void preprocessCloud();
     void setViewerUpdateCallback(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> callable);
     void setAddPlaneCallback(function<void(pcl::ModelCoefficients, float, float, float)> callable);
+    void setUpdateNormalCloudCallback(function<void(void)> callable);
 
     bool isReady();
 
@@ -78,17 +86,12 @@ private:
 
     float safety_distance;
 
-    /**
-     * @brief Max angle in radians between two normals to be
-     * considered in the same plane
-     */
-    float max_normal_angle = 0.349066f; // = 20°
-
     RunProperties current_run;
     SegmentedPointsContainer::Ptr p_segmented_points_container;
 
     function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> display_update_callable;
     function<void(pcl::ModelCoefficients, float, float, float)> add_plane_callable;
+    function<void(void)> update_normal_cloud_callable;
 
     PointNormalKCloud::Ptr p_cloud;
     KdTreeFlannK::Ptr p_kdtree;
@@ -106,6 +109,7 @@ private:
     bool regionGrowthOneStep();
     void performOneStep();
     bool planeHasShrinked();
+    void reorient_normals(PointNormalKCloud::Ptr cloud_in, vector<int> indices, vec3 pn);
     void exclude_points(vector<int> indices);
     void exclude_from_search(vector<int> &indices);
     void color_points(vector<int> indices, ivec3 color);

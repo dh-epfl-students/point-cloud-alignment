@@ -55,7 +55,7 @@ float Plane::getStdDevWith(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vecto
     }
     dev /= static_cast<float>(distances.size());
 
-    return std::sqrt(dev);
+    return 3.0f * std::sqrt(dev);
 }
 
 float Plane::distanceTo(PointNormalK p)
@@ -120,7 +120,9 @@ bool Plane::pointInPlane(PointNormalK p, float epsilon)
 {
     //return this->distanceTo(p) <= (2.0f*epsilon);
     vec3 v(p.x, p.y, p.z);
-    return abs(vec3(a, b, c).dot(v) + d) <= (2.0f*epsilon);
+    float dist = abs(vec3(a, b, c).dot(v) + d);
+    //cout << "Point " << p.x << " " << p.y << " " << p.z << " is at dist " << dist << " from plane." << endl;
+    return dist <= epsilon;
 }
 
 bool Plane::normalInPlane(PointNormalK p, float max_angle)

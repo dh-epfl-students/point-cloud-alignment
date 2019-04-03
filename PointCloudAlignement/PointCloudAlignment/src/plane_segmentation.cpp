@@ -94,12 +94,13 @@ int PlaneSegmentation::init(string cloud_file)
 
     if(p_cloud->points[0].k == 0)
     {
-        cout << "Loaded point cloud is not precomputed, starting preprocessing." << endl;
-
-        NormalComputation nc;
-        nc.computeNormalCloud(p_cloud, p_kdtree);
-
-        cout << "Normal computation successfully ended." << endl;
+        cout << "Loaded point cloud is not preprocessed." << endl;
+        is_ready = false;
+    }
+    else
+    {
+        cout << "Loaded point cloud is already preprocessed." << endl;
+        is_ready = true;
     }
 
     // Initialize remaining variables
@@ -108,8 +109,20 @@ int PlaneSegmentation::init(string cloud_file)
     // Initialize segmented_points_container
     p_segmented_points_container = SegmentedPointsContainer::Ptr(new SegmentedPointsContainer);
 
-    is_ready = true;
     return EXIT_SUCCESS;
+}
+
+void PlaneSegmentation::preprocessCloud()
+{
+    if(is_ready) return;
+
+    cout << "Starting normal, curvature and k computation." << endl;
+
+    NormalComputation nc;
+    nc.computeNormalCloud(p_cloud, p_kdtree);
+
+    cout << "Normal computation successfully ended." << endl;
+    is_ready = true;
 }
 
 void PlaneSegmentation::setViewerUpdateCallback(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> callable)
@@ -120,6 +133,11 @@ void PlaneSegmentation::setViewerUpdateCallback(function<void(PointNormalKCloud:
 void PlaneSegmentation::setAddPlaneCallback(function<void(pcl::ModelCoefficients, float, float, float)> callable)
 {
     add_plane_callable = callable;
+}
+
+void PlaneSegmentation::setUpdateNormalCloudCallback(function<void(void)> callable)
+{
+    update_normal_cloud_callable = callable;
 }
 
 bool PlaneSegmentation::isReady()
@@ -154,6 +172,8 @@ void PlaneSegmentation::runMainLoop()
 
         dont_quit = index == -1? false: true;
     }
+
+    cout << "Segmented " << p_segmented_points_container->getNbPlanes() << " planes. Excluded " << p_segmented_points_container->getNbOfExcludedPoints() << endl;
 }
 
 void PlaneSegmentation::runOneStep()
@@ -190,7 +210,7 @@ bool PlaneSegmentation::initRegionGrowth()
                              sqr_distances);
 
     // Compute mean of min distances in the neighborhood
-    current_run.max_search_distance = 2.0f * getMeanOfMinDistances();
+    current_run.max_search_distance = 3.0f * getMeanOfMinDistances();
 
     float dist_to_kth = std::sqrt(sqr_distances[current_run.root_p.k - 1]);
 
@@ -211,6 +231,7 @@ bool PlaneSegmentation::initRegionGrowth()
 
         // Add to exclusion list
         exclude_points(*current_run.p_nghbrs_indices);
+        p_segmented_points_container->addExcludedPoints(*current_run.p_nghbrs_indices);
 
         return false;
     }
@@ -255,11 +276,16 @@ bool PlaneSegmentation::regionGrowthOneStep()
     // If first 3 iterations, check area for valid plane
     if(current_run.iteration == PHASE1_ITERATIONS)
     {
+        // Point normals need to be reoriented in the same direction as the current plane
+        //vec3 pn = current_run.plane.getNormal();
+        //reorient_normals(p_cloud, *current_run.p_nghbrs_indices, pn);
+
         if(!PFHEvaluation::isValidPlane(p_cloud, *current_run.p_nghbrs_indices))
         {
             cout << "Current plane is invalid" << endl;
             // Add to exclusion
             exclude_points(*current_run.p_nghbrs_indices);
+            p_segmented_points_container->addExcludedPoints(*current_run.p_nghbrs_indices);
 
             return false;
         }
@@ -280,6 +306,7 @@ bool PlaneSegmentation::regionGrowthOneStep()
         vector<int> rootP;
         rootP.push_back(current_run.p_index);
         exclude_points(rootP);
+        p_segmented_points_container->addExcludedPoint(current_run.p_index);
 
         return false;
     }
@@ -294,17 +321,7 @@ bool PlaneSegmentation::regionGrowthOneStep()
         current_run.plane = curr_plane;
 
         // Update epsilon
-        current_run.epsilon = 2.0f * curr_plane.getStdDevWith(p_cloud, current_run.p_nghbrs_indices);
-
-        cout << "Epsilon = " << current_run.epsilon << endl;
-
-        // Display plane
-        /*
-        if(current_run.iteration == 0)
-        {
-            add_plane_callable(current_run.plane.getModelCoefficients(), current_run.root_p.x, current_run.root_p.y, current_run.root_p.z);
-        }
-        */
+        current_run.epsilon = curr_plane.getStdDevWith(p_cloud, current_run.p_nghbrs_indices);
     }
 
     // Find new candidates
@@ -321,6 +338,7 @@ bool PlaneSegmentation::regionGrowthOneStep()
     }
 
     cout << "Found " << candidates.size() << " candidates." << endl;
+    cout << "Epsilon = " << current_run.epsilon << endl;
 
     //DEBUG color points found in yellow
     color_points(candidates, ivec3(255, 255, 0));
@@ -336,7 +354,7 @@ bool PlaneSegmentation::regionGrowthOneStep()
         {
             if(current_run.iteration >= PHASE1_ITERATIONS)
             {
-                if(current_run.plane.normalInPlane(p_cloud->points[index], max_normal_angle))
+                if(current_run.plane.normalInPlane(p_cloud->points[index], MAX_NORMAL_ANGLE))
                 {
                     points_in_plane.push_back(index);
                 }
@@ -354,7 +372,7 @@ bool PlaneSegmentation::regionGrowthOneStep()
     current_run.addToNeighborhood(points_in_plane);
 
     // Update available Indices
-    if(current_run.p_nghbrs_indices->size() > MIN_STABLE_SIZE && current_run.iteration > PHASE1_ITERATIONS)
+    if(current_run.p_nghbrs_indices->size() >= MIN_STABLE_SIZE && current_run.iteration >= PHASE1_ITERATIONS)
     {
         exclude_from_search(*current_run.p_new_points_indices);
 
@@ -432,7 +450,7 @@ int PlaneSegmentation::getRegionGrowingStartLocation()
     // Copy indices
     vector<int> tmp_indices(*p_indices);
     sort(tmp_indices.begin(), tmp_indices.end(), [this](const int &lhs, const int &rhs){
-        return this->p_cloud->points[lhs].curvature < this->p_cloud->points[rhs].curvature;
+        return this->p_cloud->points[lhs].k > this->p_cloud->points[rhs].k;
     });
 
     /*
@@ -451,7 +469,7 @@ int PlaneSegmentation::getRegionGrowingStartLocation()
 
 void PlaneSegmentation::getNeighborsOf(boost::shared_ptr<vector<int>> indices_in, float search_d, vector<int> &indices_out)
 {
-    cout << "Searching distance : " << search_d << endl;
+    //cout << "Searching distance : " << search_d << endl;
 
     vector<vector<int>> candidates_lists(indices_in->size());
     size_t total_size = 0;
@@ -461,8 +479,8 @@ void PlaneSegmentation::getNeighborsOf(boost::shared_ptr<vector<int>> indices_in
     {
         int p_id = indices_in->at(i);
         vector<float> distances;
-        //p_kdtree->radiusSearch(p_cloud->points[p_id], search_d, candidates_lists[i], distances);
-        p_kdtree->nearestKSearchT(p_cloud->points[p_id], p_cloud->points[p_id].k, candidates_lists[i], distances);
+        p_kdtree->radiusSearch(p_cloud->points[p_id], search_d, candidates_lists[i], distances);
+        //p_kdtree->nearestKSearch(p_cloud->points[p_id], p_cloud->points[p_id].k, candidates_lists[i], distances);
 
         #pragma omp critical
         total_size += candidates_lists[i].size();
@@ -523,6 +541,7 @@ void PlaneSegmentation::filterOutCurvature(float max_curvature)
     });
 
     exclude_points(indices);
+    p_segmented_points_container->addExcludedPoints(indices);
 }
 
 void PlaneSegmentation::color_points(vector<int> indices, ivec3 color)
@@ -562,4 +581,23 @@ PointNormalKCloud::Ptr PlaneSegmentation::getExcludedPointCloud()
 bool PlaneSegmentation::planeHasShrinked()
 {
     return current_run.p_nghbrs_indices->size() < MIN_PLANE_SIZE;
+}
+
+void PlaneSegmentation::reorient_normals(PointNormalKCloud::Ptr cloud_in, vector<int> indices, vec3 pn)
+{
+    #pragma omp parallel for
+    for(size_t i = 0; i < indices.size(); ++i)
+    {
+        vec3 n = vec3(cloud_in->points[indices[i]].normal_x,
+                      cloud_in->points[indices[i]].normal_y,
+                      cloud_in->points[indices[i]].normal_z);
+
+        n = (acos(pn.dot(n)) <= acos(pn.dot(-n)))? n : -n;
+
+        cloud_in->points[indices[i]].normal_x = n.x();
+        cloud_in->points[indices[i]].normal_y = n.y();
+        cloud_in->points[indices[i]].normal_z = n.z();
+    }
+
+    update_normal_cloud_callable();
 }

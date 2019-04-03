@@ -16,6 +16,7 @@ PlaneSegmentation algo;
 bool isNormalDisplayed = false;
 bool isExclusionDisplayed = false;
 bool pc_has_changed = false;
+bool normal_cloud_changed = false;
 pcl::visualization::PCLVisualizer::Ptr p_viewer;
 int plane_nb = 0;
 
@@ -29,7 +30,6 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         cout << "Segmentation started!" << endl;
 
         algo.start_pause();
-
     }
     else if(event.getKeySym() == "F1" && event.keyDown())
     {
@@ -112,11 +112,15 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     else if(event.getKeySym() == "F8" && event.keyDown())
     {
         // Filter out points with high curvature
-        float max_curvature = 0.035f;
+        float max_curvature = 0.5f;
 
         cout << "Filtering out points with curvature greater than " << max_curvature << endl;
 
         algo.filterOutCurvature(max_curvature);
+    }
+    else if(event.getKeySym() == "F9" && event.keyDown())
+    {
+        algo.preprocessCloud();
     }
     else if(event.keyDown())
     {
@@ -144,14 +148,20 @@ void add_plane_callback(pcl::ModelCoefficients coeffs, float x, float y, float z
     ++plane_nb;
 }
 
+void update_normal_cloud_callback()
+{
+    if(isNormalDisplayed) normal_cloud_changed = true;
+}
+
 function<void(PointNormalKCloud::Ptr, ivec3 color, vector<int> indices)> display_update_callable = &display_update_callback;
 function<void(pcl::ModelCoefficients, float, float, float)> add_plane_callable = &add_plane_callback;
+function<void(void)> update_normal_cloud_callable = &update_normal_cloud_callback;
 
 // Start and setup viewer
 pcl::visualization::PCLVisualizer::Ptr setupViewer()
 {
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
-    viewer->setBackgroundColor(0.2, 0.2, 0.2);
+    viewer->setBackgroundColor(0.3, 0.3, 0.3);
     //viewer->addCoordinateSystem(5.0);
     viewer->initCameraParameters();
 
@@ -163,13 +173,16 @@ pcl::visualization::PCLVisualizer::Ptr setupViewer()
 int main()
 {
     string pcFile("/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safe.ply");
-    string pcFileWithPreprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Default/myPC.ply");
+    string pcFileWithPreprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/myPC.ply");
+
+    string pcLIDAR_Geneva_region1_2017("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-01/region-01_2017-aerial/2496000_1119000_seg3_shifted_float.ply");
 
     p_viewer = setupViewer();
 
     algo.init(pcFileWithPreprocessed);
     algo.setViewerUpdateCallback(display_update_callable);
     algo.setAddPlaneCallback(add_plane_callable);
+    algo.setUpdateNormalCloudCallback(update_normal_cloud_callable);
 
     pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(algo.getPointCloud());
     p_viewer->addPointCloud(algo.getPointCloud(), rgb, "point_cloud");
@@ -192,6 +205,14 @@ int main()
                     p_viewer->removePointCloud("point_cloud");
                     p_viewer->addPointCloud(algo.getPointCloud(), rgb, "point_cloud");
                     p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
+                }
+
+                if(isNormalDisplayed && normal_cloud_changed)
+                {
+                    normal_cloud_changed = false;
+
+                    p_viewer->removePointCloud("normal_cloud");
+                    p_viewer->addPointCloudNormals<PointNormalK, PointNormalK>(algo.getPointCloud(), algo.getPointCloud(), 5, 1, "normal_cloud");
                 }
 
                 p_viewer->spinOnce(100);
