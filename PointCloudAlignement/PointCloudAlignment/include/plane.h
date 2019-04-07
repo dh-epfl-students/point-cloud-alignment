@@ -21,10 +21,10 @@ public:
     void setCenter(vec4 p);
     float distanceTo(PointNormalK p);
     float distanceTo(vec3 p);
-    void cartesianToNormal(vec3 &n, float &d);
+    void cartesianToNormal(vec3 &n, float &di);
     vec3 getNormal();
     pcl::ModelCoefficients getModelCoefficients();
-    float getStdDevWith(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices);
+    float getPlaneTolerance(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices);
     bool pointInPlane(PointNormalK p, float epsilon);
     bool normalInPlane(PointNormalK p, float max_angle);
 

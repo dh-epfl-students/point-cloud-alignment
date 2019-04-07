@@ -112,7 +112,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     else if(event.getKeySym() == "F8" && event.keyDown())
     {
         // Filter out points with high curvature
-        float max_curvature = 0.5f;
+        float max_curvature = algo.getCurvBound();
 
         cout << "Filtering out points with curvature greater than " << max_curvature << endl;
 
@@ -175,11 +175,11 @@ int main()
     string pcFile("/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safe.ply");
     string pcFileWithPreprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/myPC.ply");
 
-    string pcLIDAR_Geneva_region1_2017("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-01/region-01_2017-aerial/2496000_1119000_seg3_shifted_float.ply");
-
+    string pcLIDAR_Geneva_region1_2017("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-01/region-01_2017-aerial/2496000_1119000_seg4_shifted_float.ply");
+    string pcLIDAR_region1_2017_preprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/2496000_1119000_seg4_shifted_float_preproc.ply");
     p_viewer = setupViewer();
 
-    algo.init(pcFileWithPreprocessed);
+    algo.init(pcLIDAR_region1_2017_preprocessed);
     algo.setViewerUpdateCallback(display_update_callable);
     algo.setAddPlaneCallback(add_plane_callable);
     algo.setUpdateNormalCloudCallback(update_normal_cloud_callable);

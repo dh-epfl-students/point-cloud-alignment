@@ -100,6 +100,10 @@ int PlaneSegmentation::init(string cloud_file)
     else
     {
         cout << "Loaded point cloud is already preprocessed." << endl;
+
+        //Compute curvature bound
+        curv_bound = 0.6;
+
         is_ready = true;
     }
 
@@ -294,7 +298,7 @@ bool PlaneSegmentation::regionGrowthOneStep()
 
         // We are on a plane -> increase search radius to speed things up
         current_run.max_search_distance *= 2.0f;
-        current_run.epsilon *= 2.0f;
+        //current_run.epsilon *= 2.0f;
     }
 
     // Check if neighborhood has shrinked
@@ -321,7 +325,7 @@ bool PlaneSegmentation::regionGrowthOneStep()
         current_run.plane = curr_plane;
 
         // Update epsilon
-        current_run.epsilon = curr_plane.getStdDevWith(p_cloud, current_run.p_nghbrs_indices);
+        current_run.epsilon = curr_plane.getPlaneTolerance(p_cloud, current_run.p_nghbrs_indices);
     }
 
     // Find new candidates
@@ -479,8 +483,10 @@ void PlaneSegmentation::getNeighborsOf(boost::shared_ptr<vector<int>> indices_in
     {
         int p_id = indices_in->at(i);
         vector<float> distances;
-        p_kdtree->radiusSearch(p_cloud->points[p_id], search_d, candidates_lists[i], distances);
-        //p_kdtree->nearestKSearch(p_cloud->points[p_id], p_cloud->points[p_id].k, candidates_lists[i], distances);
+        //p_kdtree->radiusSearch(p_cloud->points[p_id], search_d, candidates_lists[i], distances);
+
+        // Nearest K search is way faster than radius search for kdtrees
+        p_kdtree->nearestKSearch(p_cloud->points[p_id], p_cloud->points[p_id].k, candidates_lists[i], distances);
 
         #pragma omp critical
         total_size += candidates_lists[i].size();
@@ -600,4 +606,9 @@ void PlaneSegmentation::reorient_normals(PointNormalKCloud::Ptr cloud_in, vector
     }
 
     update_normal_cloud_callable();
+}
+
+float PlaneSegmentation::getCurvBound()
+{
+    return curv_bound;
 }

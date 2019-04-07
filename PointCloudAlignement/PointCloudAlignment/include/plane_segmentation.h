@@ -33,6 +33,7 @@ public:
     void setViewerUpdateCallback(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> callable);
     void setAddPlaneCallback(function<void(pcl::ModelCoefficients, float, float, float)> callable);
     void setUpdateNormalCloudCallback(function<void(void)> callable);
+    float getCurvBound();
 
     bool isReady();
 
@@ -85,6 +86,7 @@ private:
     bool dont_quit = true;
 
     float safety_distance;
+    float curv_bound;
 
     RunProperties current_run;
     SegmentedPointsContainer::Ptr p_segmented_points_container;

@@ -31,7 +31,7 @@ pcl::ModelCoefficients Plane::getModelCoefficients()
     return coeffs;
 }
 
-float Plane::getStdDevWith(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices)
+float Plane::getPlaneTolerance(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices)
 {
     vector<float> distances(indices->size());
     float dist_mean(0);
@@ -48,14 +48,15 @@ float Plane::getStdDevWith(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vecto
 
     dist_mean /= static_cast<float>(indices->size());
 
-    float dev(0);
+    float dev(0), max_d(0);
     for(float j: distances)
     {
         dev += std::pow(j - dist_mean, 2.0f);
+        max_d = j > max_d ? j : max_d;
     }
     dev /= static_cast<float>(distances.size());
 
-    return 3.0f * std::sqrt(dev);
+    return max_d + (3.0f * std::sqrt(dev));
 }
 
 float Plane::distanceTo(PointNormalK p)
@@ -67,16 +68,16 @@ float Plane::distanceTo(PointNormalK p)
 float Plane::distanceTo(vec3 p)
 {
     vec3 n(0, 0, 0);
-    float d(0);
-    this->cartesianToNormal(n, d);
+    float di(0);
+    this->cartesianToNormal(n, di);
 
-    return fabs(n.dot(p) + d);
+    return fabs(n.dot(p) + di);
 }
 
-void Plane::cartesianToNormal(vec3 &n, float &d)
+void Plane::cartesianToNormal(vec3 &n, float &di)
 {
     vec3 v(a, b, c);
-    d = this->d / v.norm();
+    di = this->d / v.norm();
     n = v.normalized();
 }
 
@@ -120,8 +121,12 @@ bool Plane::pointInPlane(PointNormalK p, float epsilon)
 {
     //return this->distanceTo(p) <= (2.0f*epsilon);
     vec3 v(p.x, p.y, p.z);
-    float dist = abs(vec3(a, b, c).dot(v) + d);
-    //cout << "Point " << p.x << " " << p.y << " " << p.z << " is at dist " << dist << " from plane." << endl;
+    vec3 n = getNormal();
+    float dist = abs(n.dot(v) + d);
+    if(dist > epsilon)
+    {
+        cout << "distance from plane: " << dist << " greater than epsilon: " << epsilon << endl;
+    }
     return dist <= epsilon;
 }
 
