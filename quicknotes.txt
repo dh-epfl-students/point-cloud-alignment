@@ -68,7 +68,7 @@ Common Tools and implemented registration algorithms:
 			1. ICP
 			2. Picking point pairs: Not automated
 	-	PCL:
-			1. SAC-IA
+			1. SAC-IA[11]
 			2. FPCS[14]
 			3. KFPCS[23]
 			3. a lot more: http://docs.pointclouds.org/1.8.1/group__registration.html
