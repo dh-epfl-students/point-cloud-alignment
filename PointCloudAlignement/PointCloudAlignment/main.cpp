@@ -174,6 +174,7 @@ int main()
 {
     string pcFile("/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safe.ply");
     string pcFileWithPreprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/myPC.ply");
+    string pcRegion1_2017_3_preproc("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-01/region-01_2017-aerial/2496000_1119000_seg3_shifted_float_preproc.ply");
 
     string pcLIDAR_Geneva_region1_2017("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-01/region-01_2017-aerial/2496000_1119000_seg4_shifted_float.ply");
     string pcLIDAR_region1_2017_preprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/2496000_1119000_seg4_shifted_float_preproc.ply");

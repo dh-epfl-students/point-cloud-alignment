@@ -483,10 +483,10 @@ void PlaneSegmentation::getNeighborsOf(boost::shared_ptr<vector<int>> indices_in
     {
         int p_id = indices_in->at(i);
         vector<float> distances;
-        //p_kdtree->radiusSearch(p_cloud->points[p_id], search_d, candidates_lists[i], distances);
+        p_kdtree->radiusSearch(p_cloud->points[p_id], search_d, candidates_lists[i], distances);
 
         // Nearest K search is way faster than radius search for kdtrees
-        p_kdtree->nearestKSearch(p_cloud->points[p_id], p_cloud->points[p_id].k, candidates_lists[i], distances);
+        //p_kdtree->nearestKSearch(p_cloud->points[p_id], p_cloud->points[p_id].k, candidates_lists[i], distances);
 
         #pragma omp critical
         total_size += candidates_lists[i].size();

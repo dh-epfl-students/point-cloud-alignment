@@ -56,7 +56,7 @@ float Plane::getPlaneTolerance(PointNormalKCloud::Ptr cloud, boost::shared_ptr<v
     }
     dev /= static_cast<float>(distances.size());
 
-    return max_d + (3.0f * std::sqrt(dev));
+    return dist_mean + (3.0f * std::sqrt(dev));
 }
 
 float Plane::distanceTo(PointNormalK p)
@@ -123,10 +123,7 @@ bool Plane::pointInPlane(PointNormalK p, float epsilon)
     vec3 v(p.x, p.y, p.z);
     vec3 n = getNormal();
     float dist = abs(n.dot(v) + d);
-    if(dist > epsilon)
-    {
-        cout << "distance from plane: " << dist << " greater than epsilon: " << epsilon << endl;
-    }
+
     return dist <= epsilon;
 }
 
