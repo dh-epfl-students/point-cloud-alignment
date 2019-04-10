@@ -36,7 +36,8 @@ add_executable(${PROJECT_NAME} main.cpp ${SRC_LIST}
     ${HEADER_DIR}/normal_computation.h
     ${HEADER_DIR}/plane.h
     ${HEADER_DIR}/pfh_evaluation.h
-    ${HEADER_DIR}/segmented_points_container.h)
+    ${HEADER_DIR}/segmented_points_container.h
+    ${HEADER_DIR}/plane_merging.h)
 
 target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} OpenMP::OpenMP_CXX)
 
