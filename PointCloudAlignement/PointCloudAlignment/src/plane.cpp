@@ -131,9 +131,15 @@ bool Plane::normalInPlane(PointNormalK p, float max_angle)
 {
     vec3 n = getNormal();
     vec3 pn(p.normal_x, p.normal_y, p.normal_z);
+    pn.normalize();
 
     //It may be necessary to reorient the normal vector.
-    n = (acos(pn.dot(n)) <= acos(pn.dot(-n)))? n : -n;
+    n = pn.dot(n) >= pn.dot(-n) ? n : -n;
 
     return fabs(acos(pn.dot(n))) <= max_angle;
+}
+
+vec4 Plane::getCenter()
+{
+    return this->center;
 }
