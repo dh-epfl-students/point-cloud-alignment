@@ -143,3 +143,8 @@ vec4 Plane::getCenter()
 {
     return this->center;
 }
+
+vec3 Plane::getCenter3()
+{
+    return vec3(this->center.x(), this->center.y(), this->center.z());
+}

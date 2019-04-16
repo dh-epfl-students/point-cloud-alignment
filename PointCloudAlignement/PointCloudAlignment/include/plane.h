@@ -28,6 +28,7 @@ public:
     bool pointInPlane(PointNormalK p, float epsilon);
     bool normalInPlane(PointNormalK p, float max_angle);
     vec4 getCenter();
+    vec3 getCenter3();
 
     static void estimatePlane(PointNormalKCloud::Ptr cloud_in, boost::shared_ptr<vector<int> > indices_in, Plane &plane);
 private:

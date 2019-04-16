@@ -1,9 +1,11 @@
 #include "plane_merging.h"
 
-void PlaneMerging::start_merge(vector<SegmentedPointsContainer::SegmentedPlane> &p_list)
+void PlaneMerging::start_merge(vector<SegmentedPointsContainer::SegmentedPlane> &p_list, PointNormalKCloud::Ptr p_cloud)
 {
     // We assume that the plane list must be sorted by plane id.
     this->plane_list = p_list;
+
+    p_point_cloud = p_cloud;
 
     //TODO: Compute bounding points of planes
     /*for(SegmentedPointsContainer::SegmentedPlane p: plane_list)
@@ -67,8 +69,37 @@ void PlaneMerging::merge()
     }
 }
 
-bool PlaneMerging::planeOverlap(SegmentedPointsContainer::SegmentedPlane &p1, SegmentedPointsContainer::SegmentedPlane &p2)
+bool PlaneMerging::planeOverlap(SegmentedPointsContainer::SegmentedPlane &p1, SegmentedPointsContainer::SegmentedPlane &p2, float d_tolerance)
 {
-    // TODO: Implement...
-    return true;
+    vec3 dir1 = p2.plane.getCenter3() - p1.plane.getCenter3();
+    vec3 dir2 = p1.plane.getCenter3() - p2.plane.getCenter3();
+
+    // Select points to consider between both center points.
+    float r1 = farestPointInDir(p1, dir1);
+    float r2 = farestPointInDir(p2, dir2);
+
+    // Compare distances to find overlap
+    float d = dir1.norm();
+
+    return d <= r1 + r2 + d_tolerance;
+}
+
+float PlaneMerging::farestPointInDir(SegmentedPointsContainer::SegmentedPlane &plane, vec3 dir)
+{
+    float max_r(0);
+    dir.normalize();
+
+    for(int i: plane.indices_list)
+    {
+        vec3 pi(p_point_cloud->points[i].x, p_point_cloud->points[i].y, p_point_cloud->points[i].z);
+        vec3 p_dir = pi - plane.plane.getCenter3();
+        float p_dir_norm = p_dir.norm();
+        p_dir.normalize();
+        if(dir.dot(p_dir) >= OVERLAP_ANGLE && p_dir_norm > max_r)
+        {
+            max_r = p_dir_norm;
+        }
+    }
+
+    return max_r;
 }
