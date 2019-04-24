@@ -40,3 +40,19 @@ ivec3 SegmentedPointsContainer::getNextPlaneColor()
 
     return c;
 }
+
+void SegmentedPointsContainer::createPlane(int plane_id, ivec3 &c)
+{
+    if(plane_id > planes_list.size())
+        planes_list.resize(plane_id);
+
+    planes_list[plane_id].id = plane_id;
+    planes_list[plane_id].color = c;
+}
+
+void SegmentedPointsContainer::addSegmentedPoint(int plane_id, int point_id)
+{
+    if(plane_id > planes_list.size()) return;
+
+    this->planes_list[plane_id-1].indices_list.push_back(point_id);
+}

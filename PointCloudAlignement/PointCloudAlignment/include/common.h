@@ -42,3 +42,18 @@ inline float approxR(float curv, float d1, float d2, float sigma, float epsilon,
     float r = std::pow(1.0f / curv * (left + right), 1.0f/3.0f);
     return r;
 }
+
+inline vec3 computePlaneCenter(PointNormalKCloud::Ptr p_cloud, vector<int> indices)
+{
+    vec3 center(0, 0, 0);
+
+    for(int i: indices)
+    {
+        PointNormalK p = p_cloud->points[i];
+        center += vec3(p.x, p.y, p.z);
+    }
+
+    center /= indices.size();
+
+    return center;
+}

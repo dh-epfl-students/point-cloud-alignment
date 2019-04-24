@@ -13,26 +13,29 @@ class Plane;
 
 class Plane {
 public:
-    Plane(): a(0), b(0), c(0), d(0), center(0,0,0,0) {}
-    Plane(float a, float b, float c, float d):a(a), b(b), c(c), d(d){}
-    Plane(const Plane &p): a(p.a), b(p.b), c(p.c), d(p.d) {}
+    Plane(): a(0), b(0), c(0), d(0), center(0,0,0) {}
+    Plane(float a, float b, float c, float d):a(a), b(b), c(c), d(d), center(0,0,0) {}
+    Plane(const Plane &p): a(p.a), b(p.b), c(p.c), d(p.d), center(p.center) {}
 
     void setCoeffs(float a, float b, float c, float d);
-    void setCenter(vec4 p);
-    float distanceTo(PointNormalK p);
-    float distanceTo(vec3 p);
-    void cartesianToNormal(vec3 &n, float &di);
+    void setCenter(vec3 p);
+    vec3 getCenter();
+    pcl::PointXYZ getCenterPCL();
     vec3 getNormal();
     pcl::ModelCoefficients getModelCoefficients();
     float getPlaneTolerance(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices);
+
+    float distanceTo(PointNormalK p);
+    float distanceTo(vec3 p);
+    void cartesianToNormal(vec3 &n, float &di);
+
     bool pointInPlane(PointNormalK p, float epsilon);
     bool normalInPlane(PointNormalK p, float max_angle);
-    vec4 getCenter();
-    vec3 getCenter3();
 
     static void estimatePlane(PointNormalKCloud::Ptr cloud_in, boost::shared_ptr<vector<int> > indices_in, Plane &plane);
+
 private:
     float a, b, c, d;
-    vec4 center;
+    vec3 center;
 };
 

@@ -9,10 +9,12 @@
 
 #include "common.h"
 #include "plane_segmentation.h"
+#include "plane_merging.h"
 
 using namespace std;
 
 PlaneSegmentation algo;
+PlaneMerging merger;
 bool isNormalDisplayed = false;
 bool isExclusionDisplayed = false;
 bool pc_has_changed = false;
@@ -122,6 +124,25 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     {
         algo.preprocessCloud();
     }
+    else if(event.getKeySym() == "F10" && event.keyDown())
+    {
+        // Resample cloud
+        algo.resampleCloud();
+    }
+    else if(event.getKeySym() == "F11" && event.keyDown())
+    {
+        if(algo.isCloudSegmented())
+        {
+            vector<SegmentedPointsContainer::SegmentedPlane> planes_list = algo.getSegmentedPlanes();
+            // Merge similar planes
+            merger.start_merge(planes_list, algo.getPointCloud());
+        }
+        else
+        {
+            cout << "Could not merge planes because the cloud is not segmented." << endl;
+        }
+
+    }
     else if(event.keyDown())
     {
         cout << event.getKeySym() << ", " << event.getKeyCode() << endl;
@@ -185,6 +206,8 @@ int main()
     algo.setAddPlaneCallback(add_plane_callable);
     algo.setUpdateNormalCloudCallback(update_normal_cloud_callable);
 
+    merger.init(display_update_callable);
+
     pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(algo.getPointCloud());
     p_viewer->addPointCloud(algo.getPointCloud(), rgb, "point_cloud");
     p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
@@ -204,6 +227,7 @@ int main()
 
                     // The function updatePointCloud doesn't work, thus it is necessary to remove and add the cloud
                     p_viewer->removePointCloud("point_cloud");
+                    pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(algo.getPointCloud());
                     p_viewer->addPointCloud(algo.getPointCloud(), rgb, "point_cloud");
                     p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
                 }

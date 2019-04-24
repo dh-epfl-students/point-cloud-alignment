@@ -8,13 +8,13 @@
 // PlaneSegmentation::RunProperties
 // ========================================================================================== //
 
-void PlaneSegmentation::RunProperties::setupNextPlane(int index, PointNormalK &p, ivec3 color)
+void PlaneSegmentation::RunProperties::setupNextPlane(int index, PointNormalK &p, ivec3 color, int plane_id)
 {
     p_index = index;
     curr_color = color;
     plane = Plane();
     root_p = p;
-    plane_nb++;
+    plane_nb = plane_id;
     iteration = 0;
     prev_size = 0;
     max_search_distance = 0;
@@ -101,17 +101,24 @@ int PlaneSegmentation::init(string cloud_file)
     {
         cout << "Loaded point cloud is already preprocessed." << endl;
 
-        //Compute curvature bound
-        curv_bound = 0.6;
+        //TODO: Compute curvature bound
+        curv_bound = 0.5;
 
         is_ready = true;
     }
 
     // Initialize remaining variables
     safety_distance = 0;
+    curv_bound = 0.5;
 
     // Initialize segmented_points_container
     p_segmented_points_container = SegmentedPointsContainer::Ptr(new SegmentedPointsContainer);
+
+    // Fill segmented points container if the cloud was already segmented
+    if(p_cloud->points[0].plane_id != -1)
+    {
+        fillSegmentedPointsContainer();
+    }
 
     return EXIT_SUCCESS;
 }
@@ -123,10 +130,32 @@ void PlaneSegmentation::preprocessCloud()
     cout << "Starting normal, curvature and k computation." << endl;
 
     NormalComputation nc;
-    nc.computeNormalCloud(p_cloud, p_kdtree);
+    nc.computeNormalCloud(p_cloud, p_kdtree, isResampled);
 
     cout << "Normal computation successfully ended." << endl;
     is_ready = true;
+}
+
+void PlaneSegmentation::resampleCloud()
+{
+    is_ready = false;
+
+    PointNormalKCloud::Ptr p_cloud_filtered(new PointNormalKCloud);
+
+    pcl::VoxelGrid<PointNormalK>::Ptr filter(new pcl::VoxelGrid<PointNormalK>);
+    filter->setInputCloud(p_cloud);
+    filter->setLeafSize(1, 1, 1);
+    filter->filter(*p_cloud_filtered);
+
+    cout << "Cloud filtered from " << p_cloud->size() << " to " << p_cloud_filtered->size() << " points." << endl;
+
+    p_cloud->clear();
+    p_cloud = p_cloud_filtered;
+
+    p_indices->resize(p_cloud->size());
+    p_kdtree->setInputCloud(p_cloud, p_indices);
+
+    isResampled = true;
 }
 
 void PlaneSegmentation::setViewerUpdateCallback(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> callable)
@@ -151,8 +180,15 @@ bool PlaneSegmentation::isReady()
 
 void PlaneSegmentation::start_pause()
 {
-    if(!is_ready) {
+    if(!is_ready)
+    {
         cout << "Can't start algorithm, not initialized properly" << endl;
+        return;
+    }
+
+    if(isSegmented)
+    {
+        cout << "The cloud is already segmented." << endl;
         return;
     }
 
@@ -170,18 +206,26 @@ void PlaneSegmentation::runMainLoop()
 
             // Start of a new plane segmentation
             // -> reinitialise variables
-            current_run.setupNextPlane(index, p_cloud->points[index], p_segmented_points_container->getNextPlaneColor());
+            int new_plane_id = p_segmented_points_container->getNbPlanes() + 1;
+            current_run.setupNextPlane(index, p_cloud->points[index], p_segmented_points_container->getNextPlaneColor(), new_plane_id);
             segmentPlane();
         }
 
         dont_quit = index == -1? false: true;
     }
 
+    isSegmented = true;
     cout << "Segmented " << p_segmented_points_container->getNbPlanes() << " planes. Excluded " << p_segmented_points_container->getNbOfExcludedPoints() << endl;
 }
 
 void PlaneSegmentation::runOneStep()
 {
+    if(isSegmented)
+    {
+        cout << "The cloud is already segmented." << endl;
+        return;
+    }
+
     int index;
 
     if(is_plane_initialized)
@@ -190,7 +234,8 @@ void PlaneSegmentation::runOneStep()
     }
     else if((index = getRegionGrowingStartLocation()) != -1)
     {
-        current_run.setupNextPlane(index, p_cloud->points[index], p_segmented_points_container->getNextPlaneColor());
+        int new_plane_id = p_segmented_points_container->getNbPlanes() + 1;
+        current_run.setupNextPlane(index, p_cloud->points[index], p_segmented_points_container->getNextPlaneColor(), new_plane_id);
         initRegionGrowth();
         is_plane_initialized = true;
     }
@@ -397,6 +442,9 @@ bool PlaneSegmentation::regionGrowthOneStep()
     {
         cout << "Plane growth stopped, registering plane containing " << current_run.p_nghbrs_indices->size() << " points." << endl;
 
+        // Computing the plane geometric center
+        current_run.plane.setCenter(computePlaneCenter(p_cloud, *current_run.p_nghbrs_indices));
+
         // store segmented plane
         SegmentedPointsContainer::SegmentedPlane plane(current_run.plane_nb, current_run.curr_color, *current_run.p_nghbrs_indices, current_run.plane);
         p_segmented_points_container->addSegmentedPoints(plane);
@@ -454,7 +502,7 @@ int PlaneSegmentation::getRegionGrowingStartLocation()
     // Copy indices
     vector<int> tmp_indices(*p_indices);
     sort(tmp_indices.begin(), tmp_indices.end(), [this](const int &lhs, const int &rhs){
-        return this->p_cloud->points[lhs].k > this->p_cloud->points[rhs].k;
+        return this->p_cloud->points[lhs].curvature <= this->p_cloud->points[rhs].curvature;
     });
 
     /*
@@ -611,4 +659,51 @@ void PlaneSegmentation::reorient_normals(PointNormalKCloud::Ptr cloud_in, vector
 float PlaneSegmentation::getCurvBound()
 {
     return curv_bound;
+}
+
+void PlaneSegmentation::fillSegmentedPointsContainer()
+{
+    if(isSegmented) return;
+
+    bool allSegmented = true;
+
+    //Todos: For each point: read it's plane_id. If excluded simply add it to exclusion list
+    //          If not:
+    //              If the plane is already created -> Add the point index.
+    //              Else -> Create the plane container and add the point.
+    for(int index: *p_indices)
+    {
+        if(p_cloud->points[index].plane_id == 0)
+        {
+            p_segmented_points_container->addExcludedPoint(index);
+        }
+        else if(p_cloud->points[index].plane_id > 0)
+        {
+            if(p_segmented_points_container->getNbPlanes() < p_cloud->points[index].plane_id)
+            {
+                ivec3 c(p_cloud->points[index].r,
+                        p_cloud->points[index].g,
+                        p_cloud->points[index].b);
+                p_segmented_points_container->createPlane(p_cloud->points[index].plane_id, c);
+                p_segmented_points_container->addSegmentedPoint(p_cloud->points[index].plane_id, index);
+            }
+        }
+        else
+        {
+            // Not segmented
+            allSegmented = false;
+        }
+    }
+
+    if(allSegmented)
+    {
+        //TODO: compute segmented plane parameters
+
+        isSegmented = true;
+    }
+    else
+    {
+        // TODO: Setup cloud to resume segmentation.
+        //      - Set available indices list for kdtree
+    }
 }

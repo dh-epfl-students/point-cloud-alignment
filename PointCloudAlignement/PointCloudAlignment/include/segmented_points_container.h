@@ -13,6 +13,7 @@ public:
         vector<int> indices_list;
         Plane plane;
 
+        _SegmentedPlane(): id(0), color(0, 0, 0) {}
         _SegmentedPlane(int id, ivec3 c, vector<int> list, Plane p): id(id), color(c), indices_list(list), plane(p) {}
         ~_SegmentedPlane(){}
     } SegmentedPlane;
@@ -50,11 +51,14 @@ public:
     void addSegmentedPoints(SegmentedPlane plane);
     void addExcludedPoints(vector<int> point_list);
     void addExcludedPoint(int p_id);
+    void createPlane(int plane_id, ivec3 &c);
+    void addSegmentedPoint(int plane_id, int point_id);
     int getNbOfSegmentedPoints();
     size_t getNbOfExcludedPoints();
     size_t getNbPlanes();
     ivec3 getNextPlaneColor();
     ivec3 getMiscColor() { return misc_color; }
+    vector<SegmentedPlane> getPlanes() { return this->planes_list; }
 
     typedef boost::shared_ptr<SegmentedPointsContainer> Ptr;
 

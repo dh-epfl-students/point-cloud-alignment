@@ -8,7 +8,7 @@ void Plane::setCoeffs(float a, float b, float c, float d)
     this->d = d;
 }
 
-void Plane::setCenter(vec4 p)
+void Plane::setCenter(vec3 p)
 {
     this->center = p;
 }
@@ -114,7 +114,7 @@ void Plane::estimatePlane(PointNormalKCloud::Ptr cloud_in, boost::shared_ptr<vec
     float d = - a * center.x() - b * center.y() - c * center.z();
 
     plane.setCoeffs(a, b, c, d);
-    plane.setCenter(center);
+    plane.setCenter(vec3(center.x(), center.y(), center.z()));
 }
 
 bool Plane::pointInPlane(PointNormalK p, float epsilon)
@@ -139,12 +139,12 @@ bool Plane::normalInPlane(PointNormalK p, float max_angle)
     return fabs(acos(pn.dot(n))) <= max_angle;
 }
 
-vec4 Plane::getCenter()
+vec3 Plane::getCenter()
 {
     return this->center;
 }
 
-vec3 Plane::getCenter3()
+pcl::PointXYZ Plane::getCenterPCL()
 {
-    return vec3(this->center.x(), this->center.y(), this->center.z());
+    return pcl::PointXYZ(this->center.x(), this->center.y(), this->center.z());
 }

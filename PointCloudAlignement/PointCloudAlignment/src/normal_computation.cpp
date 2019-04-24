@@ -1,6 +1,6 @@
 #include "normal_computation.h"
 
-void NormalComputation::computeNormalCloud(PointNormalKCloud::Ptr cloud_in, KdTreeFlannK::Ptr kdTree_in)
+void NormalComputation::computeNormalCloud(PointNormalKCloud::Ptr cloud_in, KdTreeFlannK::Ptr kdTree_in, bool isResampled)
 {
     // parallel for loop on each point p in cloud_in
     #pragma omp parallel for
@@ -8,7 +8,7 @@ void NormalComputation::computeNormalCloud(PointNormalKCloud::Ptr cloud_in, KdTr
     {
         // compute appropriate K value for current point
         float curv;
-        int k = estimateKForPoint(i, cloud_in, kdTree_in, curv);
+        int k = estimateKForPoint(i, cloud_in, kdTree_in, isResampled, curv);
 
         // get K neighborhood indices
         boost::shared_ptr<vector<int>> indices(new vector<int>);
@@ -41,10 +41,12 @@ void NormalComputation::computeNormalCloud(PointNormalKCloud::Ptr cloud_in, KdTr
     }
 }
 
-int NormalComputation::estimateKForPoint(int p_id, PointNormalKCloud::Ptr cloud_in, KdTreeFlannK::Ptr kdTree_in, float &curv)
+int NormalComputation::estimateKForPoint(int p_id, PointNormalKCloud::Ptr cloud_in, KdTreeFlannK::Ptr kdTree_in, bool isResampled, float &curv)
 {
     float d1(1), d2(4), e(0.1f), max_count(10), sigma(0.2f);
     int k(15), count(0);
+
+    int max_k = isResampled ? MAX_K_RESAMPLED : MAX_K_ORIGINAL;
 
     float r_new, density;
     PointNormalK p = cloud_in->points.at(p_id);
@@ -63,11 +65,11 @@ int NormalComputation::estimateKForPoint(int p_id, PointNormalKCloud::Ptr cloud_
         r_new = approxR(curv, d1, d2, sigma, e, density);
 
         k = std::ceil(M_PI * density * r_new * r_new);
-        k = std::max(10, k);
-        k = std::fmin(MAX_K, k);
+        k = std::max(MIN_K, k);
+        k = std::fmin(max_k, k);
 
         count++;
-    } while(k < MAX_K && count < max_count);
+    } while(k < max_k && count < max_count);
 
     return k;
 }

@@ -6,10 +6,11 @@
 #define KNN 5
 #define NORMAL_ERROR 0.0872665f // 5°
 #define DISTANCE_ERROR 0.1f
-#define OVERLAP_ANGLE cos(0.0872665f) // cos(5°)
+#define OVERLAP_ANGLE 0.0872665f // 5°
 
 class PlaneMerging {
 public:
+    void init(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> callable);
     void start_merge(vector<SegmentedPointsContainer::SegmentedPlane> &p_list, PointNormalKCloud::Ptr p_cloud);
     void filter_small_planes(vector<SegmentedPointsContainer::SegmentedPlane> &p_list, int min_size);
 
@@ -24,6 +25,8 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr p_plane_cloud;
     pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr p_kdtree;
     PointNormalKCloud::Ptr p_point_cloud;
+
+    function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> display_update_callable;
 
     void merge();
     bool planeOverlap(SegmentedPointsContainer::SegmentedPlane &p1, SegmentedPointsContainer::SegmentedPlane &p2, float d_tolerance = 0);

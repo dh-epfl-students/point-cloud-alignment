@@ -6,6 +6,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/features/pfh.h>
 #include <pcl/filters/filter_indices.h>
+#include <pcl/filters/voxel_grid.h>
 
 #include <omp.h>
 
@@ -23,7 +24,7 @@
  * @brief Max angle in radians between two normals to be
  * considered in the same plane. Examples: 0.349066f = 20°, 0.261799 = 15°
  */
-#define MAX_NORMAL_ANGLE 0.261799f // = 15°
+#define MAX_NORMAL_ANGLE 0.174533f // = 10°
 
 
 class PlaneSegmentation {
@@ -36,6 +37,7 @@ public:
     float getCurvBound();
 
     bool isReady();
+    bool isCloudSegmented() { return this->isSegmented; }
 
     void start_pause();
 
@@ -47,10 +49,13 @@ public:
 
     void filterOutCurvature(float max_curvature);
 
+    void resampleCloud();
+
     PointNormalKCloud::Ptr getPointCloud() { return this->p_cloud; }
     KdTreeFlannK::Ptr getKdTree() { return this->p_kdtree; }
     PointNormalKCloud::Ptr getAvailablePointCloud();
     PointNormalKCloud::Ptr getExcludedPointCloud();
+    vector<SegmentedPointsContainer::SegmentedPlane> getSegmentedPlanes() { return p_segmented_points_container->getPlanes(); }
 
 private:
     /**
@@ -76,13 +81,15 @@ private:
                             iteration(0), plane_nb(0), prev_size(0),
                             max_search_distance(0), epsilon(0) {}
 
-        void setupNextPlane(int index, PointNormalK &p, ivec3 color);
+        void setupNextPlane(int index, PointNormalK &p, ivec3 color, int plane_id);
         void addToNeighborhood(vector<int> &new_points);
     } RunProperties;
 
     bool is_plane_initialized = false;
+    bool isResampled = false;
     bool is_started = false;
     bool is_ready = false;
+    bool isSegmented = false;
     bool dont_quit = true;
 
     float safety_distance;
@@ -116,4 +123,5 @@ private:
     void exclude_from_search(vector<int> &indices);
     void color_points(vector<int> indices, ivec3 color);
     void color_point(int index, ivec3 color);
+    void fillSegmentedPointsContainer();
 };

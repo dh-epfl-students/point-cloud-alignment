@@ -20,6 +20,7 @@
 #include <pcl/features/impl/normal_3d_omp.hpp>
 
 #include <pcl/filters/impl/extract_indices.hpp>
+#include <pcl/filters/impl/voxel_grid.hpp>
 
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/visualization/impl/pcl_visualizer.hpp>
@@ -35,6 +36,10 @@ namespace pcl
         PCL_ADD_RGB
         float curvature;
         float k;
+        /**
+         * @brief If not segmented: -1. If segmented: 0 if the point is excluded or it plane id if it has been segmented in a plane.
+         */
+        int plane_id;
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     } EIGEN_ALIGN16;
 
@@ -48,6 +53,7 @@ namespace pcl
             rgba = p.rgba;
             curvature = p.curvature;
             k = p.k;
+            plane_id = p.plane_id;
         }
 
         inline PointNormalK()
@@ -59,6 +65,7 @@ namespace pcl
             a = 255;
             curvature = 0;
             k = 0;
+            plane_id = -1;
         }
     };
 }
@@ -77,6 +84,7 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::_PointNormalK,
                                    (uint8_t, a, a)
                                    (float, curvature, curvature)
                                    (float, k, k)
+                                   (int, plane_id, plane_id)
 )
 POINT_CLOUD_REGISTER_POINT_WRAPPER(pcl::PointNormalK, pcl::_PointNormalK)
 
