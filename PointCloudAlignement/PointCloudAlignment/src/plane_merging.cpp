@@ -15,11 +15,17 @@ void PlaneMerging::start_merge(vector<SegmentedPointsContainer::SegmentedPlane> 
 
     p_point_cloud = p_cloud;
 
-    //fill center clouds
+    //fill center clouds and indices list
     p_plane_cloud->points.reserve(p_list.size());
+    p_plane_indices = boost::shared_ptr<vector<int>>(new vector<int>);
+    p_plane_indices->reserve(p_list.size());
+    int i(0);
+
     for(auto p: p_list)
     {
         p_plane_cloud->points.push_back(p.plane.getCenterPCL());
+        p_plane_indices->push_back(i);
+        ++i;
     }
 
     //fill search tree with centers
@@ -37,60 +43,73 @@ void PlaneMerging::filter_small_planes(vector<SegmentedPointsContainer::Segmente
 
 void PlaneMerging::merge()
 {
-    vector<int> merged_list;
+    cout << "Starting to merge" << endl;
 
-    for(int i = 0; i < plane_list.size(); ++i)
+    bool continue_merging = false;
+
+    for(size_t i = 0; i < plane_list.size(); ++i)
     {
-        SegmentedPointsContainer::SegmentedPlane plane = plane_list[i];
-
-        // Search nearest neighbors plane centers
-        vector<int> indices;
-        vector<float> sqrd_dists;
-        p_kdtree->nearestKSearch(plane.plane.getCenterPCL(), KNN, indices, sqrd_dists);
-
-        vector<int> remove_list;
-
-        // Test all planes
-        for(int j: indices)
+        if(find(merged_planes_indices.begin(), merged_planes_indices.end(), i) == merged_planes_indices.end())
         {
-            if(plane_list[j].id != plane.id)
+            SegmentedPointsContainer::SegmentedPlane plane = plane_list[i];
+
+            // Search nearest neighbors plane centers
+            vector<int> indices;
+            vector<float> sqrd_dists;
+            p_kdtree->nearestKSearch(plane.plane.getCenterPCL(), KNN, indices, sqrd_dists);
+
+            vector<int> remove_list;
+
+            // Test all planes
+            for(int j: indices)
             {
-                //May need to reorient normal
-                vec3 n = plane.plane.getNormal();
-                vec3 ni = plane_list[j].plane.getNormal();
-                n = ni.dot(n) >= ni.dot(-n) ? n : -n;
-
-                // Filter by plane normal vector and then plane overlap
-                if(ni.dot(n) >= cos(NORMAL_ERROR) && planeOverlap(plane, plane_list[j]))
+                if(plane_list[j].id != plane.id)
                 {
-                    cout << "Plane " << plane.id << " is merged with plane " << (j + 1);
+                    //May need to reorient normal
+                    vec3 n = plane.plane.getNormal();
+                    vec3 ni = plane_list[j].plane.getNormal();
+                    n = ni.dot(n) >= ni.dot(-n) ? n : -n;
 
-                    // TODO: Merge planes
-                    //  - change color of points
-                    display_update_callable(p_point_cloud, plane.color, plane_list[j].indices_list);
+                    // Filter by plane normal vector and then plane overlap
+                    if(ni.dot(n) >= cos(NORMAL_ERROR) && planeOverlap(plane, plane_list[j]))
+                    {
+                        cout << "Plane " << plane.id << " is merged with plane " << plane_list[j].id << endl;
 
-                    //  - merge indices lists
-                    plane_list[i].indices_list.insert(plane_list[i].indices_list.end(), plane_list[j].indices_list.begin(), plane_list[j].indices_list.end());
+                        //  - change color of points
+                        display_update_callable(p_point_cloud, plane.color, plane_list[j].indices_list);
 
-                    //  - recompute center
-                    plane_list[i].plane.setCenter(computePlaneCenter(p_point_cloud, plane_list[i].indices_list));
+                        //  - merge indices lists
+                        plane_list[i].indices_list.insert(plane_list[i].indices_list.end(), plane_list[j].indices_list.begin(), plane_list[j].indices_list.end());
 
-                    //  - recompute plane parameters??? -> not for now
+                        //  - recompute center
+                        plane_list[i].plane.setCenter(computePlaneCenter(p_point_cloud, plane_list[i].indices_list));
+                        p_plane_cloud->points[i] = plane_list[i].plane.getCenterPCL();
 
-                    //  - add merged plane id to remove list
-                    merged_list.push_back(j);
+                        //  - recompute plane parameters??? -> not for now
+
+                        //  - add merged plane id to remove list
+                        remove_list.push_back(j);
+                        merged_planes_indices.push_back(j);
+                    }
                 }
             }
-        }
 
-        // Update plane list by removing merged planes from search tree
-        //p_kdtree->setInputCloud(p_plane_cloud, )
-        /*
-        for(int j = remove_list.size() - 1; j >= 0; --j)
-        {
-            plane_list.erase(plane_list.begin() + remove_list[j]);
-        }*/
+            if(!remove_list.empty())
+            {
+                // Update available plane indices
+                vector<int> new_list;
+                set_difference(p_plane_indices->begin(), p_plane_indices->end(), remove_list.begin(), remove_list.end(), back_inserter<vector<int>>(new_list));
+                p_plane_indices->swap(new_list);
+
+                // Update plane list by removing merged planes from search tree
+                p_kdtree->setInputCloud(p_plane_cloud, p_plane_indices);
+
+                continue_merging = true;
+            }
+        }
     }
+
+    if(continue_merging) merge();
 }
 
 bool PlaneMerging::planeOverlap(SegmentedPointsContainer::SegmentedPlane &p1, SegmentedPointsContainer::SegmentedPlane &p2, float d_tolerance)

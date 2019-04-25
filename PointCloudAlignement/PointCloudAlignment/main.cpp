@@ -201,7 +201,7 @@ int main()
     string pcLIDAR_region1_2017_preprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/2496000_1119000_seg4_shifted_float_preproc.ply");
     p_viewer = setupViewer();
 
-    algo.init(pcLIDAR_region1_2017_preprocessed);
+    algo.init(pcFileWithPreprocessed);
     algo.setViewerUpdateCallback(display_update_callable);
     algo.setAddPlaneCallback(add_plane_callable);
     algo.setUpdateNormalCloudCallback(update_normal_cloud_callable);
