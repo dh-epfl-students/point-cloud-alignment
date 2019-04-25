@@ -1,12 +1,20 @@
 Master project on automated geographical alignment of large point clouds through their simplification.
 
 TODOs:
--	Collect and review State-of-the-art publications.
--	Test state of the art algos with our PCs.
+-	Collect and review State-of-the-art publications. -> done
+-	Test state of the art algos with our PCs. -> done
 	-	KFPCS: Does not work at all!
 	-	SAC-IA: Does not Work
 	-	Tryed to test [24] but i did not manage to compile the code.
--	Clean plane segmentation algorithm and port it to PCL.
+-	Clean plane segmentation algorithm and port it to PCL. -> done
+-	Plane merging -> done first pass
+-	Find rotation using normal vector alignment
+	-	Wahba's problem : http://www.stat.wisc.edu/~wahba/ftp1/oldie/wahbasproblem.pdf
+	-	With solution -> Davenport's Q-Method : https://math.stackexchange.com/questions/1634113/davenports-q-method-finding-an-orientation-matching-a-set-of-point-samples?rq=1
+		Davenport's paper: https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/19680021122.pdf
+-	Find Translation
+-	Test results
+-	Report
 
 Papers:
 	-	Efficient Global Point Cloud Alignment Using Bayesian Nonparametric Mixtures.
