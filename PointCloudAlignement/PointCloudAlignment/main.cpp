@@ -10,11 +10,13 @@
 #include "common.h"
 #include "plane_segmentation.h"
 #include "plane_merging.h"
+#include "mesh_segmentation.h"
 
 using namespace std;
 
 PlaneSegmentation algo;
 PlaneMerging merger;
+MeshSegmentation meshSeg;
 bool isNormalDisplayed = false;
 bool isExclusionDisplayed = false;
 bool pc_has_changed = false;
@@ -143,6 +145,11 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         }
 
     }
+    else if(event.getKeySym() == "F12" && event.keyDown())
+    {
+        // Load target mesh
+
+    }
     else if(event.keyDown())
     {
         cout << event.getKeySym() << ", " << event.getKeyCode() << endl;
@@ -218,6 +225,8 @@ int main()
     {
         #pragma omp master
         {
+            cout << "Viewer loop executed by thread " << omp_get_thread_num() << endl;
+
             // Drawing loop
             while(!p_viewer->wasStopped())
             {
@@ -242,11 +251,14 @@ int main()
 
                 p_viewer->spinOnce(100);
             }
+
             algo.stop();
         }
 
         #pragma omp single nowait
         {
+            cout << "Segmentation loop started by thread " << omp_get_thread_num() << endl;
+
             algo.runMainLoop();
         }
     }

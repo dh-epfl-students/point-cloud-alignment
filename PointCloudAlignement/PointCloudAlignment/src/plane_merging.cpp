@@ -78,6 +78,8 @@ void PlaneMerging::merge()
                         //  - change color of points
                         display_update_callable(p_point_cloud, plane.color, plane_list[j].indices_list);
 
+                        //TODO:  - change plane_id for merged points
+
                         //  - merge indices lists
                         plane_list[i].indices_list.insert(plane_list[i].indices_list.end(), plane_list[j].indices_list.begin(), plane_list[j].indices_list.end());
 
@@ -109,7 +111,16 @@ void PlaneMerging::merge()
         }
     }
 
-    if(continue_merging) merge();
+    if(continue_merging)
+    {
+        merge();
+    }
+    else
+    {
+        //TODO: update number of planes
+        cout << "Plane merging finished: merged " << p_plane_cloud->size() - p_plane_indices->size() <<
+                " planes. There is now " << p_plane_indices->size() << " planes." << endl;
+    }
 }
 
 bool PlaneMerging::planeOverlap(SegmentedPointsContainer::SegmentedPlane &p1, SegmentedPointsContainer::SegmentedPlane &p2, float d_tolerance)

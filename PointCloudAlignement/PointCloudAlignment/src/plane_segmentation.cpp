@@ -390,7 +390,7 @@ bool PlaneSegmentation::regionGrowthOneStep()
     cout << "Epsilon = " << current_run.epsilon << endl;
 
     //DEBUG color points found in yellow
-    color_points(candidates, ivec3(255, 255, 0));
+    //color_points(candidates, ivec3(255, 255, 0));
 
     // Test them with current plane
     // Move that to its own function
@@ -444,6 +444,13 @@ bool PlaneSegmentation::regionGrowthOneStep()
 
         // Computing the plane geometric center
         current_run.plane.setCenter(computePlaneCenter(p_cloud, *current_run.p_nghbrs_indices));
+
+        // Set plane_id of segmented planes
+        #pragma omp parallel for
+        for(size_t i = 0; i < current_run.p_nghbrs_indices->size(); ++i)
+        {
+            p_cloud->points[current_run.p_nghbrs_indices->at(i)].plane_id = current_run.plane_nb;
+        }
 
         // store segmented plane
         SegmentedPointsContainer::SegmentedPlane plane(current_run.plane_nb, current_run.curr_color, *current_run.p_nghbrs_indices, current_run.plane);
@@ -667,7 +674,7 @@ void PlaneSegmentation::fillSegmentedPointsContainer()
 
     bool allSegmented = true;
 
-    //Todos: For each point: read it's plane_id. If excluded simply add it to exclusion list
+    // For each point: read it's plane_id. If excluded simply add it to exclusion list
     //          If not:
     //              If the plane is already created -> Add the point index.
     //              Else -> Create the plane container and add the point.
