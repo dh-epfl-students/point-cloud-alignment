@@ -13,7 +13,7 @@ bool MeshSegmentation::loadMesh(string filename)
     cout << "Loaded mesh " << filename << endl;
 
     // Converting PolygonMesh->cloud to PointCloud<PointNormal>
-    p_cloud = pcl::PointCloud<pcl::PointNormal>::Ptr(new pcl::PointCloud<pcl::PointNormal>);
+    p_cloud = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::fromPCLPointCloud2(p_mesh->cloud, *p_cloud);
 
     return true;
@@ -24,7 +24,8 @@ void MeshSegmentation::segmentPlanes()
     ivec3 color(0, 0, 0);
 
     #pragma omp parallel for
-    for (size_t i = 0; i < p_mesh->polygons.size(); ++i) {
+    for (size_t i = 0; i < p_mesh->polygons.size(); ++i)
+    {
         // Get vetices
         vector<vec3> vertices;
         fillVertices(p_mesh->polygons.at(i), vertices);
@@ -140,7 +141,7 @@ bool MeshSegmentation::planesAreMergeable(SegmentedPointsContainer::SegmentedPla
     // may need to reorient normal
     n2  = n2.dot(n1) < 0.0f ? -n2 : n2;
 
-    return (n2.dot(n1) > COS_2) && haveCommonVertex(p1, p2);
+    return (n2.dot(n1) >= COS_5) && haveCommonVertex(p1, p2);
 }
 
 bool MeshSegmentation::haveCommonVertex(SegmentedPointsContainer::SegmentedPlane &p1, SegmentedPointsContainer::SegmentedPlane &p2)

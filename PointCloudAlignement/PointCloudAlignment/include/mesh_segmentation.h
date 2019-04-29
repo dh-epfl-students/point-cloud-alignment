@@ -12,6 +12,7 @@
 
 #define KNN 10
 #define COS_2 0.999f
+#define COS_5 0.996f
 
 class MeshSegmentation {
 public:

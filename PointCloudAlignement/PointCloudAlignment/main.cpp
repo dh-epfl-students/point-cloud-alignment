@@ -89,6 +89,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
                     meshSeg.mergePlanes();
 
                     mesh_is_segmented = true;
+                    refresh_mesh = true;
                 }
             }
         }
@@ -195,10 +196,16 @@ void update_normal_cloud_callback()
 {
     if(isNormalDisplayed) normal_cloud_changed = true;
 }
+/*
+void mesh_update_callback()
+{
+    if(isMeshDisplayed) mesh_changed = true;
+}*/
 
 function<void(PointNormalKCloud::Ptr, ivec3 color, vector<int> indices)> display_update_callable = &display_update_callback;
 function<void(pcl::ModelCoefficients, float, float, float)> add_plane_callable = &add_plane_callback;
 function<void(void)> update_normal_cloud_callable = &update_normal_cloud_callback;
+//function<void(void)> mesh_cloud_update_callable = &dmesh_update_callback;
 
 // Start and setup viewer
 pcl::visualization::PCLVisualizer::Ptr setupViewer()
@@ -271,6 +278,8 @@ int main()
                     refresh_mesh = false;
                     p_viewer->removePolygonMesh("city_mesh");
                     p_viewer->addPolygonMesh(*meshSeg.getMeshPtr(), "city_mesh");
+                    p_viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_SHADING,
+                                                            pcl::visualization::PCL_VISUALIZER_SHADING_FLAT, "city_mesh");
                 }
 
                 p_viewer->spinOnce(100);
