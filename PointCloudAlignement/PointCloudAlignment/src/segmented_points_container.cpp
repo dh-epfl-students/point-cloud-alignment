@@ -1,5 +1,18 @@
 #include "segmented_points_container.h"
 
+void SegmentedPointsContainer::SegmentedPlane::merge(SegmentedPlane &p)
+{
+    cout << "Merging plane " << p.id << " into plane " << id << endl;
+
+    this->indices_list.insert(indices_list.end(), p.indices_list.begin(), p.indices_list.end());
+    sort(this->indices_list.begin(), this->indices_list.end());
+    vector<int>::iterator it = unique(indices_list.begin(), indices_list.end());
+    indices_list.resize(distance(indices_list.begin(), it));
+
+    // Average the centroids
+    this->plane.setCenter((this->plane.getCenter() * this->indices_list.size() + p.plane.getCenter() * p.indices_list.size()) / (this->indices_list.size() + p.indices_list.size()));
+}
+
 void SegmentedPointsContainer::addExcludedPoints(vector<int> point_list)
 {
     excluded_points.insert(excluded_points.end(), point_list.begin(), point_list.end());
@@ -10,7 +23,7 @@ void SegmentedPointsContainer::addExcludedPoint(int p_id)
     excluded_points.push_back(p_id);
 }
 
-void SegmentedPointsContainer::addSegmentedPoints(SegmentedPointsContainer::SegmentedPlane plane)
+void SegmentedPointsContainer::addSegmentedPoints(SegmentedPlane &plane)
 {
     this->planes_list.push_back(plane);
     this->segmented_points += plane.indices_list.size();

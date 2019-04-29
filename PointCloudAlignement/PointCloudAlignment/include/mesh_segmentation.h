@@ -10,6 +10,9 @@
 #include "common.h"
 #include "segmented_points_container.h"
 
+#define KNN 10
+#define COS_2 0.999f
+
 class MeshSegmentation {
 public:
     bool loadMesh(string filename);
@@ -20,9 +23,16 @@ public:
 
 private:
     pcl::PolygonMeshPtr p_mesh;
-    pcl::PointCloud<pcl::PointNormal>::Ptr p_cloud;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr p_cloud;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr p_centroid_cloud;
+    pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr p_kdTree;
     vector<SegmentedPointsContainer::SegmentedPlane> planes;
+    boost::shared_ptr<vector<int>> p_available_indices;
 
+    void mergeRecursive();
+    bool planesAreMergeable(SegmentedPointsContainer::SegmentedPlane &p1, SegmentedPointsContainer::SegmentedPlane &p2);
+    bool haveCommonVertex(SegmentedPointsContainer::SegmentedPlane &p1, SegmentedPointsContainer::SegmentedPlane &p2);
     void fillVertices(pcl::Vertices verts, vector<vec3> &vertices);
     vec3 computeFaceNormal(vector<vec3> &vertices);
+    void updatePCcolors();
 };

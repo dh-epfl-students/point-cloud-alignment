@@ -69,3 +69,8 @@ inline ivec3 positive_modulo(ivec3 i, int n)
                 positive_modulo(i.y(), n),
                 positive_modulo(i.z(), n));
 }
+
+inline vec3 pclToVec3(pcl::PointXYZRGB p)
+{
+    return vec3(p.x, p.y, p.z);
+}

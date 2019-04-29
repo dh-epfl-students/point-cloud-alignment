@@ -16,6 +16,8 @@ public:
         _SegmentedPlane(): id(0), color(0, 0, 0) {}
         _SegmentedPlane(int id, ivec3 c, vector<int> list, Plane p): id(id), color(c), indices_list(list), plane(p) {}
         ~_SegmentedPlane(){}
+
+        void merge(_SegmentedPlane &p);
     } SegmentedPlane;
 
     SegmentedPointsContainer(): segmented_points(0), excluded_points(0)
@@ -48,7 +50,7 @@ public:
         planes_list.clear();
     }
 
-    void addSegmentedPoints(SegmentedPlane plane);
+    void addSegmentedPoints(SegmentedPlane &plane);
     void addExcludedPoints(vector<int> point_list);
     void addExcludedPoint(int p_id);
     void createPlane(int plane_id, ivec3 &c);

@@ -15,9 +15,11 @@ void Plane::setCenter(vec3 p)
 
 vec3 Plane::getNormal()
 {
-    vec3 n(a, b, c);
-    n.normalize();
-    return n;
+    if(a == 0 && b == 0 && c == 0) return n;
+
+    vec3 nv(a, b, c);
+    nv.normalize();
+    return nv;
 }
 
 pcl::ModelCoefficients Plane::getModelCoefficients()
