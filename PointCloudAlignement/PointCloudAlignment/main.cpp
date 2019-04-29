@@ -21,8 +21,12 @@ bool isNormalDisplayed = false;
 bool isExclusionDisplayed = false;
 bool pc_has_changed = false;
 bool normal_cloud_changed = false;
+bool refresh_mesh = false;
+bool mesh_is_segmented = false;
 pcl::visualization::PCLVisualizer::Ptr p_viewer;
 int plane_nb = 0;
+
+string mesh_filename;
 
 void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
                       void* viewer_void)
@@ -71,7 +75,23 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     }
     else if(event.getKeySym() == "F5" && event.keyDown())
     {
-        algo.runOneStep();
+        #pragma omp parallel
+        {
+            #pragma omp single
+            {
+                // Load target mesh
+                if(meshSeg.loadMesh(mesh_filename))
+                {
+                    refresh_mesh = true;
+
+                    // Start plane segmentation
+                    meshSeg.segmentPlanes();
+                    meshSeg.mergePlanes();
+
+                    mesh_is_segmented = true;
+                }
+            }
+        }
     }
     else if(event.getKeySym() == "F6" && event.keyDown())
     {
@@ -145,11 +165,6 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         }
 
     }
-    else if(event.getKeySym() == "F12" && event.keyDown())
-    {
-        // Load target mesh
-
-    }
     else if(event.keyDown())
     {
         cout << event.getKeySym() << ", " << event.getKeyCode() << endl;
@@ -200,6 +215,8 @@ pcl::visualization::PCLVisualizer::Ptr setupViewer()
 
 int main()
 {
+    mesh_filename = "/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_shifted_float.ply";
+
     string pcFile("/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safe.ply");
     string pcFileWithPreprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/myPC.ply");
     string pcRegion1_2017_3_preproc("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-01/region-01_2017-aerial/2496000_1119000_seg3_shifted_float_preproc.ply");
@@ -247,6 +264,13 @@ int main()
 
                     p_viewer->removePointCloud("normal_cloud");
                     p_viewer->addPointCloudNormals<PointNormalK, PointNormalK>(algo.getPointCloud(), algo.getPointCloud(), 5, 1, "normal_cloud");
+                }
+
+                if(refresh_mesh)
+                {
+                    refresh_mesh = false;
+                    p_viewer->removePolygonMesh("city_mesh");
+                    p_viewer->addPolygonMesh(*meshSeg.getMeshPtr(), "city_mesh");
                 }
 
                 p_viewer->spinOnce(100);

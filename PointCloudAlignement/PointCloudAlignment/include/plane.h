@@ -16,6 +16,7 @@ public:
     Plane(): a(0), b(0), c(0), d(0), center(0,0,0) {}
     Plane(float a, float b, float c, float d):a(a), b(b), c(c), d(d), center(0,0,0) {}
     Plane(const Plane &p): a(p.a), b(p.b), c(p.c), d(p.d), center(p.center) {}
+    Plane(vec3 center, vec3 normal): center(center), n(normal) {}
 
     void setCoeffs(float a, float b, float c, float d);
     void setCenter(vec3 p);
@@ -37,5 +38,6 @@ public:
 private:
     float a, b, c, d;
     vec3 center;
+    vec3 n;
 };
 

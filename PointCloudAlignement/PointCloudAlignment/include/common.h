@@ -57,3 +57,15 @@ inline vec3 computePlaneCenter(PointNormalKCloud::Ptr p_cloud, vector<int> indic
 
     return center;
 }
+
+inline int positive_modulo(int i, int n)
+{
+    return (i % n + n) % n;
+}
+
+inline ivec3 positive_modulo(ivec3 i, int n)
+{
+    return ivec3(positive_modulo(i.x(), n),
+                positive_modulo(i.y(), n),
+                positive_modulo(i.z(), n));
+}
