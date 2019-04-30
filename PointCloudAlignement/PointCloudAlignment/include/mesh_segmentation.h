@@ -10,9 +10,10 @@
 #include "common.h"
 #include "segmented_points_container.h"
 
-#define KNN 10
+#define KNN_MESH 50
 #define COS_2 0.999f
 #define COS_5 0.996f
+#define V_ERROR 0.5f
 
 class MeshSegmentation {
 public:

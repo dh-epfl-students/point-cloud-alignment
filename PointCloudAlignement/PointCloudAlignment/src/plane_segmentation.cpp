@@ -197,7 +197,7 @@ void PlaneSegmentation::start_pause()
 
 void PlaneSegmentation::runMainLoop()
 {
-    int index;
+    int index = 0;
     while(dont_quit)
     {
         while(is_started && (index = getRegionGrowingStartLocation()) != -1)
@@ -211,11 +211,13 @@ void PlaneSegmentation::runMainLoop()
             segmentPlane();
         }
 
-        dont_quit = index == -1? false: true;
+        if(index == -1)
+        {
+            dont_quit = false;
+            isSegmented = true;
+            cout << "Segmented " << p_segmented_points_container->getNbPlanes() << " planes. Excluded " << p_segmented_points_container->getNbOfExcludedPoints() << endl;
+        }
     }
-
-    isSegmented = true;
-    cout << "Segmented " << p_segmented_points_container->getNbPlanes() << " planes. Excluded " << p_segmented_points_container->getNbOfExcludedPoints() << endl;
 }
 
 void PlaneSegmentation::runOneStep()

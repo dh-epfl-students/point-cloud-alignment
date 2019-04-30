@@ -69,6 +69,13 @@ void MeshSegmentation::mergePlanes()
 
     mergeRecursive();
 
+    // Removing merged planes from planes list
+    vector<SegmentedPointsContainer::SegmentedPlane> final_planes(p_available_indices->size());
+    for_each(p_available_indices->begin(), p_available_indices->end(), [&final_planes, this](int index){
+        final_planes.push_back(planes[index]);
+    });
+    planes.swap(final_planes);
+
     cout << "Finished mesh planes merging" << endl;
 
     //Update colors in pc
@@ -92,9 +99,9 @@ void MeshSegmentation::mergeRecursive()
             SegmentedPointsContainer::SegmentedPlane plane = planes[p_available_indices->at(i)];
 
             // Do a knn search on neighboring centroids
-            vector<int> nghbrs(KNN);
-            vector<float> dists(KNN);
-            p_kdTree->nearestKSearch(plane.plane.getCenterPCL(), KNN, nghbrs, dists);
+            vector<int> nghbrs(KNN_MESH);
+            vector<float> dists(KNN_MESH);
+            p_kdTree->nearestKSearch(plane.plane.getCenterPCL(), KNN_MESH, nghbrs, dists);
 
             for(size_t j = 1; j < nghbrs.size(); ++j)
             {
@@ -110,8 +117,8 @@ void MeshSegmentation::mergeRecursive()
                         // Update list of planes and centroid cloud
                         planes[p_available_indices->at(i)] = plane;
                         p_centroid_cloud->points[p_available_indices->at(i)] = plane.plane.getCenterPCL();
-                        merged_planes.push_back(nghbr_id);
-                        sort(merged_planes.begin(), merged_planes.end());
+
+                        merged_planes.insert(upper_bound(merged_planes.begin(), merged_planes.end(), nghbr_id), nghbr_id);
                     }
                 }
             }
@@ -120,7 +127,6 @@ void MeshSegmentation::mergeRecursive()
 
     // Update availaible_indices and kdTree
     vector<int> new_list;
-    sort(merged_planes.begin(), merged_planes.end());
     set_difference(p_available_indices->begin(), p_available_indices->end(), merged_planes.begin(), merged_planes.end(), back_inserter(new_list));
     p_available_indices->swap(new_list);
 
@@ -150,7 +156,7 @@ bool MeshSegmentation::haveCommonVertex(SegmentedPointsContainer::SegmentedPlane
     {
         for(auto j: p2.indices_list)
         {
-            if(pclToVec3(p_cloud->points[i]) == pclToVec3(p_cloud->points[j])) return true;
+            if(squaredDistance(pclToVec3(p_cloud->points[i]), pclToVec3(p_cloud->points[j])) <= V_ERROR) return true;
         }
     }
 
@@ -179,12 +185,11 @@ vec3 MeshSegmentation::computeFaceNormal(vector<vec3> &vertices)
 void MeshSegmentation::updatePCcolors()
 {
     #pragma omp parallel for
-    for(size_t i = 0; i < p_available_indices->size(); ++i)
+    for(size_t i = 0; i < planes.size(); ++i)
     {
-        int id = p_available_indices->at(i);
-        ivec3 color = planes[id].color;
+        ivec3 color = planes[i].color;
 
-        for(int v_id : planes[id].indices_list)
+        for(int v_id : planes[i].indices_list)
         {
             p_cloud->points[v_id].rgba = static_cast<uint8_t>(color.x()) << 16 |
                                          static_cast<uint8_t>(color.y()) << 8 |

@@ -2,7 +2,7 @@
 
 void SegmentedPointsContainer::SegmentedPlane::merge(SegmentedPlane &p)
 {
-    cout << "Merging plane " << p.id << " into plane " << id << endl;
+    //cout << "Merging plane " << p.id << " into plane " << id << endl;
 
     this->indices_list.insert(indices_list.end(), p.indices_list.begin(), p.indices_list.end());
     sort(this->indices_list.begin(), this->indices_list.end());
@@ -11,6 +11,14 @@ void SegmentedPointsContainer::SegmentedPlane::merge(SegmentedPlane &p)
 
     // Average the centroids
     this->plane.setCenter((this->plane.getCenter() * this->indices_list.size() + p.plane.getCenter() * p.indices_list.size()) / (this->indices_list.size() + p.indices_list.size()));
+
+    // Ensure that both normals are orientated in the same quadrant
+    vec3 n1 = this->plane.getNormal();
+    vec3 n2 = p.plane.getNormal();
+    n2 = n2.normalized().dot(n1.normalized()) < 0.0f ? -n2 : n2;
+
+    // Set the new plane normal
+    this->plane.setNormal(n1 + n2);
 }
 
 void SegmentedPointsContainer::addExcludedPoints(vector<int> point_list)

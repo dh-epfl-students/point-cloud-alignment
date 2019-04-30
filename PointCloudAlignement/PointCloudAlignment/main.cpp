@@ -245,9 +245,9 @@ int main()
     p_viewer->resetCamera();
 
     // Start plane segmentation thread
-    #pragma omp parallel
+    #pragma omp parallel sections
     {
-        #pragma omp master
+        #pragma omp section
         {
             cout << "Viewer loop executed by thread " << omp_get_thread_num() << endl;
 
@@ -278,17 +278,19 @@ int main()
                     refresh_mesh = false;
                     p_viewer->removePolygonMesh("city_mesh");
                     p_viewer->addPolygonMesh(*meshSeg.getMeshPtr(), "city_mesh");
-                    p_viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_SHADING,
-                                                            pcl::visualization::PCL_VISUALIZER_SHADING_FLAT, "city_mesh");
+                    //p_viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_SHADING,
+                    //                                        pcl::visualization::PCL_VISUALIZER_SHADING_FLAT, "city_mesh");
                 }
 
                 p_viewer->spinOnce(100);
             }
 
+            cout << "Viewer was stopped" << endl;
+
             algo.stop();
         }
 
-        #pragma omp single nowait
+        #pragma omp section
         {
             cout << "Segmentation loop started by thread " << omp_get_thread_num() << endl;
 

@@ -13,6 +13,11 @@ void Plane::setCenter(vec3 p)
     this->center = p;
 }
 
+void Plane::setNormal(vec3 n)
+{
+    this->n = n;
+}
+
 vec3 Plane::getNormal()
 {
     if(a == 0 && b == 0 && c == 0) return n;
