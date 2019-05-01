@@ -8,8 +8,8 @@
 #include "plane.h"
 
 #define MAX_K_ORIGINAL 50
-#define MAX_K_RESAMPLED 20
-#define MIN_K 10
+#define MAX_K_RESAMPLED 15
+#define MIN_K 7
 
 
 class NormalComputation {

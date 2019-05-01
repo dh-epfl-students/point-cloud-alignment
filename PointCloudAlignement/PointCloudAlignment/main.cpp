@@ -182,8 +182,6 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         registration.setClouds(source, target, true);
         mat3 R = registration.findAlignment();
 
-        cout << R << endl;
-
         // Apply the transform and display new
         mat4 M = mat4::Identity();
         M.block(0, 0, 3, 3) << R;
@@ -193,9 +191,9 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         PointNormalKCloud::Ptr p_transformed_cloud = PointNormalKCloud().makeShared();
         pcl::transformPointCloud(*algo.getPointCloud(), *p_transformed_cloud, M);
 
-        pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(p_transformed_cloud);
-        p_viewer->addPointCloud(p_transformed_cloud, rgb, "transformed_cloud");
-        p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "transformed_cloud");
+        pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> color(p_transformed_cloud, 0, 255, 0);
+        p_viewer->addPointCloud(p_transformed_cloud, color, "transformed_cloud");
+        p_viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "transformed_cloud");
     }
     else if(event.keyDown())
     {
@@ -243,9 +241,7 @@ pcl::visualization::PCLVisualizer::Ptr setupViewer()
 {
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
     viewer->setBackgroundColor(0.3, 0.3, 0.3);
-    //viewer->addCoordinateSystem(5.0);
     viewer->initCameraParameters();
-
     viewer->registerKeyboardCallback(keyboardCallback, static_cast<void*>(viewer.get()));
 
     return viewer;
@@ -253,20 +249,34 @@ pcl::visualization::PCLVisualizer::Ptr setupViewer()
 
 int main()
 {
-    mesh_filename = "/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg1_shifted_float.ply";
+    string mesh_region3_1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg1_shifted_float.ply");
+    string mesh_region3_2("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg2_shifted_float.ply");
+    string mesh_region3_3("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg3_shifted_float.ply");
+    string mesh_region3_4("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg4_shifted_float.ply");
+    string mesh_region3_5("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg5_shifted_float.ply");
+    mesh_filename = mesh_region3_1;
 
-    string pcFile("/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safe.ply");
-    string pcFileWithPreprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/myPC.ply");
-    string pcRegion1_2017_3_preproc("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-01/region-01_2017-aerial/2496000_1119000_seg3_shifted_float_preproc.ply");
+//    string pcFile("/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safe.ply");
+//    string pcFileWithPreprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/myPC.ply");
+//    string pcRegion1_2017_3_preproc("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-01/region-01_2017-aerial/2496000_1119000_seg3_shifted_float_preproc.ply");
 
-    string pcLIDAR_Geneva_region1_2017("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-01/region-01_2017-aerial/2496000_1119000_seg4_shifted_float.ply");
-    string pcLIDAR_region1_2017_preprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/2496000_1119000_seg4_shifted_float_preproc.ply");
+//    string pcLIDAR_Geneva_region1_2017("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-01/region-01_2017-aerial/2496000_1119000_seg4_shifted_float.ply");
+//    string pcLIDAR_region1_2017_preprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/2496000_1119000_seg4_shifted_float_preproc.ply");
 
     string pcLIDAR_region3_2017_seg1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float.ply");
+    string pcLIDAR_region3_2017_seg2("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg2_shifted_float.ply");
+    string pcLIDAR_region3_2017_seg3("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg3_shifted_float.ply");
+    string pcLIDAR_region3_2017_seg4("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg4_shifted_float.ply");
+    string pcLIDAR_region3_2017_seg5("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg5_shifted_float.ply");
+
+    // Rotated PC sources
+    string pcLIDAR_region3_2017_seg1_rotated_1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float_rotated_1.ply");
+    string pcLIDAR_region3_2017_seg1_rotated_2("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float_rotated_2.ply");
+    string pcLIDAR_region3_2017_seg1_rotated_3("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float_rotated_3.ply");
 
     p_viewer = setupViewer();
 
-    algo.init(pcLIDAR_region3_2017_seg1);
+    algo.init(pcLIDAR_region3_2017_seg1_rotated_3);
     algo.setViewerUpdateCallback(display_update_callable);
     algo.setAddPlaneCallback(add_plane_callable);
     algo.setUpdateNormalCloudCallback(update_normal_cloud_callable);
@@ -302,7 +312,6 @@ int main()
                 if(isNormalDisplayed && normal_cloud_changed)
                 {
                     normal_cloud_changed = false;
-
                     p_viewer->removePointCloud("normal_cloud");
                     p_viewer->addPointCloudNormals<PointNormalK, PointNormalK>(algo.getPointCloud(), algo.getPointCloud(), 5, 1, "normal_cloud");
                 }
@@ -312,8 +321,6 @@ int main()
                     refresh_mesh = false;
                     p_viewer->removePolygonMesh("city_mesh");
                     p_viewer->addPolygonMesh(*meshSeg.getMeshPtr(), "city_mesh");
-                    //p_viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_SHADING,
-                    //                                        pcl::visualization::PCL_VISUALIZER_SHADING_FLAT, "city_mesh");
                 }
 
                 p_viewer->spinOnce(100);

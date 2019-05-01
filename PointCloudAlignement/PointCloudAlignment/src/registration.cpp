@@ -100,7 +100,7 @@ vector<vec3> Registration::computeDifSet(vector<SegmentedPointsContainer::Segmen
     vector<vec3> demeaned(list.size());
 
     #pragma omp parallel for
-    for(int i = 0; i < list.size(); ++i)
+    for(size_t i = 0; i < list.size(); ++i)
     {
         vec3 n = list[i].plane.getNormal();
         if(!isMesh && (n.norm() == 1.0f)) n *= list[i].indices_list.size();
