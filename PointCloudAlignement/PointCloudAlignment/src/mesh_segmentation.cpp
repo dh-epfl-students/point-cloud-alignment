@@ -84,6 +84,8 @@ void MeshSegmentation::mergePlanes()
     pcl::PCLPointCloud2 pc2;
     pcl::toPCLPointCloud2(*p_cloud, pc2);
     p_mesh->cloud = pc2;
+
+    isSegmented = true;
 }
 
 void MeshSegmentation::mergeRecursive()
@@ -196,4 +198,14 @@ void MeshSegmentation::updatePCcolors()
                                          static_cast<uint8_t>(color.z());
         }
     }
+}
+
+bool MeshSegmentation::isMeshSegmented()
+{
+    return isSegmented;
+}
+
+vector<SegmentedPointsContainer::SegmentedPlane> MeshSegmentation::getSegmentedPlanes()
+{
+    return this->planes;
 }

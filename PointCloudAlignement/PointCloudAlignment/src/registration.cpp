@@ -32,17 +32,18 @@ void Registration::computeM()
 {
     if(target.empty() || source.empty()) return;
 
-    M.resize(target.size(), source.size());
+    M.resize(source.size(), target.size());
 
     #pragma omp parallel for
-    for(size_t i = 0; i < target.size(); ++i)
+    for(size_t i = 0; i < source.size(); ++i)
     {
-        vec3 ni = target[i].plane.getNormal();
-        if(!targetIsMesh) ni *= target[i].indices_list.size();
+        vec3 ni = source[i].plane.getNormal();
 
-        for(size_t j = 0; j < source.size(); ++j)
+        for(size_t j = 0; j < target.size(); ++j)
         {
-            M(i, j) = squaredDistance(ni, source[j].plane.getNormal());
+            vec3 nj = target[j].plane.getNormal();
+            if(!targetIsMesh) nj *= target[j].indices_list.size();
+            M(i, j) = squaredDistance(ni, nj);
         }
     }
 }

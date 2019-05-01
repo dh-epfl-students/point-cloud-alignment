@@ -11,19 +11,23 @@
 #include "plane_segmentation.h"
 #include "plane_merging.h"
 #include "mesh_segmentation.h"
+#include "registration.h"
 
 using namespace std;
 
-PlaneSegmentation algo;
-PlaneMerging merger;
-MeshSegmentation meshSeg;
+static PlaneSegmentation algo;
+static PlaneMerging merger;
+static MeshSegmentation meshSeg;
+static Registration registration;
+static pcl::visualization::PCLVisualizer::Ptr p_viewer;
+
 bool isNormalDisplayed = false;
 bool isExclusionDisplayed = false;
 bool pc_has_changed = false;
 bool normal_cloud_changed = false;
 bool refresh_mesh = false;
 bool mesh_is_segmented = false;
-pcl::visualization::PCLVisualizer::Ptr p_viewer;
+
 int plane_nb = 0;
 
 string mesh_filename;
@@ -166,6 +170,20 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         }
 
     }
+    else if(event.getKeySym() == "a" && event.keyDown())
+    {
+        if(!(algo.isCloudSegmented() && meshSeg.isMeshSegmented())) return;
+
+        // Get both segmented sets of planes
+        vector<SegmentedPointsContainer::SegmentedPlane> source = algo.getSegmentedPlanes();
+        vector<SegmentedPointsContainer::SegmentedPlane> target = meshSeg.getSegmentedPlanes();
+
+        // Find Rotation
+        registration.setClouds(source, target, true);
+        mat3 R = registration.findAlignment();
+
+        cout << R << endl;
+    }
     else if(event.keyDown())
     {
         cout << event.getKeySym() << ", " << event.getKeyCode() << endl;
@@ -222,7 +240,7 @@ pcl::visualization::PCLVisualizer::Ptr setupViewer()
 
 int main()
 {
-    mesh_filename = "/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_shifted_float.ply";
+    mesh_filename = "/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg1_shifted_float.ply";
 
     string pcFile("/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safe.ply");
     string pcFileWithPreprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/myPC.ply");
@@ -230,9 +248,12 @@ int main()
 
     string pcLIDAR_Geneva_region1_2017("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-01/region-01_2017-aerial/2496000_1119000_seg4_shifted_float.ply");
     string pcLIDAR_region1_2017_preprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/2496000_1119000_seg4_shifted_float_preproc.ply");
+
+    string pcLIDAR_region3_2017_seg1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float.ply");
+
     p_viewer = setupViewer();
 
-    algo.init(pcFileWithPreprocessed);
+    algo.init(pcLIDAR_region3_2017_seg1);
     algo.setViewerUpdateCallback(display_update_callable);
     algo.setAddPlaneCallback(add_plane_callable);
     algo.setUpdateNormalCloudCallback(update_normal_cloud_callable);

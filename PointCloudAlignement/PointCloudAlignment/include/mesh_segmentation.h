@@ -21,7 +21,10 @@ public:
     void segmentPlanes();
     void mergePlanes();
 
+    bool isMeshSegmented();
+
     pcl::PolygonMeshPtr getMeshPtr() { return p_mesh; }
+    vector<SegmentedPointsContainer::SegmentedPlane> getSegmentedPlanes();
 
 private:
     pcl::PolygonMeshPtr p_mesh;
@@ -30,6 +33,7 @@ private:
     pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr p_kdTree;
     vector<SegmentedPointsContainer::SegmentedPlane> planes;
     boost::shared_ptr<vector<int>> p_available_indices;
+    bool isSegmented = false;
 
     void mergeRecursive();
     bool planesAreMergeable(SegmentedPointsContainer::SegmentedPlane &p1, SegmentedPointsContainer::SegmentedPlane &p2);
