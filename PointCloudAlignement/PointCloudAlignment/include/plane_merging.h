@@ -14,6 +14,9 @@ public:
     void start_merge(vector<SegmentedPointsContainer::SegmentedPlane> &p_list, PointNormalKCloud::Ptr p_cloud);
     void filter_small_planes(vector<SegmentedPointsContainer::SegmentedPlane> &p_list, int min_size);
 
+    vector<SegmentedPointsContainer::SegmentedPlane> getSegmentedPlanes();
+    bool isCloudMerged();
+
 private:
     vector<SegmentedPointsContainer::SegmentedPlane> plane_list;
 
@@ -27,6 +30,7 @@ private:
     pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr p_kdtree;
     PointNormalKCloud::Ptr p_point_cloud;
     vector<int> merged_planes_indices;
+    bool isMerged = false;
 
     function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> display_update_callable;
 

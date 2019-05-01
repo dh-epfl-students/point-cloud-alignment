@@ -32,6 +32,15 @@ void PlaneMerging::start_merge(vector<SegmentedPointsContainer::SegmentedPlane> 
     p_kdtree->setInputCloud(p_plane_cloud);
 
     merge();
+
+    // TODO: Remove merged planes from the list of planes
+    vector<SegmentedPointsContainer::SegmentedPlane> new_list;
+    for_each(p_plane_indices->begin(), p_plane_indices->end(), [&new_list, this](int index){
+        new_list.push_back(this->plane_list[index]);
+    });
+    plane_list.swap(new_list);
+
+    isMerged = true;
 }
 
 void PlaneMerging::filter_small_planes(vector<SegmentedPointsContainer::SegmentedPlane> &p_list, int min_size)
@@ -100,6 +109,7 @@ void PlaneMerging::merge()
             {
                 // Update available plane indices
                 vector<int> new_list;
+                sort(remove_list.begin(), remove_list.end());
                 set_difference(p_plane_indices->begin(), p_plane_indices->end(), remove_list.begin(), remove_list.end(), back_inserter<vector<int>>(new_list));
                 p_plane_indices->swap(new_list);
 
@@ -156,4 +166,14 @@ float PlaneMerging::farestPointInDir(SegmentedPointsContainer::SegmentedPlane &p
     }
 
     return max_r;
+}
+
+vector<SegmentedPointsContainer::SegmentedPlane> PlaneMerging::getSegmentedPlanes()
+{
+    return this->plane_list;
+}
+
+bool PlaneMerging::isCloudMerged()
+{
+    return isMerged;
 }

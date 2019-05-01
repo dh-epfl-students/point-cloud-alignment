@@ -6,6 +6,7 @@
 
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/common/transforms.h>
 
 #include "common.h"
 #include "plane_segmentation.h"
@@ -168,14 +169,13 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         {
             cout << "Could not merge planes because the cloud is not segmented." << endl;
         }
-
     }
     else if(event.getKeySym() == "a" && event.keyDown())
     {
-        if(!(algo.isCloudSegmented() && meshSeg.isMeshSegmented())) return;
+        if(!(merger.isCloudMerged() && meshSeg.isMeshSegmented())) return;
 
         // Get both segmented sets of planes
-        vector<SegmentedPointsContainer::SegmentedPlane> source = algo.getSegmentedPlanes();
+        vector<SegmentedPointsContainer::SegmentedPlane> source = merger.getSegmentedPlanes();
         vector<SegmentedPointsContainer::SegmentedPlane> target = meshSeg.getSegmentedPlanes();
 
         // Find Rotation
@@ -183,6 +183,19 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         mat3 R = registration.findAlignment();
 
         cout << R << endl;
+
+        // Apply the transform and display new
+        mat4 M = mat4::Identity();
+        M.block(0, 0, 3, 3) << R;
+
+        cout << M << endl;
+
+        PointNormalKCloud::Ptr p_transformed_cloud = PointNormalKCloud().makeShared();
+        pcl::transformPointCloud(*algo.getPointCloud(), *p_transformed_cloud, M);
+
+        pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(p_transformed_cloud);
+        p_viewer->addPointCloud(p_transformed_cloud, rgb, "transformed_cloud");
+        p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "transformed_cloud");
     }
     else if(event.keyDown())
     {

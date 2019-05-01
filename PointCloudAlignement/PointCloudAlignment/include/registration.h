@@ -20,4 +20,5 @@ private:
     mat3 computeH();
     mat3 computeR(mat3 H);
     vec3 computeCentroid(vector<SegmentedPointsContainer::SegmentedPlane> &list, bool isMesh);
+    vector<vec3> computeDifSet(vector<SegmentedPointsContainer::SegmentedPlane> &list, vec3 centroid, bool isMesh);
 };
