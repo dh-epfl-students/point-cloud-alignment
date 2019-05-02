@@ -182,18 +182,40 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         registration.setClouds(source, target, true);
         mat3 R = registration.findAlignment();
 
-        // Apply the transform and display new
+        // We need to compose the transformation matrix -> translate point cloud to origin
+        //                                              -> apply the rotation
+        //                                              -> translate it back to original position
+        vec4 centroid;
+        pcl::compute3DCentroid(*algo.getPointCloud(), centroid);
+
+        mat4 T1 = Eigen::Affine3f(Eigen::Translation3f(vec3(-centroid.x(), -centroid.y(), -centroid.z()))).matrix();
+        cout << " T1:" << endl << T1 << endl;
+
+        mat4 T2 = T1.inverse();
+        cout << " T2:" << endl << T2 << endl;
+
         mat4 M = mat4::Identity();
         M.block(0, 0, 3, 3) << R;
+        cout << "R:" << endl << M << endl;
 
-        cout << M << endl;
+        mat4 finalTransform = T2 * /*M * */M * T1;
+
+        cout << "Final Transformation:" << endl << finalTransform << endl;
+        cout << "Inverse of final transform:" << endl << finalTransform.inverse() << endl;
 
         PointNormalKCloud::Ptr p_transformed_cloud = PointNormalKCloud().makeShared();
-        pcl::transformPointCloud(*algo.getPointCloud(), *p_transformed_cloud, M);
+        pcl::transformPointCloud(*algo.getPointCloud(), *p_transformed_cloud, finalTransform);
 
         pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> color(p_transformed_cloud, 0, 255, 0);
+        p_viewer->removePointCloud("transformed_cloud");
         p_viewer->addPointCloud(p_transformed_cloud, color, "transformed_cloud");
         p_viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "transformed_cloud");
+
+        // Update point cloud
+        algo.setPointCloud(p_transformed_cloud);
+
+        // Update merger list of normals and centroids
+        merger.applyTransform(M);
     }
     else if(event.keyDown())
     {
@@ -225,16 +247,10 @@ void update_normal_cloud_callback()
 {
     if(isNormalDisplayed) normal_cloud_changed = true;
 }
-/*
-void mesh_update_callback()
-{
-    if(isMeshDisplayed) mesh_changed = true;
-}*/
 
 function<void(PointNormalKCloud::Ptr, ivec3 color, vector<int> indices)> display_update_callable = &display_update_callback;
 function<void(pcl::ModelCoefficients, float, float, float)> add_plane_callable = &add_plane_callback;
 function<void(void)> update_normal_cloud_callable = &update_normal_cloud_callback;
-//function<void(void)> mesh_cloud_update_callable = &dmesh_update_callback;
 
 // Start and setup viewer
 pcl::visualization::PCLVisualizer::Ptr setupViewer()
@@ -249,20 +265,15 @@ pcl::visualization::PCLVisualizer::Ptr setupViewer()
 
 int main()
 {
+    // Target meshes
     string mesh_region3_1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg1_shifted_float.ply");
     string mesh_region3_2("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg2_shifted_float.ply");
     string mesh_region3_3("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg3_shifted_float.ply");
     string mesh_region3_4("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg4_shifted_float.ply");
     string mesh_region3_5("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg5_shifted_float.ply");
-    mesh_filename = mesh_region3_1;
+    mesh_filename = mesh_region3_4;
 
-//    string pcFile("/home/loris/Documents/EPFL/Master/master-project-2019/State_of_the_art_testing/PCL/cloud_alignment/samples/2009geneve1safe.ply");
-//    string pcFileWithPreprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/myPC.ply");
-//    string pcRegion1_2017_3_preproc("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-01/region-01_2017-aerial/2496000_1119000_seg3_shifted_float_preproc.ply");
-
-//    string pcLIDAR_Geneva_region1_2017("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-01/region-01_2017-aerial/2496000_1119000_seg4_shifted_float.ply");
-//    string pcLIDAR_region1_2017_preprocessed("/home/loris/Documents/EPFL/Master/master-project-2019/PointCloudAlignement/build-PointCloudAlignment-Desktop-Debug/2496000_1119000_seg4_shifted_float_preproc.ply");
-
+    // Original PC sources
     string pcLIDAR_region3_2017_seg1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float.ply");
     string pcLIDAR_region3_2017_seg2("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg2_shifted_float.ply");
     string pcLIDAR_region3_2017_seg3("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg3_shifted_float.ply");
@@ -273,10 +284,12 @@ int main()
     string pcLIDAR_region3_2017_seg1_rotated_1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float_rotated_1.ply");
     string pcLIDAR_region3_2017_seg1_rotated_2("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float_rotated_2.ply");
     string pcLIDAR_region3_2017_seg1_rotated_3("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float_rotated_3.ply");
+    string pcLIDAR_region3_2017_seg4_rotated_1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg4_shifted_float_rotated_1.ply");
+
 
     p_viewer = setupViewer();
 
-    algo.init(pcLIDAR_region3_2017_seg1_rotated_3);
+    algo.init(pcLIDAR_region3_2017_seg4_rotated_1);
     algo.setViewerUpdateCallback(display_update_callable);
     algo.setAddPlaneCallback(add_plane_callable);
     algo.setUpdateNormalCloudCallback(update_normal_cloud_callable);
@@ -288,7 +301,7 @@ int main()
     p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
     p_viewer->resetCamera();
 
-    // Start plane segmentation thread
+    // Start plane segmentation thread and viewer thread
     #pragma omp parallel sections
     {
         #pragma omp section

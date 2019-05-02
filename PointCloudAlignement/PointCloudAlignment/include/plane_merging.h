@@ -17,6 +17,8 @@ public:
     vector<SegmentedPointsContainer::SegmentedPlane> getSegmentedPlanes();
     bool isCloudMerged();
 
+    void applyTransform(mat4 M);
+
 private:
     vector<SegmentedPointsContainer::SegmentedPlane> plane_list;
 

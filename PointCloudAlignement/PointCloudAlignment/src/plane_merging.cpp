@@ -33,7 +33,7 @@ void PlaneMerging::start_merge(vector<SegmentedPointsContainer::SegmentedPlane> 
 
     merge();
 
-    // TODO: Remove merged planes from the list of planes
+    // Remove merged planes from the list of planes
     vector<SegmentedPointsContainer::SegmentedPlane> new_list;
     for_each(p_plane_indices->begin(), p_plane_indices->end(), [&new_list, this](int index){
         new_list.push_back(this->plane_list[index]);
@@ -75,8 +75,8 @@ void PlaneMerging::merge()
                 if(plane_list[j].id != plane.id)
                 {
                     //May need to reorient normal
-                    vec3 n = plane.plane.getNormal();
-                    vec3 ni = plane_list[j].plane.getNormal();
+                    vec3 n = plane.plane.getNormal().normalized();
+                    vec3 ni = plane_list[j].plane.getNormal().normalized();
                     n = ni.dot(n) >= ni.dot(-n) ? n : -n;
 
                     // Filter by plane normal vector and then plane overlap
@@ -176,4 +176,20 @@ vector<SegmentedPointsContainer::SegmentedPlane> PlaneMerging::getSegmentedPlane
 bool PlaneMerging::isCloudMerged()
 {
     return isMerged;
+}
+
+void PlaneMerging::applyTransform(mat4 M)
+{
+    if(!isMerged) return;
+
+    #pragma omp parallel for
+    for(size_t i = 0; i < plane_list.size(); ++i)
+    {
+        vec3 n = plane_list[i].plane.getNormal();
+        vec4 n4(n.x(), n.y(), n.z(), 1);
+        vec4 Mn = M * n4;
+        plane_list[i].plane.setNormal(vec3(Mn.x(), Mn.y(), Mn.z()));
+
+        //TODO: Apply M to centroids
+    }
 }

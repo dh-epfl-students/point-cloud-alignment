@@ -38,12 +38,15 @@ void Registration::computeM()
     #pragma omp parallel for
     for(size_t i = 0; i < source.size(); ++i)
     {
-        vec3 ni = source[i].plane.getNormal() * source[i].indices_list.size();
+        vec3 ni = source[i].plane.getNormal().normalized() * source[i].indices_list.size();
 
         for(size_t j = 0; j < target.size(); ++j)
         {
             vec3 nj = target[j].plane.getNormal();
-            if(!targetIsMesh && nj.norm() == 1.0f) nj *= target[j].indices_list.size();
+            if(!targetIsMesh)
+            {
+                nj = nj.normalized() * target[j].indices_list.size();
+            }
             M(i, j) = squaredDistance(ni, nj);
         }
     }
@@ -87,7 +90,10 @@ vec3 Registration::computeCentroid(vector<SegmentedPointsContainer::SegmentedPla
     for(auto plane: list)
     {
         vec3 n = plane.plane.getNormal();
-        if(!isMesh && (n.norm() == 1.0f)) n *= plane.indices_list.size();
+        if(!isMesh)
+        {
+            n = n.normalized() * plane.indices_list.size();
+        }
         c += n;
     }
 
@@ -103,7 +109,10 @@ vector<vec3> Registration::computeDifSet(vector<SegmentedPointsContainer::Segmen
     for(size_t i = 0; i < list.size(); ++i)
     {
         vec3 n = list[i].plane.getNormal();
-        if(!isMesh && (n.norm() == 1.0f)) n *= list[i].indices_list.size();
+        if(!isMesh)
+        {
+            n = n.normalized() * list[i].indices_list.size();
+        }
         demeaned[i] = n - centroid;
     }
 

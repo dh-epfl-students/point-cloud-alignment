@@ -57,6 +57,8 @@ public:
     PointNormalKCloud::Ptr getExcludedPointCloud();
     vector<SegmentedPointsContainer::SegmentedPlane> getSegmentedPlanes() { return p_segmented_points_container->getPlanes(); }
 
+    void setPointCloud(PointNormalKCloud::Ptr p_new_cloud) { this->p_cloud = p_new_cloud; }
+
 private:
     /**
      * @brief The algo_RunProperties struct encapsulates

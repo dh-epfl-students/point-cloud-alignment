@@ -6,6 +6,7 @@ void Plane::setCoeffs(float a, float b, float c, float d)
     this->b = b;
     this->c = c;
     this->d = d;
+    this->setNormal(vec3(a, b, c));
 }
 
 void Plane::setCenter(vec3 p)
@@ -16,15 +17,16 @@ void Plane::setCenter(vec3 p)
 void Plane::setNormal(vec3 n)
 {
     this->n = n;
+    //this->normFromCoefs = false;
 }
 
 vec3 Plane::getNormal()
 {
-    if(a == 0 && b == 0 && c == 0) return n;
+    //if(!normFromCoefs || (a == 0 && b == 0 && c == 0)) return n;
 
-    vec3 nv(a, b, c);
-    nv.normalize();
-    return nv;
+    //vec3 nv(a, b, c);
+    //nv.normalize();
+    return n;
 }
 
 pcl::ModelCoefficients Plane::getModelCoefficients()
@@ -128,7 +130,7 @@ bool Plane::pointInPlane(PointNormalK p, float epsilon)
 {
     //return this->distanceTo(p) <= (2.0f*epsilon);
     vec3 v(p.x, p.y, p.z);
-    vec3 n = getNormal();
+    vec3 n = getNormal().normalized();
     float dist = abs(n.dot(v) + d);
 
     return dist <= epsilon;
@@ -136,7 +138,7 @@ bool Plane::pointInPlane(PointNormalK p, float epsilon)
 
 bool Plane::normalInPlane(PointNormalK p, float max_angle)
 {
-    vec3 n = getNormal();
+    vec3 n = getNormal().normalized();
     vec3 pn(p.normal_x, p.normal_y, p.normal_z);
     pn.normalize();
 

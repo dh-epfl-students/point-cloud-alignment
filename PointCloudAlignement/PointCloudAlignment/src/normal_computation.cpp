@@ -26,7 +26,7 @@ void NormalComputation::computeNormalCloud(PointNormalKCloud::Ptr cloud_in, KdTr
         Plane plane;
         Plane::estimatePlane(cloud_in, indices, plane);
 
-        vec3 n = plane.getNormal();
+        vec3 n = plane.getNormal().normalized();
         vec3 up(1, 1, 1);
         up.normalize();
 
