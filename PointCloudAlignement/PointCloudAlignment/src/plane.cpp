@@ -17,15 +17,10 @@ void Plane::setCenter(vec3 p)
 void Plane::setNormal(vec3 n)
 {
     this->n = n;
-    //this->normFromCoefs = false;
 }
 
 vec3 Plane::getNormal()
 {
-    //if(!normFromCoefs || (a == 0 && b == 0 && c == 0)) return n;
-
-    //vec3 nv(a, b, c);
-    //nv.normalize();
     return n;
 }
 
@@ -76,18 +71,18 @@ float Plane::distanceTo(PointNormalK p)
 
 float Plane::distanceTo(vec3 p)
 {
-    vec3 n(0, 0, 0);
+    vec3 ni(0, 0, 0);
     float di(0);
-    this->cartesianToNormal(n, di);
+    this->cartesianToNormal(ni, di);
 
-    return fabs(n.dot(p) + di);
+    return fabs(ni.dot(p) + di);
 }
 
-void Plane::cartesianToNormal(vec3 &n, float &di)
+void Plane::cartesianToNormal(vec3 &ni, float &di)
 {
     vec3 v(a, b, c);
     di = this->d / v.norm();
-    n = v.normalized();
+    ni = v.normalized();
 }
 
 void Plane::estimatePlane(PointNormalKCloud::Ptr cloud_in, boost::shared_ptr<vector<int>> indices_in, Plane &plane)
@@ -106,13 +101,9 @@ void Plane::estimatePlane(PointNormalKCloud::Ptr cloud_in, boost::shared_ptr<vec
     Eigen::MatrixXf m;
     pcl::demeanPointCloud(*cloud_f, center, m);
 
-    //cout << "Optimisation matrix dimension: " << m.rows() << " " << m.cols() << endl;
-
     // Compute svd decomposition
     Eigen::JacobiSVD<Eigen::MatrixXf> svd(m.block(0,0, 3, m.cols()), Eigen::ComputeThinU);
     Eigen::MatrixXf u = svd.matrixU();
-
-    //cout << "U matrix dimension: " << u.rows() << " " << u.cols() << endl;
 
     //Extract plane parameters
     float a = u(0, 2);

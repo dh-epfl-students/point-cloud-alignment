@@ -77,3 +77,19 @@ void SegmentedPointsContainer::addSegmentedPoint(int plane_id, int point_id)
 
     this->planes_list[plane_id-1].indices_list.push_back(point_id);
 }
+
+void SegmentedPointsContainer::printVectorsInFile(string filename)
+{
+    // Open file
+    ofstream file;
+    file.open(filename);
+
+    // Write each normal vector in format [ x, y, z ]
+    for(auto p: this->planes_list)
+    {
+        vec3 n = p.plane.getNormal();
+        file << "[ " << n << " ]" << endl;
+    }
+
+    file.close();
+}

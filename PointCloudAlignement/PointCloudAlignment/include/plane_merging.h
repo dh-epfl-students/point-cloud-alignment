@@ -19,6 +19,8 @@ public:
 
     void applyTransform(mat4 M);
 
+    void printVectorsInFile(string filename);
+
 private:
     vector<SegmentedPointsContainer::SegmentedPlane> plane_list;
 

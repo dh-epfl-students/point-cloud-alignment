@@ -1,4 +1,5 @@
 #include "registration.h"
+#include <cmath>
 
 void Registration::setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool isMesh)
 {
@@ -12,7 +13,8 @@ mat3 Registration::findAlignment()
     if(target.empty() || source.empty()) return mat3::Identity();
 
     mat3 R = findRotation();
-    R *= -1;
+
+    //R *= -1;
 
     return R;
 }
@@ -21,7 +23,14 @@ mat3 Registration::findRotation()
 {
     computeM();
     mat3 H = computeH();
-    return computeR(H);
+    mat3 R = computeR(H);
+    if(R.determinant() < 0.0f)
+    {
+        cout << "det of R is less than 0" << endl;
+        R.col(2) = -1 * R.col(2);
+    }
+
+    return R;
 }
 
 mat3 Registration::findTranslation()
@@ -47,9 +56,20 @@ void Registration::computeM()
             {
                 nj = nj.normalized() * target[j].indices_list.size();
             }
-            M(i, j) = squaredDistance(ni, nj);
+            float sqd = std::pow(ni.norm() - nj.norm(), 2);//squaredDistance(ni, nj);
+            /*if(sqd == 0.0f)
+            {
+                M(i, j) = 1000000.0f;
+            }
+            else
+            {
+                M(i, j) = 1.0f / sqd;
+            }*/
+            M(i, j) = sqd;
         }
     }
+
+    //cout << "M:" << endl << M << endl;
 }
 
 mat3 Registration::computeH()

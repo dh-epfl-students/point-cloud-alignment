@@ -164,6 +164,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
             vector<SegmentedPointsContainer::SegmentedPlane> planes_list = algo.getSegmentedPlanes();
             // Merge similar planes
             merger.start_merge(planes_list, algo.getPointCloud());
+            merger.printVectorsInFile("/home/loris/Documents/EPFL/Master/master-project-2019/Scripts/cloud_normals.txt");
         }
         else
         {
@@ -189,19 +190,13 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         pcl::compute3DCentroid(*algo.getPointCloud(), centroid);
 
         mat4 T1 = Eigen::Affine3f(Eigen::Translation3f(vec3(-centroid.x(), -centroid.y(), -centroid.z()))).matrix();
-        cout << " T1:" << endl << T1 << endl;
-
         mat4 T2 = T1.inverse();
-        cout << " T2:" << endl << T2 << endl;
-
         mat4 M = mat4::Identity();
         M.block(0, 0, 3, 3) << R;
         cout << "R:" << endl << M << endl;
 
-        mat4 finalTransform = T2 * /*M * */M * T1;
-
+        mat4 finalTransform = T2 * M * T1;
         cout << "Final Transformation:" << endl << finalTransform << endl;
-        cout << "Inverse of final transform:" << endl << finalTransform.inverse() << endl;
 
         PointNormalKCloud::Ptr p_transformed_cloud = PointNormalKCloud().makeShared();
         pcl::transformPointCloud(*algo.getPointCloud(), *p_transformed_cloud, finalTransform);
@@ -271,7 +266,8 @@ int main()
     string mesh_region3_3("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg3_shifted_float.ply");
     string mesh_region3_4("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg4_shifted_float.ply");
     string mesh_region3_5("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg5_shifted_float.ply");
-    mesh_filename = mesh_region3_4;
+    string mesh_region3_2_extended1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg2_extended1_shifted.ply");
+    mesh_filename = mesh_region3_1;
 
     // Original PC sources
     string pcLIDAR_region3_2017_seg1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float.ply");
@@ -285,11 +281,16 @@ int main()
     string pcLIDAR_region3_2017_seg1_rotated_2("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float_rotated_2.ply");
     string pcLIDAR_region3_2017_seg1_rotated_3("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float_rotated_3.ply");
     string pcLIDAR_region3_2017_seg4_rotated_1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg4_shifted_float_rotated_1.ply");
+    string pcLIDAR_region3_2017_seg2_r1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg2_r1_shifted_float.ply");
 
+    // Rotated and translated PC sources
+    string pcLIDAR_region3_2017_seg2_RT1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg2_RT1_shifted_float.ply");
+    string pcLIDAR_region3_2017_seg2_RT2("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg2_RT2_shifted_float.ply");
+    string pcLIDAR_region3_2017_seg2_RT3("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg2_RT3_shifted_float.ply");
 
     p_viewer = setupViewer();
 
-    algo.init(pcLIDAR_region3_2017_seg4_rotated_1);
+    algo.init(pcLIDAR_region3_2017_seg1);
     algo.setViewerUpdateCallback(display_update_callable);
     algo.setAddPlaneCallback(add_plane_callable);
     algo.setUpdateNormalCloudCallback(update_normal_cloud_callable);

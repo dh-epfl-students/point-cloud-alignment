@@ -61,6 +61,7 @@ public:
     ivec3 getNextPlaneColor();
     ivec3 getMiscColor() { return misc_color; }
     vector<SegmentedPlane> getPlanes() { return this->planes_list; }
+    void printVectorsInFile(string filename);
 
     typedef boost::shared_ptr<SegmentedPointsContainer> Ptr;
 

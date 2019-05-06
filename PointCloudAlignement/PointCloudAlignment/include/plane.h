@@ -29,7 +29,7 @@ public:
 
     float distanceTo(PointNormalK p);
     float distanceTo(vec3 p);
-    void cartesianToNormal(vec3 &n, float &di);
+    void cartesianToNormal(vec3 &ni, float &di);
 
     bool pointInPlane(PointNormalK p, float epsilon);
     bool normalInPlane(PointNormalK p, float max_angle);

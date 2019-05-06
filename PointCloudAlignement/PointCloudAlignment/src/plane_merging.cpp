@@ -193,3 +193,19 @@ void PlaneMerging::applyTransform(mat4 M)
         //TODO: Apply M to centroids
     }
 }
+
+void PlaneMerging::printVectorsInFile(string filename)
+{
+    // Open file
+    ofstream file;
+    file.open(filename);
+
+    // Write each normal vector in format [ x, y, z ]
+    for(auto p: this->plane_list)
+    {
+        vec3 n = p.plane.getNormal();
+        file << "[ " << n.x() << ", " << n.y() << ", " << n.z() << " ]" << endl;
+    }
+
+    file.close();
+}

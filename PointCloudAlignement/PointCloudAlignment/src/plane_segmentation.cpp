@@ -327,10 +327,6 @@ bool PlaneSegmentation::regionGrowthOneStep()
     // If first 3 iterations, check area for valid plane
     if(current_run.iteration == PHASE1_ITERATIONS)
     {
-        // Point normals need to be reoriented in the same direction as the current plane
-        //vec3 pn = current_run.plane.getNormal();
-        //reorient_normals(p_cloud, *current_run.p_nghbrs_indices, pn);
-
         if(!PFHEvaluation::isValidPlane(p_cloud, *current_run.p_nghbrs_indices))
         {
             cout << "Current plane is invalid" << endl;
@@ -391,11 +387,8 @@ bool PlaneSegmentation::regionGrowthOneStep()
     cout << "Found " << candidates.size() << " candidates." << endl;
     cout << "Epsilon = " << current_run.epsilon << endl;
 
-    //DEBUG color points found in yellow
-    //color_points(candidates, ivec3(255, 255, 0));
-
     // Test them with current plane
-    // Move that to its own function
+    // TODO: Move that to its own function
     vector<int> points_in_plane;
 
     for(size_t i = 0; i < candidates.size(); ++i)
@@ -540,10 +533,10 @@ void PlaneSegmentation::getNeighborsOf(boost::shared_ptr<vector<int>> indices_in
     {
         int p_id = indices_in->at(i);
         vector<float> distances;
-        p_kdtree->radiusSearch(p_cloud->points[p_id], search_d, candidates_lists[i], distances);
+        //p_kdtree->radiusSearch(p_cloud->points[p_id], search_d, candidates_lists[i], distances);
 
         // Nearest K search is way faster than radius search for kdtrees
-        //p_kdtree->nearestKSearch(p_cloud->points[p_id], p_cloud->points[p_id].k, candidates_lists[i], distances);
+        p_kdtree->nearestKSearch(p_cloud->points[p_id], p_cloud->points[p_id].k, candidates_lists[i], distances);
 
         #pragma omp critical
         total_size += candidates_lists[i].size();
