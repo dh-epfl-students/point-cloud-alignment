@@ -185,12 +185,15 @@ void PlaneMerging::applyTransform(mat4 M)
     #pragma omp parallel for
     for(size_t i = 0; i < plane_list.size(); ++i)
     {
+        // Apply M to normals
+
         vec3 n = plane_list[i].plane.getNormal();
         vec4 n4(n.x(), n.y(), n.z(), 1);
         vec4 Mn = M * n4;
         plane_list[i].plane.setNormal(vec3(Mn.x(), Mn.y(), Mn.z()));
 
-        //TODO: Apply M to centroids
+        //TODO:  Apply M to centroids
+
     }
 }
 

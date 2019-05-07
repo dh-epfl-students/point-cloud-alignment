@@ -16,9 +16,13 @@ private:
 
     mat3 findRotation();
     mat3 findTranslation();
-    void computeM();
+    void computeMwithNormals();
+    void computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT);
     mat3 computeH();
+    mat3 computeHWithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT);
     mat3 computeR(mat3 H);
     vec3 computeCentroid(vector<SegmentedPointsContainer::SegmentedPlane> &list, bool isMesh);
+    vec3 computeCentersCentroid(vector<SegmentedPointsContainer::SegmentedPlane> &list);
     vector<vec3> computeDifSet(vector<SegmentedPointsContainer::SegmentedPlane> &list, vec3 centroid, bool isMesh);
+    vector<vec3> computeCentersDifSet(vector<SegmentedPointsContainer::SegmentedPlane> &list, vec3 centroid);
 };

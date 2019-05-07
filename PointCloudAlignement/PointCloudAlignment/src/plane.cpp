@@ -24,6 +24,11 @@ vec3 Plane::getNormal()
     return n;
 }
 
+vec3 Plane::getNormalizedN()
+{
+    return n.normalized();
+}
+
 pcl::ModelCoefficients Plane::getModelCoefficients()
 {
     pcl::ModelCoefficients coeffs;

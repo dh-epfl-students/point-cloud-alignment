@@ -23,6 +23,7 @@ public:
     vec3 getCenter();
     pcl::PointXYZ getCenterPCL();
     vec3 getNormal();
+    vec3 getNormalizedN();
     void setNormal(vec3 n);
     pcl::ModelCoefficients getModelCoefficients();
     float getPlaneTolerance(PointNormalKCloud::Ptr cloud, boost::shared_ptr<vector<int>> indices);

@@ -2,15 +2,13 @@
 
 void SegmentedPointsContainer::SegmentedPlane::merge(SegmentedPlane &p)
 {
-    //cout << "Merging plane " << p.id << " into plane " << id << endl;
+    // Average the centroids
+    this->plane.setCenter(((this->plane.getCenter() * this->indices_list.size()) + (p.plane.getCenter() * p.indices_list.size())) / (this->indices_list.size() + p.indices_list.size()));
 
     this->indices_list.insert(indices_list.end(), p.indices_list.begin(), p.indices_list.end());
     sort(this->indices_list.begin(), this->indices_list.end());
     vector<int>::iterator it = unique(indices_list.begin(), indices_list.end());
     indices_list.resize(distance(indices_list.begin(), it));
-
-    // Average the centroids
-    this->plane.setCenter((this->plane.getCenter() * this->indices_list.size() + p.plane.getCenter() * p.indices_list.size()) / (this->indices_list.size() + p.indices_list.size()));
 
     // Ensure that both normals are orientated in the same quadrant
     vec3 n1 = this->plane.getNormal();

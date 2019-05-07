@@ -70,7 +70,7 @@ void MeshSegmentation::mergePlanes()
     mergeRecursive();
 
     // Removing merged planes from planes list
-    vector<SegmentedPointsContainer::SegmentedPlane> final_planes(p_available_indices->size());
+    vector<SegmentedPointsContainer::SegmentedPlane> final_planes;
     for_each(p_available_indices->begin(), p_available_indices->end(), [&final_planes, this](int index){
         final_planes.push_back(planes[index]);
     });

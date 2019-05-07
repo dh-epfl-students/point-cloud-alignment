@@ -13,22 +13,42 @@ mat3 Registration::findAlignment()
     if(target.empty() || source.empty()) return mat3::Identity();
 
     mat3 R = findRotation();
-
     //R *= -1;
-
     return R;
 }
 
 mat3 Registration::findRotation()
 {
-    computeM();
-    mat3 H = computeH();
+    //computeMwithNormals();
+
+    vec3 cS, cT;
+    vector<vec3> l_cS, l_cT;
+
+    #pragma omp parallel sections
+    {
+        #pragma omp section
+        {
+            cS = computeCentersCentroid(source);
+            l_cS = computeCentersDifSet(source, cS);
+        }
+
+        #pragma omp section
+        {
+            cT = computeCentersCentroid(target);
+            l_cT = computeCentersDifSet(target, cT);
+        }
+    }
+
+    computeMwithCentroids(l_cS, l_cT);
+
+    //mat3 H = computeH();
+    mat3 H = computeHWithCentroids(l_cS, l_cT);
     mat3 R = computeR(H);
-    if(R.determinant() < 0.0f)
+    /*if(R.determinant() < 0.0f)
     {
         cout << "det of R is less than 0" << endl;
         R.col(2) = -1 * R.col(2);
-    }
+    }*/
 
     return R;
 }
@@ -38,7 +58,7 @@ mat3 Registration::findTranslation()
     return mat3::Zero();
 }
 
-void Registration::computeM()
+void Registration::computeMwithNormals()
 {
     if(target.empty() || source.empty()) return;
 
@@ -47,7 +67,8 @@ void Registration::computeM()
     #pragma omp parallel for
     for(size_t i = 0; i < source.size(); ++i)
     {
-        vec3 ni = source[i].plane.getNormal().normalized() * source[i].indices_list.size();
+        //TODO change that
+        vec3 ni = source[i].plane.getNormalizedN() * source[i].indices_list.size();
 
         for(size_t j = 0; j < target.size(); ++j)
         {
@@ -56,20 +77,53 @@ void Registration::computeM()
             {
                 nj = nj.normalized() * target[j].indices_list.size();
             }
-            float sqd = std::pow(ni.norm() - nj.norm(), 2);//squaredDistance(ni, nj);
-            /*if(sqd == 0.0f)
+
+            float sqd = pow(ni.norm() - nj.norm(), 2);
+
+            if(sqd == 0.0f)
             {
-                M(i, j) = 1000000.0f;
+                M(i, j) = 10000.0f;
             }
             else
             {
+                // Works of for small rotations but can get stuck in local minimas
                 M(i, j) = 1.0f / sqd;
-            }*/
-            M(i, j) = sqd;
+            }
+            //M(i, j) = exp(-0.5*sqd);
+
         }
     }
 
-    //cout << "M:" << endl << M << endl;
+    cout << "M:" << endl << M.block(0, 0, 5, 5).matrix() << endl;
+}
+
+void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT)
+{
+    if(l_cT.empty() || l_cS.empty()) return;
+
+    M.resize(l_cS.size(), l_cT.size());
+
+    //#pragma omp parallel for
+    for(size_t i = 0; i < l_cS.size(); ++i)
+    {
+        float normCSi = l_cS[i].norm();
+
+        for(size_t j = 0; j < l_cT.size(); ++j)
+        {
+            M(i, j) = exp(-0.5 * abs(normCSi - l_cT[j].norm()));
+            /*float m = pow(normCSi - l_cT[j].norm(), 2);
+            if(m == 0)
+            {
+                M(i, j) = 100000.0f;
+            }
+            else
+            {
+                M(i, j) = 1.0f / m;
+            }*/
+
+            //if(M(i, j) >= 1) cout << "M(" << i << ", " << j << ")=" << M(i,j) << endl;
+        }
+    }
 }
 
 mat3 Registration::computeH()
@@ -95,6 +149,21 @@ mat3 Registration::computeH()
     return H;
 }
 
+mat3 Registration::computeHWithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT)
+{
+    mat3 H = mat3::Zero();
+
+    for(size_t i = 0; i < l_cS.size(); ++i)
+    {
+        for(size_t j = 0; j < l_cT.size(); ++j)
+        {
+            H += M(i, j) * l_cS[i] * l_cT[j].transpose();
+        }
+    }
+
+    return H;
+}
+
 mat3 Registration::computeR(mat3 H)
 {
     Eigen::JacobiSVD<mat3> svd(H, Eigen::ComputeFullU | Eigen::ComputeFullV);
@@ -109,11 +178,11 @@ vec3 Registration::computeCentroid(vector<SegmentedPointsContainer::SegmentedPla
 
     for(auto plane: list)
     {
-        vec3 n = plane.plane.getNormal();
-        if(!isMesh)
+        vec3 n = plane.plane.getNormalizedN();
+        /*if(!isMesh)
         {
             n = n.normalized() * plane.indices_list.size();
-        }
+        }*/
         c += n;
     }
 
@@ -128,13 +197,39 @@ vector<vec3> Registration::computeDifSet(vector<SegmentedPointsContainer::Segmen
     #pragma omp parallel for
     for(size_t i = 0; i < list.size(); ++i)
     {
-        vec3 n = list[i].plane.getNormal();
-        if(!isMesh)
+        vec3 n = list[i].plane.getNormalizedN();
+        /*if(!isMesh)
         {
             n = n.normalized() * list[i].indices_list.size();
-        }
+        }*/
         demeaned[i] = n - centroid;
     }
 
     return demeaned;
+}
+
+vec3 Registration::computeCentersCentroid(vector<SegmentedPointsContainer::SegmentedPlane> &list)
+{
+    vec3 c(0, 0, 0);
+
+    for(auto p: list)
+    {
+        c += p.plane.getCenter();
+    }
+
+    c /= list.size();
+    return c;
+}
+
+vector<vec3> Registration::computeCentersDifSet(vector<SegmentedPointsContainer::SegmentedPlane> &list, vec3 centroid)
+{
+    vector<vec3> q(list.size());
+
+    #pragma omp parallel for shared(q)
+    for(size_t i = 0; i < list.size(); ++i)
+    {
+        q[i] = list[i].plane.getCenter() - centroid;
+    }
+
+    return q;
 }
