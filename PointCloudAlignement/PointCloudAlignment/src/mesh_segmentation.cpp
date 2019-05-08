@@ -81,10 +81,6 @@ void MeshSegmentation::mergePlanes()
     //Update colors in pc
     updatePCcolors();
 
-    pcl::PCLPointCloud2 pc2;
-    pcl::toPCLPointCloud2(*p_cloud, pc2);
-    p_mesh->cloud = pc2;
-
     isSegmented = true;
 }
 
@@ -198,6 +194,10 @@ void MeshSegmentation::updatePCcolors()
                                          static_cast<uint8_t>(color.z());
         }
     }
+
+    pcl::PCLPointCloud2 pc2;
+    pcl::toPCLPointCloud2(*p_cloud, pc2);
+    p_mesh->cloud = pc2;
 }
 
 bool MeshSegmentation::isMeshSegmented()
@@ -208,4 +208,18 @@ bool MeshSegmentation::isMeshSegmented()
 vector<SegmentedPointsContainer::SegmentedPlane> MeshSegmentation::getSegmentedPlanes()
 {
     return this->planes;
+}
+
+void MeshSegmentation::updateColors(SegmentedPointsContainer::SegmentedPlane p, ivec3 color)
+{
+    for(auto i: p.indices_list)
+    {
+        p_cloud->points[i].rgba = static_cast<uint8_t>(color.x()) << 16 |
+                                  static_cast<uint8_t>(color.y()) << 8 |
+                                  static_cast<uint8_t>(color.z());
+    }
+
+    pcl::PCLPointCloud2 pc2;
+    pcl::toPCLPointCloud2(*p_cloud, pc2);
+    p_mesh->cloud = pc2;
 }

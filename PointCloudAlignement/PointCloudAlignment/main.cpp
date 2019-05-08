@@ -243,9 +243,20 @@ void update_normal_cloud_callback()
     if(isNormalDisplayed) normal_cloud_changed = true;
 }
 
+void pc_planes_callback(SegmentedPointsContainer::SegmentedPlane source_plane, SegmentedPointsContainer::SegmentedPlane target_plane, ivec3 color)
+{
+    auto pc = algo.getPointCloud();
+    display_update_callback(pc, color, source_plane.indices_list);
+
+    meshSeg.updateColors(target_plane, color);
+
+    refresh_mesh = true;
+}
+
 function<void(PointNormalKCloud::Ptr, ivec3 color, vector<int> indices)> display_update_callable = &display_update_callback;
 function<void(pcl::ModelCoefficients, float, float, float)> add_plane_callable = &add_plane_callback;
 function<void(void)> update_normal_cloud_callable = &update_normal_cloud_callback;
+function<void(SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane, ivec3)> pc_planes_callable = &pc_planes_callback;
 
 // Start and setup viewer
 pcl::visualization::PCLVisualizer::Ptr setupViewer()
@@ -267,7 +278,7 @@ int main()
     string mesh_region3_4("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg4_shifted_float.ply");
     string mesh_region3_5("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg5_shifted_float.ply");
     string mesh_region3_2_extended1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg2_extended1_shifted.ply");
-    mesh_filename = mesh_region3_2;
+    mesh_filename = mesh_region3_1;
 
     // Original PC sources
     string pcLIDAR_region3_2017_seg1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float.ply");
@@ -293,12 +304,14 @@ int main()
 
     p_viewer = setupViewer();
 
-    algo.init(pcLIDAR_region3_2017_seg2_preproc);
+    algo.init(pcLIDAR_region3_2017_seg1_preproc);
     algo.setViewerUpdateCallback(display_update_callable);
     algo.setAddPlaneCallback(add_plane_callable);
     algo.setUpdateNormalCloudCallback(update_normal_cloud_callable);
 
     merger.init(display_update_callable);
+
+    registration.setCallback(pc_planes_callable);
 
     pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(algo.getPointCloud());
     p_viewer->addPointCloud(algo.getPointCloud(), rgb, "point_cloud");

@@ -52,7 +52,7 @@
         p = [ x, y ];
 
         % compute covariance matrix %
-        h = ( 1 / ( length( x ) - 1 ) ) * ( ( p - c )' * ( p - c ) );
+        h = ( 1 / ( length( x ) - 1 ) ) * ( ( p - c ) * ( p - c ) );
 
         % svd decomposition for eigenvectors and eigenvalues %
         [ u s v ] = svd( h );

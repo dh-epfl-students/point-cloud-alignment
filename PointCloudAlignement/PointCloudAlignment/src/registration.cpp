@@ -1,5 +1,6 @@
 #include "registration.h"
 #include <cmath>
+#include <Eigen/Dense>
 
 void Registration::setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool isMesh)
 {
@@ -19,9 +20,9 @@ mat3 Registration::findAlignment()
 
 mat3 Registration::findRotation()
 {
-
     vec3 cS, cT, nS, nT;
     vector<vec3> l_cS, l_cT, l_nS, l_nT;
+    vector<float> angles_S, angles_T;
 
     #pragma omp parallel sections
     {
@@ -50,7 +51,20 @@ mat3 Registration::findRotation()
         }
     }
 
-    computeMwithCentroids(l_cS, l_cT);
+    #pragma omp parallel sections
+    {
+        #pragma omp section
+        {
+            angles_S = computeAngleDifs(l_cS, source);
+        }
+
+        #pragma omp section
+        {
+            angles_T = computeAngleDifs(l_cT, target);
+        }
+    }
+
+    computeMwithCentroids(l_cS, l_cT, angles_S, angles_T);
 
     mat3 H = computeHwithNormals(l_nS, l_nT);
     //mat3 H = computeHWithCentroids(l_cS, l_cT);
@@ -109,9 +123,9 @@ void Registration::computeMwithNormals()
     cout << "M:" << endl << M.block(0, 0, 5, 5).matrix() << endl;
 }
 
-void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT)
+void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT, vector<float> &l_aS, vector<float> &l_aT)
 {
-    if(l_cT.empty() || l_cS.empty()) return;
+    if(l_cT.empty() || l_cS.empty() || l_aS.empty() || l_aT.empty()) return;
 
     M.resize(l_cS.size(), l_cT.size());
 
@@ -122,22 +136,38 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT)
 
         for(size_t j = 0; j < l_cT.size(); ++j)
         {
-            M(i, j) = exp(-0.2 * abs(normCSi - l_cT[j].norm()));
-            /*float m = pow(normCSi - l_cT[j].norm(), 2);
+            //M(i, j) = exp(-2 * abs((normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j])));
+            float m = pow((normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j]), 2);
             if(m == 0)
             {
-                M(i, j) = 100000.0f;
+                M(i, j) = 1000000.0f;
             }
             else
             {
                 M(i, j) = 1.0f / m;
-            }*/
+            }
         }
     }
 
-    M.normalize();
+    //M.normalize();
 
-    //cout << "M:" << endl << M.block(0, 0, 30, 30);
+    vector<mat3::Index> indices;
+    Eigen::MatrixXf M_binary = Eigen::MatrixXf::Zero(M.rows(), M.cols());
+
+    for (int i = 0; i < M_binary.rows(); ++i) {
+        Eigen::MatrixXf::Index id;
+        M.row(i).maxCoeff(&id);
+
+        M_binary(i, id) = 1;
+    }
+
+    M = M_binary;
+    cout << "M" << endl << M << endl;
+
+    // TEST: Change color of first plane of source and corresponding plan in target to white
+    Eigen::MatrixXf::Index id;
+    M.row(1).maxCoeff(&id);
+    display_update_callable(source[1], target[id], ivec3(255, 255, 255));
 }
 
 mat3 Registration::computeHwithNormals(vector<vec3> qs, vector<vec3> qt)
@@ -238,4 +268,24 @@ vector<vec3> Registration::computeCentersDifSet(vector<SegmentedPointsContainer:
     }
 
     return q;
+}
+
+vector<float> Registration::computeAngleDifs(vector<vec3> &l_shifted_centroids, vector<SegmentedPointsContainer::SegmentedPlane> &l_planes)
+{
+    vector<float> angles;
+
+    if(l_shifted_centroids.size() != l_planes.size())
+    {
+        cout << "Computing Angle Diffs: Not same size of vectors... stopping" << endl;
+        return angles;
+    }
+
+    for(size_t i = 0; i < l_shifted_centroids.size(); ++i)
+    {
+        // Cosine of angle between ci and ni
+        float angle = l_shifted_centroids[i].normalized().dot(l_planes[i].plane.getNormalizedN());
+        angles.push_back(angle);
+    }
+
+    return angles;
 }
