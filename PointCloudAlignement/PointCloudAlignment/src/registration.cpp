@@ -19,10 +19,9 @@ mat3 Registration::findAlignment()
 
 mat3 Registration::findRotation()
 {
-    //computeMwithNormals();
 
-    vec3 cS, cT;
-    vector<vec3> l_cS, l_cT;
+    vec3 cS, cT, nS, nT;
+    vector<vec3> l_cS, l_cT, l_nS, l_nT;
 
     #pragma omp parallel sections
     {
@@ -37,13 +36,26 @@ mat3 Registration::findRotation()
             cT = computeCentersCentroid(target);
             l_cT = computeCentersDifSet(target, cT);
         }
+
+        #pragma omp section
+        {
+            nS = computeCentroid(source, false);
+            l_nS = computeDifSet(source, nS, false);
+        }
+
+        #pragma omp section
+        {
+            nT = computeCentroid(target, targetIsMesh);
+            l_nT = computeDifSet(target, nT, targetIsMesh);
+        }
     }
 
     computeMwithCentroids(l_cS, l_cT);
 
-    //mat3 H = computeH();
-    mat3 H = computeHWithCentroids(l_cS, l_cT);
+    mat3 H = computeHwithNormals(l_nS, l_nT);
+    //mat3 H = computeHWithCentroids(l_cS, l_cT);
     mat3 R = computeR(H);
+
     /*if(R.determinant() < 0.0f)
     {
         cout << "det of R is less than 0" << endl;
@@ -110,7 +122,7 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT)
 
         for(size_t j = 0; j < l_cT.size(); ++j)
         {
-            M(i, j) = exp(-0.5 * abs(normCSi - l_cT[j].norm()));
+            M(i, j) = exp(-0.2 * abs(normCSi - l_cT[j].norm()));
             /*float m = pow(normCSi - l_cT[j].norm(), 2);
             if(m == 0)
             {
@@ -120,22 +132,16 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT)
             {
                 M(i, j) = 1.0f / m;
             }*/
-
-            //if(M(i, j) >= 1) cout << "M(" << i << ", " << j << ")=" << M(i,j) << endl;
         }
     }
+
+    M.normalize();
+
+    //cout << "M:" << endl << M.block(0, 0, 30, 30);
 }
 
-mat3 Registration::computeH()
+mat3 Registration::computeHwithNormals(vector<vec3> qs, vector<vec3> qt)
 {
-    // Compute centroids
-    vec3 cs = computeCentroid(source, false);
-    vec3 ct = computeCentroid(target, targetIsMesh);
-
-    // Compute difference sets
-    vector<vec3> qs = computeDifSet(source, cs, false);
-    vector<vec3> qt = computeDifSet(target, ct, targetIsMesh);
-
     mat3 H = mat3::Zero();
 
     for(int i = 0; i < qs.size(); ++i)
@@ -149,7 +155,7 @@ mat3 Registration::computeH()
     return H;
 }
 
-mat3 Registration::computeHWithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT)
+mat3 Registration::computeHwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT)
 {
     mat3 H = mat3::Zero();
 
@@ -157,7 +163,7 @@ mat3 Registration::computeHWithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT)
     {
         for(size_t j = 0; j < l_cT.size(); ++j)
         {
-            H += M(i, j) * l_cS[i] * l_cT[j].transpose();
+            H += M(i, j) * l_cS[i].normalized() * l_cT[j].normalized().transpose();
         }
     }
 

@@ -18,8 +18,8 @@ private:
     mat3 findTranslation();
     void computeMwithNormals();
     void computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT);
-    mat3 computeH();
-    mat3 computeHWithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT);
+    mat3 computeHwithNormals(vector<vec3> qs, vector<vec3> qt);
+    mat3 computeHwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT);
     mat3 computeR(mat3 H);
     vec3 computeCentroid(vector<SegmentedPointsContainer::SegmentedPlane> &list, bool isMesh);
     vec3 computeCentersCentroid(vector<SegmentedPointsContainer::SegmentedPlane> &list);

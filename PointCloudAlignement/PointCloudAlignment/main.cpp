@@ -164,7 +164,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
             vector<SegmentedPointsContainer::SegmentedPlane> planes_list = algo.getSegmentedPlanes();
             // Merge similar planes
             merger.start_merge(planes_list, algo.getPointCloud());
-            merger.printVectorsInFile("/home/loris/Documents/EPFL/Master/master-project-2019/Scripts/cloud_normals.txt");
+            //merger.printVectorsInFile("/home/loris/Documents/EPFL/Master/master-project-2019/Scripts/cloud_normals.txt");
         }
         else
         {
@@ -210,7 +210,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         algo.setPointCloud(p_transformed_cloud);
 
         // Update merger list of normals and centroids
-        merger.applyTransform(finalTransform);
+        merger.applyTransform(M);
     }
     else if(event.keyDown())
     {
