@@ -192,8 +192,11 @@ void PlaneMerging::applyTransform(mat4 M)
         vec4 Mn = M * n4;
         plane_list[i].plane.setNormal(vec3(Mn.x(), Mn.y(), Mn.z()));
 
-        //TODO:  Apply M to centroids
-
+        //  Apply M to centroids
+        vec3 c = plane_list[i].plane.getCenter();
+        vec4 c4(c.x(), c.y(), c.z(), 1);
+        vec4 Mc = M * c4;
+        plane_list[i].plane.setCenter(vec3(Mc.x(), Mc.y(), Mc.z()));
     }
 }
 

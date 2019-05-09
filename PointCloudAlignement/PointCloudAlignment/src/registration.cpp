@@ -130,6 +130,14 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
 
     vector<float> surfaces = estimatePlanesSurface(p_cloud, source);
 
+    // Compute mesh planes surface
+    vector<float> mesh_surfaces;
+    for(auto t: target)
+    {
+        mesh_surfaces.push_back(t.plane.getNormal().norm());
+    }
+
+
     M.resize(l_cS.size(), l_cT.size());
 
     //#pragma omp parallel for
@@ -140,7 +148,7 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
         for(size_t j = 0; j < l_cT.size(); ++j)
         {
             //M(i, j) = exp(-2 * abs((normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j])));
-            float m = pow((normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j]), 2);
+            float m = abs((normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j]) * (surfaces[i] - mesh_surfaces[j]));
             if(m == 0)
             {
                 M(i, j) = 1000000.0f;
@@ -153,7 +161,7 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
     }
 
     //M.normalize();
-
+    /*
     vector<mat3::Index> indices;
     Eigen::MatrixXf M_binary = Eigen::MatrixXf::Zero(M.rows(), M.cols());
 
@@ -165,12 +173,13 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
     }
 
     M = M_binary;
-    cout << "M" << endl << M << endl;
+    */
+    //cout << "M" << endl << M << endl;
 
     // TEST: Change color of first plane of source and corresponding plan in target to white
-    Eigen::MatrixXf::Index id;
+    /*Eigen::MatrixXf::Index id;
     M.row(1).maxCoeff(&id);
-    display_update_callable(source[1], target[id], ivec3(255, 255, 255));
+    display_update_callable(source[1], target[id], ivec3(255, 255, 255));*/
 }
 
 mat3 Registration::computeHwithNormals(vector<vec3> qs, vector<vec3> qt)
@@ -375,7 +384,7 @@ void Registration::computePlaneBase(SegmentedPointsContainer::SegmentedPlane &pl
     // Base should be orthogoal
     e2 = n.cross(e1).normalized();
 
-    cout << "Plane " << plane.id << " : e1: " << e1.transpose() << " e2: " << e2.transpose() << endl;
+    //cout << "Plane " << plane.id << " : e1: " << e1.transpose() << " e2: " << e2.transpose() << endl;
 }
 
 vec2 Registration::compute2dCentroid(vector<vec2> l_points)
