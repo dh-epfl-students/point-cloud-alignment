@@ -180,7 +180,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         vector<SegmentedPointsContainer::SegmentedPlane> target = meshSeg.getSegmentedPlanes();
 
         // Find Rotation
-        registration.setClouds(source, target, true);
+        registration.setClouds(source, target, true, algo.getPointCloud());
         mat3 R = registration.findAlignment();
 
         // We need to compose the transformation matrix -> translate point cloud to origin

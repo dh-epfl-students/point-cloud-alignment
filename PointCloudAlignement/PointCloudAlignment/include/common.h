@@ -74,3 +74,8 @@ inline vec3 pclToVec3(pcl::PointXYZRGB p)
 {
     return vec3(p.x, p.y, p.z);
 }
+
+inline vec3 pclToVec3(PointNormalK p)
+{
+    return vec3(p.x, p.y, p.z);
+}

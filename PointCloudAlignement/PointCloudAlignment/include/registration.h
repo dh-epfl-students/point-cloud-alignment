@@ -5,13 +5,14 @@
 
 class Registration {
 public:
-    void setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool isMesh);
+    void setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool isMesh, PointNormalKCloud::Ptr p_cloud);
     mat3 findAlignment();
     void setCallback(function<void(SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane, ivec3)> callable) { this->display_update_callable = callable; }
 
 private:
     bool targetIsMesh = false;
     Eigen::MatrixXf M;
+    PointNormalKCloud::Ptr p_cloud;
     vector<SegmentedPointsContainer::SegmentedPlane> source;
     vector<SegmentedPointsContainer::SegmentedPlane> target;
 
@@ -29,4 +30,9 @@ private:
     vector<vec3> computeDifSet(vector<SegmentedPointsContainer::SegmentedPlane> &list, vec3 centroid, bool isMesh);
     vector<vec3> computeCentersDifSet(vector<SegmentedPointsContainer::SegmentedPlane> &list, vec3 centroid);
     vector<float> computeAngleDifs(vector<vec3> &l_shifted_centroids, vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
+    vector<float> estimatePlanesSurface(PointNormalKCloud::Ptr p_cloud, vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
+    float estimatePlaneSurface(PointNormalKCloud::Ptr p_cloud, SegmentedPointsContainer::SegmentedPlane &plane);
+    vector<vec2> pointsTo2D(PointNormalKCloud::Ptr p_cloud, SegmentedPointsContainer::SegmentedPlane &plane, vec3 e1, vec3 e2);
+    void computePlaneBase(SegmentedPointsContainer::SegmentedPlane &plane, vec3 &e1, vec3 &e2);
+    vec2 compute2dCentroid(vector<vec2> l_points);
 };
