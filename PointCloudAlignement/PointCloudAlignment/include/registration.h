@@ -15,6 +15,8 @@ private:
     PointNormalKCloud::Ptr p_cloud;
     vector<SegmentedPointsContainer::SegmentedPlane> source;
     vector<SegmentedPointsContainer::SegmentedPlane> target;
+    vector<float> source_surfaces;
+    vector<float> target_surfaces;
 
     function<void(SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane, ivec3)> display_update_callable;
 

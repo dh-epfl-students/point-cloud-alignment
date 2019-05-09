@@ -26,7 +26,7 @@ void MeshSegmentation::segmentPlanes()
     #pragma omp parallel for
     for (size_t i = 0; i < p_mesh->polygons.size(); ++i)
     {
-        // Get vetices
+        // Get vertices
         vector<vec3> vertices;
         fillVertices(p_mesh->polygons.at(i), vertices);
 
@@ -69,10 +69,13 @@ void MeshSegmentation::mergePlanes()
 
     mergeRecursive();
 
-    // Removing merged planes from planes list
+    // Removing merged planes from planes list, and planes with no area
     vector<SegmentedPointsContainer::SegmentedPlane> final_planes;
     for_each(p_available_indices->begin(), p_available_indices->end(), [&final_planes, this](int index){
-        final_planes.push_back(planes[index]);
+        if(planes[index].plane.getNormal().norm() > 0)
+        {
+            final_planes.push_back(planes[index]);
+        }
     });
     planes.swap(final_planes);
 

@@ -8,6 +8,21 @@ void Registration::setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &s
     this->target = target;
     this->targetIsMesh = isMesh;
     this->p_cloud = p_cloud;
+
+    // Compute surfaces if surface vectors are empty
+    if(this->source_surfaces.empty())
+    {
+        this->source_surfaces = estimatePlanesSurface(p_cloud, source);
+    }
+
+    if(this->target_surfaces.empty())
+    {
+        // Compute mesh planes surface
+        for(auto t: target)
+        {
+            target_surfaces.push_back(t.plane.getNormal().norm());
+        }
+    }
 }
 
 mat3 Registration::findAlignment()
@@ -68,7 +83,7 @@ mat3 Registration::findRotation()
     computeMwithCentroids(l_cS, l_cT, angles_S, angles_T);
 
     mat3 H = computeHwithNormals(l_nS, l_nT);
-    //mat3 H = computeHWithCentroids(l_cS, l_cT);
+    //mat3 H = computeHwithCentroids(l_cS, l_cT);
     mat3 R = computeR(H);
 
     /*if(R.determinant() < 0.0f)
@@ -128,16 +143,6 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
 {
     if(l_cT.empty() || l_cS.empty() || l_aS.empty() || l_aT.empty()) return;
 
-    vector<float> surfaces = estimatePlanesSurface(p_cloud, source);
-
-    // Compute mesh planes surface
-    vector<float> mesh_surfaces;
-    for(auto t: target)
-    {
-        mesh_surfaces.push_back(t.plane.getNormal().norm());
-    }
-
-
     M.resize(l_cS.size(), l_cT.size());
 
     //#pragma omp parallel for
@@ -148,7 +153,7 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
         for(size_t j = 0; j < l_cT.size(); ++j)
         {
             //M(i, j) = exp(-2 * abs((normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j])));
-            float m = abs((normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j]) * (surfaces[i] - mesh_surfaces[j]));
+            float m = pow((normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j]) * (source_surfaces[i] - target_surfaces[j]), 2);
             if(m == 0)
             {
                 M(i, j) = 1000000.0f;
