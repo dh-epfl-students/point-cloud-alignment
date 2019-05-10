@@ -15,6 +15,7 @@ typedef Eigen::Vector4f vec4;
 typedef Eigen::Vector3d vec3d;
 typedef Eigen::Matrix4f mat4;
 typedef Eigen::Matrix3f mat3;
+typedef Eigen::Matrix2f mat2;
 
 inline float squaredDistance(vec3 p1, vec3 p2) {
     vec3 p = p1 - p2;

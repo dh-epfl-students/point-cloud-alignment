@@ -14,6 +14,7 @@
 #define COS_2 0.999f
 #define COS_5 0.996f
 #define V_ERROR 0.5f
+#define MIN_SURFACE 10
 
 class MeshSegmentation {
 public:

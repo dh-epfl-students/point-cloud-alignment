@@ -23,7 +23,7 @@ void MeshSegmentation::segmentPlanes()
 {
     ivec3 color(0, 0, 0);
 
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (size_t i = 0; i < p_mesh->polygons.size(); ++i)
     {
         // Get vertices
@@ -33,17 +33,20 @@ void MeshSegmentation::segmentPlanes()
         // Compute surface normal vector
         vec3 n = computeFaceNormal(vertices);
 
-        // Compute surface centroid
-        vec3 c = (vertices[0] + vertices[1] + vertices[2]) / 3.0f;
+        if(!n.isZero())
+        {
+            // Compute surface centroid
+            vec3 c = (vertices[0] + vertices[1] + vertices[2]) / 3.0f;
 
-        // Assign a random color to this plane for visualization purposes
-        color.setRandom();
-        color = positive_modulo(color, 255);
+            // Assign a random color to this plane for visualization purposes
+            color.setRandom();
+            color = positive_modulo(color, 255);
 
-        // Create and store plane
-        vector<int> v_int(p_mesh->polygons.at(i).vertices.begin(), p_mesh->polygons.at(i).vertices.end());
-        Plane p(c, n);
-        planes.push_back(SegmentedPointsContainer::SegmentedPlane(static_cast<int>(i), color, v_int, p));
+            // Create and store plane
+            vector<int> v_int(p_mesh->polygons.at(i).vertices.begin(), p_mesh->polygons.at(i).vertices.end());
+            Plane p(c, n);
+            planes.push_back(SegmentedPointsContainer::SegmentedPlane(static_cast<int>(i), color, v_int, p));
+        }
     }
 
     cout << "Plane segmentation of mesh finished first phase." << endl;
@@ -57,10 +60,10 @@ void MeshSegmentation::mergePlanes()
 
     // Construct point cloud of centroids
     p_centroid_cloud = pcl::PointCloud<pcl::PointXYZ>().makeShared();
-    for(auto plane: planes)
+    for(size_t i = 0; i < planes.size(); ++i)
     {
-        p_centroid_cloud->points.push_back(plane.plane.getCenterPCL());
-        p_available_indices->push_back(plane.id);
+        p_centroid_cloud->points.push_back(planes[i].plane.getCenterPCL());
+        p_available_indices->push_back(i);
     }
 
     // Fill kdTree of centroids
@@ -69,10 +72,10 @@ void MeshSegmentation::mergePlanes()
 
     mergeRecursive();
 
-    // Removing merged planes from planes list, and planes with no area
+    // Removing merged planes from planes list, and planes with small surface
     vector<SegmentedPointsContainer::SegmentedPlane> final_planes;
     for_each(p_available_indices->begin(), p_available_indices->end(), [&final_planes, this](int index){
-        if(planes[index].plane.getNormal().norm() > 0)
+        if(planes[index].plane.getNormal().norm() > MIN_SURFACE)
         {
             final_planes.push_back(planes[index]);
         }

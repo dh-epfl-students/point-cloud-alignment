@@ -10,7 +10,7 @@ void SegmentedPointsContainer::SegmentedPlane::merge(SegmentedPlane &p)
     vector<int>::iterator it = unique(indices_list.begin(), indices_list.end());
     indices_list.resize(distance(indices_list.begin(), it));
 
-    // Ensure that both normals are orientated in the same quadrant
+    // Ensure that both normals are orientated in the same direction
     vec3 n1 = this->plane.getNormal();
     vec3 n2 = p.plane.getNormal();
     n2 = n2.normalized().dot(n1.normalized()) < 0.0f ? -n2 : n2;

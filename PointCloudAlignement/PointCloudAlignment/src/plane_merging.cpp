@@ -127,7 +127,6 @@ void PlaneMerging::merge()
     }
     else
     {
-        //TODO: update number of planes
         cout << "Plane merging finished: merged " << p_plane_cloud->size() - p_plane_indices->size() <<
                 " planes. There is now " << p_plane_indices->size() << " planes." << endl;
     }
@@ -186,7 +185,6 @@ void PlaneMerging::applyTransform(mat4 M)
     for(size_t i = 0; i < plane_list.size(); ++i)
     {
         // Apply M to normals
-
         vec3 n = plane_list[i].plane.getNormal();
         vec4 n4(n.x(), n.y(), n.z(), 1);
         vec4 Mn = M * n4;

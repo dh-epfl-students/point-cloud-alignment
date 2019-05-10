@@ -1,7 +1,13 @@
 #pragma once
 
+#include <cmath>
+#include <fstream>
+#include <Eigen/Dense>
+
 #include "common.h"
 #include "segmented_points_container.h"
+
+#define MIN_SURFACE 30
 
 class Registration {
 public:
@@ -20,6 +26,7 @@ private:
 
     function<void(SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane, ivec3)> display_update_callable;
 
+    void filterPlanes(int nb_planes, vector<SegmentedPointsContainer::SegmentedPlane> &planes, vector<float> &surfaces);
     mat3 findRotation();
     mat3 findTranslation();
     void computeMwithNormals();
