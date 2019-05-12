@@ -1,7 +1,9 @@
 #include "plane_merging.h"
 
-void PlaneMerging::init(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> callable)
+void PlaneMerging::init(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>, bool)> callable, bool isSource)
 {
+    this->isSource = isSource;
+
     display_update_callable = callable;
 
     p_kdtree = pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr(new pcl::KdTreeFLANN<pcl::PointXYZ>);
@@ -85,7 +87,7 @@ void PlaneMerging::merge()
                         cout << "Plane " << plane.id << " is merged with plane " << plane_list[j].id << endl;
 
                         //  - change color of points
-                        display_update_callable(p_point_cloud, plane.color, plane_list[j].indices_list);
+                        display_update_callable(p_point_cloud, plane.color, plane_list[j].indices_list, isSource);
 
                         //TODO:  - change plane_id for merged points
 

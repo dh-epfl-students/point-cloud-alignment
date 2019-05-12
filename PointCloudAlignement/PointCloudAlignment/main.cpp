@@ -16,15 +16,19 @@
 
 using namespace std;
 
-static PlaneSegmentation algo;
-static PlaneMerging merger;
-static MeshSegmentation meshSeg;
+static PlaneSegmentation pc_source_segmentation;
+static PlaneSegmentation pc_target_segmentation;
+static PlaneMerging pc_source_merger;
+static PlaneMerging pc_target_merger;
+static MeshSegmentation mesh_target_segmentation;
 static Registration registration;
 static pcl::visualization::PCLVisualizer::Ptr p_viewer;
 
+bool targetIsMesh = true;
 bool isNormalDisplayed = false;
 bool isExclusionDisplayed = false;
-bool pc_has_changed = false;
+bool pc_source_has_changed = false;
+bool pc_target_has_changed = false;
 bool normal_cloud_changed = false;
 bool refresh_mesh = false;
 bool mesh_is_segmented = false;
@@ -42,27 +46,32 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     {
         cout << "Segmentation started!" << endl;
 
-        algo.start_pause();
+        pc_source_segmentation.start_pause();
+
+        if(!targetIsMesh)
+        {
+            pc_target_segmentation.start_pause();
+        }
     }
     else if(event.getKeySym() == "F1" && event.keyDown())
     {
         viewer->removePointCloud("point_cloud");
-        pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(algo.getPointCloud());
-        viewer->addPointCloud(algo.getPointCloud(), rgb, "point_cloud");
+        pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(pc_source_segmentation.getPointCloud());
+        viewer->addPointCloud(pc_source_segmentation.getPointCloud(), rgb, "point_cloud");
         viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
     }
     else if(event.getKeySym() == "F2" && event.keyDown())
     {
         viewer->removePointCloud("point_cloud");
-        pcl::visualization::PointCloudColorHandlerGenericField<PointNormalK> curv(algo.getPointCloud(), "curvature");
-        viewer->addPointCloud(algo.getPointCloud(), curv, "point_cloud");
+        pcl::visualization::PointCloudColorHandlerGenericField<PointNormalK> curv(pc_source_segmentation.getPointCloud(), "curvature");
+        viewer->addPointCloud(pc_source_segmentation.getPointCloud(), curv, "point_cloud");
         viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
     }
     else if(event.getKeySym() == "F3" && event.keyDown())
     {
         viewer->removePointCloud("point_cloud");
-        pcl::visualization::PointCloudColorHandlerGenericField<PointNormalK> k(algo.getPointCloud(), "k");
-        viewer->addPointCloud(algo.getPointCloud(), k, "point_cloud");
+        pcl::visualization::PointCloudColorHandlerGenericField<PointNormalK> k(pc_source_segmentation.getPointCloud(), "k");
+        viewer->addPointCloud(pc_source_segmentation.getPointCloud(), k, "point_cloud");
         viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
     }
     else if(event.getKeySym() == "F4" && event.keyDown())
@@ -75,7 +84,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         else
         {
             isNormalDisplayed = true;
-            viewer->addPointCloudNormals<PointNormalK, PointNormalK>(algo.getPointCloud(), algo.getPointCloud(), 5, 1, "normal_cloud");
+            viewer->addPointCloudNormals<PointNormalK, PointNormalK>(pc_source_segmentation.getPointCloud(), pc_source_segmentation.getPointCloud(), 5, 1, "normal_cloud");
         }
     }
     else if(event.getKeySym() == "F5" && event.keyDown())
@@ -84,17 +93,20 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         {
             #pragma omp single
             {
-                // Load target mesh
-                if(meshSeg.loadMesh(mesh_filename))
+                if(targetIsMesh)
                 {
-                    refresh_mesh = true;
+                    // Load target mesh
+                    if(mesh_target_segmentation.loadMesh(mesh_filename))
+                    {
+                        refresh_mesh = true;
 
-                    // Start plane segmentation
-                    meshSeg.segmentPlanes();
-                    meshSeg.mergePlanes();
+                        // Start plane segmentation
+                        mesh_target_segmentation.segmentPlanes();
+                        mesh_target_segmentation.mergePlanes();
 
-                    mesh_is_segmented = true;
-                    refresh_mesh = true;
+                        mesh_is_segmented = true;
+                        refresh_mesh = true;
+                    }
                 }
             }
         }
@@ -106,7 +118,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         cout << "Saving ply file " << filename << endl;
 
         // Writing PC to file
-        pcl::io::savePLYFile(filename, *algo.getPointCloud());
+        pcl::io::savePLYFile(filename, *pc_source_segmentation.getPointCloud());
     }
     else if(event.getKeySym() == "F7" && event.keyDown())
     {
@@ -122,8 +134,8 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         {
             cout << "Display clouds" << endl;
 
-            PointNormalKCloud::Ptr red_c = algo.getExcludedPointCloud();
-            PointNormalKCloud::Ptr green_c = algo.getAvailablePointCloud();
+            PointNormalKCloud::Ptr red_c = pc_source_segmentation.getExcludedPointCloud();
+            PointNormalKCloud::Ptr green_c = pc_source_segmentation.getAvailablePointCloud();
 
             // Display the available points in green and excluded points in red
             pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> red(red_c, 255, 15, 15);
@@ -142,52 +154,81 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     else if(event.getKeySym() == "F8" && event.keyDown())
     {
         // Filter out points with high curvature
-        float max_curvature = algo.getCurvBound();
+        float max_curvature = pc_source_segmentation.getCurvBound();
 
         cout << "Filtering out points with curvature greater than " << max_curvature << endl;
 
-        algo.filterOutCurvature(max_curvature);
+        pc_source_segmentation.filterOutCurvature(max_curvature);
+
+        if(!targetIsMesh)
+        {
+            pc_target_segmentation.filterOutCurvature(max_curvature);
+        }
     }
     else if(event.getKeySym() == "F9" && event.keyDown())
     {
-        algo.preprocessCloud();
+        pc_source_segmentation.preprocessCloud();
+
+        if(!targetIsMesh)
+        {
+            pc_target_segmentation.preprocessCloud();
+        }
     }
     else if(event.getKeySym() == "F10" && event.keyDown())
     {
         // Resample cloud
-        algo.resampleCloud();
+        pc_source_segmentation.resampleCloud();
+
+        if(!targetIsMesh)
+        {
+            pc_target_segmentation.resampleCloud();
+        }
     }
     else if(event.getKeySym() == "F11" && event.keyDown())
     {
-        if(algo.isCloudSegmented())
+        if(pc_source_segmentation.isCloudSegmented())
         {
-            vector<SegmentedPointsContainer::SegmentedPlane> planes_list = algo.getSegmentedPlanes();
+            vector<SegmentedPointsContainer::SegmentedPlane> planes_list = pc_source_segmentation.getSegmentedPlanes();
             // Merge similar planes
-            merger.start_merge(planes_list, algo.getPointCloud());
+            pc_source_merger.start_merge(planes_list, pc_source_segmentation.getPointCloud());
             //merger.printVectorsInFile("/home/loris/Documents/EPFL/Master/master-project-2019/Scripts/cloud_normals.txt");
         }
         else
         {
             cout << "Could not merge planes because the cloud is not segmented." << endl;
         }
+
+        if(!targetIsMesh && pc_target_segmentation.isCloudSegmented())
+        {
+            vector<SegmentedPointsContainer::SegmentedPlane> planes_list = pc_target_segmentation.getSegmentedPlanes();
+            // Merge similar planes
+            pc_target_merger.start_merge(planes_list, pc_target_segmentation.getPointCloud());
+        }
     }
     else if(event.getKeySym() == "a" && event.keyDown())
     {
-        if(!(merger.isCloudMerged() && meshSeg.isMeshSegmented())) return;
+        if(!(pc_source_merger.isCloudMerged() &&
+             ((!targetIsMesh && pc_target_merger.isCloudMerged()) || mesh_target_segmentation.isMeshSegmented()))) return;
 
         // Get both segmented sets of planes
-        vector<SegmentedPointsContainer::SegmentedPlane> source = merger.getSegmentedPlanes();
-        vector<SegmentedPointsContainer::SegmentedPlane> target = meshSeg.getSegmentedPlanes();
+        vector<SegmentedPointsContainer::SegmentedPlane> source = pc_source_merger.getSegmentedPlanes();
+        vector<SegmentedPointsContainer::SegmentedPlane> target;
+        if(targetIsMesh)
+        {
+            target = mesh_target_segmentation.getSegmentedPlanes();
+        } else {
+            target = pc_target_merger.getSegmentedPlanes();
+        }
 
         // Find Rotation
-        registration.setClouds(source, target, true, algo.getPointCloud());
+        registration.setClouds(source, target, true, pc_source_segmentation.getPointCloud());
         mat3 R = registration.findAlignment();
 
         // We need to compose the transformation matrix -> translate point cloud to origin
         //                                              -> apply the rotation
         //                                              -> translate it back to original position
         vec4 centroid;
-        pcl::compute3DCentroid(*algo.getPointCloud(), centroid);
+        pcl::compute3DCentroid(*pc_source_segmentation.getPointCloud(), centroid);
 
         mat4 T1 = Eigen::Affine3f(Eigen::Translation3f(vec3(-centroid.x(), -centroid.y(), -centroid.z()))).matrix();
         mat4 T2 = T1.inverse();
@@ -199,7 +240,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         cout << "Final Transformation:" << endl << finalTransform << endl;
 
         PointNormalKCloud::Ptr p_transformed_cloud = PointNormalKCloud().makeShared();
-        pcl::transformPointCloud(*algo.getPointCloud(), *p_transformed_cloud, finalTransform);
+        pcl::transformPointCloud(*pc_source_segmentation.getPointCloud(), *p_transformed_cloud, finalTransform);
 
         pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> color(p_transformed_cloud, 0, 255, 0);
         p_viewer->removePointCloud("transformed_cloud");
@@ -207,10 +248,10 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         p_viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "transformed_cloud");
 
         // Update point cloud
-        algo.setPointCloud(p_transformed_cloud);
+        pc_source_segmentation.setPointCloud(p_transformed_cloud);
 
         // Update merger list of normals and centroids
-        merger.applyTransform(M);
+        pc_source_merger.applyTransform(M);
     }
     else if(event.keyDown())
     {
@@ -218,7 +259,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     }
 }
 
-void display_update_callback(PointNormalKCloud::Ptr p_cloud, ivec3 color, vector<int> indices)
+void display_update_callback(PointNormalKCloud::Ptr p_cloud, ivec3 color, vector<int> indices, bool isSource = true)
 {
     for(int i: indices)
     {
@@ -227,7 +268,8 @@ void display_update_callback(PointNormalKCloud::Ptr p_cloud, ivec3 color, vector
                                   static_cast<uint8_t>(color.z());
     }
 
-    pc_has_changed = true;
+    pc_source_has_changed = isSource;
+    pc_target_has_changed = !isSource;
 }
 
 void add_plane_callback(pcl::ModelCoefficients coeffs, float x, float y, float z)
@@ -245,15 +287,15 @@ void update_normal_cloud_callback()
 
 void pc_planes_callback(SegmentedPointsContainer::SegmentedPlane source_plane, SegmentedPointsContainer::SegmentedPlane target_plane, ivec3 color)
 {
-    auto pc = algo.getPointCloud();
+    auto pc = pc_source_segmentation.getPointCloud();
     display_update_callback(pc, color, source_plane.indices_list);
 
-    meshSeg.updateColors(target_plane, color);
+    mesh_target_segmentation.updateColors(target_plane, color);
 
     refresh_mesh = true;
 }
 
-function<void(PointNormalKCloud::Ptr, ivec3 color, vector<int> indices)> display_update_callable = &display_update_callback;
+function<void(PointNormalKCloud::Ptr, ivec3 color, vector<int> indices, bool isSource)> display_update_callable = &display_update_callback;
 function<void(pcl::ModelCoefficients, float, float, float)> add_plane_callable = &add_plane_callback;
 function<void(void)> update_normal_cloud_callable = &update_normal_cloud_callback;
 function<void(SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane, ivec3)> pc_planes_callable = &pc_planes_callback;
@@ -304,17 +346,29 @@ int main()
 
     p_viewer = setupViewer();
 
-    algo.init(pcLIDAR_region3_2017_seg1_preproc);
-    algo.setViewerUpdateCallback(display_update_callable);
-    algo.setAddPlaneCallback(add_plane_callable);
-    algo.setUpdateNormalCloudCallback(update_normal_cloud_callable);
+    pc_source_segmentation.init(pcLIDAR_region3_2017_seg1_preproc, true);
+    pc_source_segmentation.setViewerUpdateCallback(display_update_callable);
+    pc_source_segmentation.setAddPlaneCallback(add_plane_callable);
+    pc_source_segmentation.setUpdateNormalCloudCallback(update_normal_cloud_callable);
 
-    merger.init(display_update_callable);
+    if(!targetIsMesh)
+    {
+        pc_target_segmentation.init(pcLIDAR_region3_2017_seg1_preproc, false);
+        pc_target_segmentation.setViewerUpdateCallback(display_update_callable);
+
+        pc_target_merger.init(display_update_callable, false);
+
+        pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb_target(pc_target_segmentation.getPointCloud());
+        p_viewer->addPointCloud(pc_target_segmentation.getPointCloud(), rgb_target, "target_point_cloud");
+        p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "target_point_cloud");
+    }
+
+    pc_source_merger.init(display_update_callable, true);
 
     registration.setCallback(pc_planes_callable);
 
-    pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(algo.getPointCloud());
-    p_viewer->addPointCloud(algo.getPointCloud(), rgb, "point_cloud");
+    pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(pc_source_segmentation.getPointCloud());
+    p_viewer->addPointCloud(pc_source_segmentation.getPointCloud(), rgb, "point_cloud");
     p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
     p_viewer->resetCamera();
 
@@ -328,29 +382,39 @@ int main()
             // Drawing loop
             while(!p_viewer->wasStopped())
             {
-                if(pc_has_changed)
+                if(pc_source_has_changed)
                 {
-                    pc_has_changed = false;
+                    pc_source_has_changed = false;
 
                     // The function updatePointCloud doesn't work, thus it is necessary to remove and add the cloud
                     p_viewer->removePointCloud("point_cloud");
-                    pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(algo.getPointCloud());
-                    p_viewer->addPointCloud(algo.getPointCloud(), rgb, "point_cloud");
+                    pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(pc_source_segmentation.getPointCloud());
+                    p_viewer->addPointCloud(pc_source_segmentation.getPointCloud(), rgb, "point_cloud");
                     p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
+                }
+
+                if(pc_target_has_changed)
+                {
+                    pc_target_has_changed = false;
+
+                    p_viewer->removePointCloud("target_point_cloud");
+                    pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb_target(pc_target_segmentation.getPointCloud());
+                    p_viewer->addPointCloud(pc_target_segmentation.getPointCloud(), rgb_target, "target_point_cloud");
+                    p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "target_point_cloud");
                 }
 
                 if(isNormalDisplayed && normal_cloud_changed)
                 {
                     normal_cloud_changed = false;
                     p_viewer->removePointCloud("normal_cloud");
-                    p_viewer->addPointCloudNormals<PointNormalK, PointNormalK>(algo.getPointCloud(), algo.getPointCloud(), 5, 1, "normal_cloud");
+                    p_viewer->addPointCloudNormals<PointNormalK, PointNormalK>(pc_source_segmentation.getPointCloud(), pc_source_segmentation.getPointCloud(), 5, 1, "normal_cloud");
                 }
 
                 if(refresh_mesh)
                 {
                     refresh_mesh = false;
                     p_viewer->removePolygonMesh("city_mesh");
-                    p_viewer->addPolygonMesh(*meshSeg.getMeshPtr(), "city_mesh");
+                    p_viewer->addPolygonMesh(*mesh_target_segmentation.getMeshPtr(), "city_mesh");
                 }
 
                 p_viewer->spinOnce(100);
@@ -358,14 +422,20 @@ int main()
 
             cout << "Viewer was stopped" << endl;
 
-            algo.stop();
+            pc_source_segmentation.stop();
+            pc_target_segmentation.stop();
         }
 
         #pragma omp section
         {
-            cout << "Segmentation loop started by thread " << omp_get_thread_num() << endl;
+            cout << "Source segmentation loop started by thread " << omp_get_thread_num() << endl;
+            pc_source_segmentation.runMainLoop();
+        }
 
-            algo.runMainLoop();
+        #pragma omp section
+        {
+            cout << "Target segmentation loop started by thread " << omp_get_thread_num() << endl;
+            pc_target_segmentation.runMainLoop();
         }
     }
 

@@ -29,9 +29,9 @@
 
 class PlaneSegmentation {
 public:
-    int init(string cloud_file);
+    int init(string cloud_file, bool isSource = true);
     void preprocessCloud();
-    void setViewerUpdateCallback(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> callable);
+    void setViewerUpdateCallback(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>, bool)> callable);
     void setAddPlaneCallback(function<void(pcl::ModelCoefficients, float, float, float)> callable);
     void setUpdateNormalCloudCallback(function<void(void)> callable);
     float getCurvBound();
@@ -87,6 +87,7 @@ private:
         void addToNeighborhood(vector<int> &new_points);
     } RunProperties;
 
+    bool isSource = true;
     bool is_plane_initialized = false;
     bool isResampled = false;
     bool is_started = false;
@@ -100,7 +101,7 @@ private:
     RunProperties current_run;
     SegmentedPointsContainer::Ptr p_segmented_points_container;
 
-    function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> display_update_callable;
+    function<void(PointNormalKCloud::Ptr, ivec3, vector<int>, bool)> display_update_callable;
     function<void(pcl::ModelCoefficients, float, float, float)> add_plane_callable;
     function<void(void)> update_normal_cloud_callable;
 

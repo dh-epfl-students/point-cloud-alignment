@@ -10,7 +10,7 @@
 
 class PlaneMerging {
 public:
-    void init(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> callable);
+    void init(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>, bool)> callable, bool isSource);
     void start_merge(vector<SegmentedPointsContainer::SegmentedPlane> &p_list, PointNormalKCloud::Ptr p_cloud);
     void filter_small_planes(vector<SegmentedPointsContainer::SegmentedPlane> &p_list, int min_size);
 
@@ -35,8 +35,9 @@ private:
     PointNormalKCloud::Ptr p_point_cloud;
     vector<int> merged_planes_indices;
     bool isMerged = false;
+    bool isSource = true;
 
-    function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> display_update_callable;
+    function<void(PointNormalKCloud::Ptr, ivec3, vector<int>, bool)> display_update_callable;
 
     void merge();
     bool planeOverlap(SegmentedPointsContainer::SegmentedPlane &p1, SegmentedPointsContainer::SegmentedPlane &p2, float d_tolerance = 0);

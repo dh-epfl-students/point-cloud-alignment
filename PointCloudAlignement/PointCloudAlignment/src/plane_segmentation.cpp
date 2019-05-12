@@ -61,8 +61,10 @@ void PlaneSegmentation::RunProperties::addToNeighborhood(vector<int> &new_points
 // PlaneSegmentation
 // ========================================================================================== //
 
-int PlaneSegmentation::init(string cloud_file)
+int PlaneSegmentation::init(string cloud_file, bool isSource)
 {
+    this->isSource = isSource;
+
     p_cloud = PointNormalKCloud::Ptr(new PointNormalKCloud);
 
     int r = pcl::io::loadPCDFile(cloud_file, *p_cloud);
@@ -156,7 +158,7 @@ void PlaneSegmentation::resampleCloud()
     isResampled = true;
 }
 
-void PlaneSegmentation::setViewerUpdateCallback(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>)> callable)
+void PlaneSegmentation::setViewerUpdateCallback(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>, bool)> callable)
 {
     display_update_callable = callable;
 }
@@ -583,7 +585,7 @@ void PlaneSegmentation::exclude_points(vector<int> indices)
     exclude_from_search(indices);
 
     // Update point display
-    this->display_update_callable(p_cloud, p_segmented_points_container->getMiscColor(), indices);
+    this->display_update_callable(p_cloud, p_segmented_points_container->getMiscColor(), indices, isSource);
 }
 
 void PlaneSegmentation::filterOutCurvature(float max_curvature)
@@ -600,14 +602,14 @@ void PlaneSegmentation::filterOutCurvature(float max_curvature)
 
 void PlaneSegmentation::color_points(vector<int> indices, ivec3 color)
 {
-    this->display_update_callable(p_cloud, color, indices);
+    this->display_update_callable(p_cloud, color, indices, isSource);
 }
 
 void PlaneSegmentation::color_point(int index, ivec3 color)
 {
     vector<int> indices;
     indices.push_back(index);
-    this->display_update_callable(p_cloud, color, indices);
+    this->display_update_callable(p_cloud, color, indices, isSource);
 }
 
 PointNormalKCloud::Ptr PlaneSegmentation::getAvailablePointCloud()
