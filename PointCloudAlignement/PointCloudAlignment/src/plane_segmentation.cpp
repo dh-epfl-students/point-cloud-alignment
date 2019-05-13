@@ -138,6 +138,8 @@ void PlaneSegmentation::preprocessCloud()
 
 void PlaneSegmentation::resampleCloud()
 {
+    if(isResampled) return;
+
     is_ready = false;
 
     PointNormalKCloud::Ptr p_cloud_filtered(new PointNormalKCloud);

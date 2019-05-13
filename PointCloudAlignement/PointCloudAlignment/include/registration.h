@@ -7,11 +7,12 @@
 #include "common.h"
 #include "segmented_points_container.h"
 
-#define MIN_SURFACE 30
+#define MIN_SURFACE 50
 
 class Registration {
 public:
-    void setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool isMesh, PointNormalKCloud::Ptr p_cloud);
+    void setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool isMesh,
+                   PointNormalKCloud::Ptr p_source_cloud, PointNormalKCloud::Ptr p_target_cloud = nullptr);
     mat3 findAlignment();
     void setCallback(function<void(SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane, ivec3)> callable) { this->display_update_callable = callable; }
 

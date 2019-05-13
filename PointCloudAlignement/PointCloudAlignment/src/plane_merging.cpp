@@ -82,7 +82,7 @@ void PlaneMerging::merge()
                     n = ni.dot(n) >= ni.dot(-n) ? n : -n;
 
                     // Filter by plane normal vector and then plane overlap
-                    if(ni.dot(n) >= cos(NORMAL_ERROR) && planeOverlap(plane, plane_list[j]))
+                    if(ni.dot(n) >= cos(NORMAL_ERROR) && planeOverlap(plane, plane_list[j], DISTANCE_ERROR))
                     {
                         cout << "Plane " << plane.id << " is merged with plane " << plane_list[j].id << endl;
 

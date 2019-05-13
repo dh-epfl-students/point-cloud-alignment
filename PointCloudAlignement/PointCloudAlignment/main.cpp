@@ -24,9 +24,9 @@ static MeshSegmentation mesh_target_segmentation;
 static Registration registration;
 static pcl::visualization::PCLVisualizer::Ptr p_viewer;
 
-bool targetIsMesh = true;
+bool targetIsMesh = false;
 bool isNormalDisplayed = false;
-bool isExclusionDisplayed = false;
+bool isDualViewDisplayed = false;
 bool pc_source_has_changed = false;
 bool pc_target_has_changed = false;
 bool normal_cloud_changed = false;
@@ -55,24 +55,24 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     }
     else if(event.getKeySym() == "F1" && event.keyDown())
     {
-        viewer->removePointCloud("point_cloud");
+        viewer->removePointCloud("source_point_cloud");
         pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(pc_source_segmentation.getPointCloud());
-        viewer->addPointCloud(pc_source_segmentation.getPointCloud(), rgb, "point_cloud");
-        viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
+        viewer->addPointCloud(pc_source_segmentation.getPointCloud(), rgb, "source_point_cloud");
+        viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
     }
     else if(event.getKeySym() == "F2" && event.keyDown())
     {
-        viewer->removePointCloud("point_cloud");
+        viewer->removePointCloud("source_point_cloud");
         pcl::visualization::PointCloudColorHandlerGenericField<PointNormalK> curv(pc_source_segmentation.getPointCloud(), "curvature");
-        viewer->addPointCloud(pc_source_segmentation.getPointCloud(), curv, "point_cloud");
-        viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
+        viewer->addPointCloud(pc_source_segmentation.getPointCloud(), curv, "source_point_cloud");
+        viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
     }
     else if(event.getKeySym() == "F3" && event.keyDown())
     {
-        viewer->removePointCloud("point_cloud");
+        viewer->removePointCloud("source_point_cloud");
         pcl::visualization::PointCloudColorHandlerGenericField<PointNormalK> k(pc_source_segmentation.getPointCloud(), "k");
-        viewer->addPointCloud(pc_source_segmentation.getPointCloud(), k, "point_cloud");
-        viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
+        viewer->addPointCloud(pc_source_segmentation.getPointCloud(), k, "source_point_cloud");
+        viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
     }
     else if(event.getKeySym() == "F4" && event.keyDown())
     {
@@ -122,33 +122,43 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     }
     else if(event.getKeySym() == "F7" && event.keyDown())
     {
-        if(isExclusionDisplayed)
+        // Display source in red and target in green
+        if(isDualViewDisplayed)
         {
-            cout << "Remove clouds" << endl;
+            viewer->removePointCloud("target_point_cloud");
+            viewer->removePointCloud("source_point_cloud");
 
-            viewer->removePointCloud("available_cloud");
-            viewer->removePointCloud("excluded_cloud");
-            isExclusionDisplayed = false;
+            pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb_target(pc_target_segmentation.getPointCloud());
+            pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb_source(pc_source_segmentation.getPointCloud());
+
+            p_viewer->addPointCloud(pc_target_segmentation.getPointCloud(), rgb_target, "target_point_cloud");
+            p_viewer->addPointCloud(pc_source_segmentation.getPointCloud(), rgb_source, "source_point_cloud");
+
+            p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "target_point_cloud");
+            p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
+
+            isDualViewDisplayed = false;
         }
         else
         {
-            cout << "Display clouds" << endl;
+            viewer->removePointCloud("target_point_cloud");
+            viewer->removePointCloud("source_point_cloud");
 
-            PointNormalKCloud::Ptr red_c = pc_source_segmentation.getExcludedPointCloud();
-            PointNormalKCloud::Ptr green_c = pc_source_segmentation.getAvailablePointCloud();
+            PointNormalKCloud::Ptr red_c = pc_source_segmentation.getPointCloud();
+            PointNormalKCloud::Ptr green_c = pc_target_segmentation.getPointCloud();
 
             // Display the available points in green and excluded points in red
             pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> red(red_c, 255, 15, 15);
             pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> green(green_c, 15, 255, 15);
 
-            // Add 2 point clouds: 1 for available, 1 for excluded
-            viewer->addPointCloud(green_c, green, "available_cloud");
-            viewer->addPointCloud(red_c, red, "excluded_cloud");
+            // Add the 2 point clouds
+            viewer->addPointCloud(green_c, green, "target_point_cloud");
+            viewer->addPointCloud(red_c, red, "source_point_cloud");
 
-            viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "available_cloud");
-            viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "excluded_cloud");
+            viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "target_point_cloud");
+            viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
 
-            isExclusionDisplayed = true;
+            isDualViewDisplayed = true;
         }
     }
     else if(event.getKeySym() == "F8" && event.keyDown())
@@ -169,20 +179,20 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     {
         pc_source_segmentation.preprocessCloud();
 
-        if(!targetIsMesh)
+        /*if(!targetIsMesh)
         {
             pc_target_segmentation.preprocessCloud();
-        }
+        }*/
     }
     else if(event.getKeySym() == "F10" && event.keyDown())
     {
         // Resample cloud
         pc_source_segmentation.resampleCloud();
 
-        if(!targetIsMesh)
+        /*if(!targetIsMesh)
         {
             pc_target_segmentation.resampleCloud();
-        }
+        }*/
     }
     else if(event.getKeySym() == "F11" && event.keyDown())
     {
@@ -221,7 +231,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         }
 
         // Find Rotation
-        registration.setClouds(source, target, true, pc_source_segmentation.getPointCloud());
+        registration.setClouds(source, target, false, pc_source_segmentation.getPointCloud(), pc_target_segmentation.getPointCloud());
         mat3 R = registration.findAlignment();
 
         // We need to compose the transformation matrix -> translate point cloud to origin
@@ -242,16 +252,16 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         PointNormalKCloud::Ptr p_transformed_cloud = PointNormalKCloud().makeShared();
         pcl::transformPointCloud(*pc_source_segmentation.getPointCloud(), *p_transformed_cloud, finalTransform);
 
-        pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> color(p_transformed_cloud, 0, 255, 0);
+        pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> color(p_transformed_cloud, 0, 0, 255);
         p_viewer->removePointCloud("transformed_cloud");
         p_viewer->addPointCloud(p_transformed_cloud, color, "transformed_cloud");
         p_viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "transformed_cloud");
 
         // Update point cloud
-        pc_source_segmentation.setPointCloud(p_transformed_cloud);
+        //pc_source_segmentation.setPointCloud(p_transformed_cloud);
 
         // Update merger list of normals and centroids
-        pc_source_merger.applyTransform(M);
+        //pc_source_merger.applyTransform(M);
     }
     else if(event.keyDown())
     {
@@ -259,17 +269,23 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     }
 }
 
-void display_update_callback(PointNormalKCloud::Ptr p_cloud, ivec3 color, vector<int> indices, bool isSource = true)
+void display_update_callback(PointNormalKCloud::Ptr cloud, ivec3 color, vector<int> indices, bool isSource = true)
 {
     for(int i: indices)
     {
-        p_cloud->points[i].rgba = static_cast<uint8_t>(color.x()) << 16 |
+        cloud->points[i].rgba = static_cast<uint8_t>(color.x()) << 16 |
                                   static_cast<uint8_t>(color.y()) << 8 |
                                   static_cast<uint8_t>(color.z());
     }
 
-    pc_source_has_changed = isSource;
-    pc_target_has_changed = !isSource;
+    if(isSource)
+    {
+        pc_source_has_changed = true;
+    }
+    else
+    {
+        pc_target_has_changed = true;
+    }
 }
 
 void add_plane_callback(pcl::ModelCoefficients coeffs, float x, float y, float z)
@@ -336,8 +352,13 @@ int main()
     string pcLIDAR_region3_2017_seg1_rotated_1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float_rotated_1.ply");
     string pcLIDAR_region3_2017_seg1_rotated_2("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float_rotated_2.ply");
     string pcLIDAR_region3_2017_seg1_rotated_3("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float_rotated_3.ply");
+    string pcLIDAR_region3_2017_seg1_rotated_4("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float_rotated_4.ply");
     string pcLIDAR_region3_2017_seg4_rotated_1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg4_shifted_float_rotated_1.ply");
     string pcLIDAR_region3_2017_seg2_r1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg2_r1_shifted_float.ply");
+
+    string pcLIDAR_region3_2017_seg1_rot1_preproc("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_rot1_preproc.ply");
+    string pcLIDAR_region3_2017_seg1_rot4_preproc("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_rot4_preproc.ply");
+
 
     // Rotated and translated PC sources
     string pcLIDAR_region3_2017_seg2_RT1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg2_RT1_shifted_float.ply");
@@ -368,8 +389,8 @@ int main()
     registration.setCallback(pc_planes_callable);
 
     pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(pc_source_segmentation.getPointCloud());
-    p_viewer->addPointCloud(pc_source_segmentation.getPointCloud(), rgb, "point_cloud");
-    p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
+    p_viewer->addPointCloud(pc_source_segmentation.getPointCloud(), rgb, "source_point_cloud");
+    p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
     p_viewer->resetCamera();
 
     // Start plane segmentation thread and viewer thread
@@ -387,10 +408,10 @@ int main()
                     pc_source_has_changed = false;
 
                     // The function updatePointCloud doesn't work, thus it is necessary to remove and add the cloud
-                    p_viewer->removePointCloud("point_cloud");
+                    p_viewer->removePointCloud("source_point_cloud");
                     pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(pc_source_segmentation.getPointCloud());
-                    p_viewer->addPointCloud(pc_source_segmentation.getPointCloud(), rgb, "point_cloud");
-                    p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "point_cloud");
+                    p_viewer->addPointCloud(pc_source_segmentation.getPointCloud(), rgb, "source_point_cloud");
+                    p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
                 }
 
                 if(pc_target_has_changed)

@@ -27,32 +27,40 @@ void Registration::filterPlanes(int nb_planes, vector<SegmentedPointsContainer::
     surfaces.swap(new_surfaces);
 }
 
-void Registration::setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool isMesh, PointNormalKCloud::Ptr p_cloud)
+void Registration::setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool isMesh,
+                             PointNormalKCloud::Ptr p_source_cloud, PointNormalKCloud::Ptr p_target_cloud)
 {
     this->source = source;
     this->target = target;
     this->targetIsMesh = isMesh;
-    this->p_cloud = p_cloud;
+    this->p_cloud = p_source_cloud;
 
     // Compute surfaces if surface vectors are empty
     if(this->source_surfaces.empty())
     {
-        this->source_surfaces = estimatePlanesSurface(p_cloud, source);
+        this->source_surfaces = estimatePlanesSurface(p_source_cloud, source);
 
         // Filter out planes to keep only MIN_SURFACE biggest planes for each set
-        filterPlanes(MIN_SURFACE, this->source, source_surfaces);
+        //filterPlanes(MIN_SURFACE, this->source, source_surfaces);
     }
 
     if(this->target_surfaces.empty())
     {
-        // Compute mesh planes surface
-        for(auto t: target)
+        if(targetIsMesh)
         {
-            target_surfaces.push_back(t.plane.getNormal().norm());
+            // Compute mesh planes surface
+            for(auto t: target)
+            {
+                target_surfaces.push_back(t.plane.getNormal().norm());
+            }
+        }
+        else
+        {
+            this->target_surfaces = estimatePlanesSurface(p_target_cloud, target);
         }
 
         // Filter out planes to keep only MIN_SURFACE biggest planes for each set
-        filterPlanes(MIN_SURFACE, this->target, target_surfaces);
+        //filterPlanes(MIN_SURFACE, this->target, target_surfaces);
     }
 }
 
@@ -113,8 +121,8 @@ mat3 Registration::findRotation()
 
     computeMwithCentroids(l_cS, l_cT, angles_S, angles_T);
 
-    mat3 H = computeHwithNormals(l_nS, l_nT);
-    //mat3 H = computeHwithCentroids(l_cS, l_cT);
+    //mat3 H = computeHwithNormals(l_nS, l_nT);
+    mat3 H = computeHwithCentroids(l_cS, l_cT);
     mat3 R = computeR(H);
 
     /*
@@ -184,7 +192,7 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
 
         for(size_t j = 0; j < l_cT.size(); ++j)
         {
-            M(i, j) = exp(-abs(/*(normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j]) */ (source_surfaces[i] - target_surfaces[j])));
+            M(i, j) = exp(-abs((normCSi - l_cT[j].norm()) /* (l_aS[i] - l_aT[j])*/ * (source_surfaces[i] - target_surfaces[j])));
             /*float m = abs((normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j]) * (source_surfaces[i] - target_surfaces[j]));
             if(m == 0)
             {
@@ -213,9 +221,9 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
     //cout << "M" << endl << M << endl;
 
     // TEST: Change color of first plane of source and corresponding plan in target to white
-    Eigen::MatrixXf::Index id;
-    M.row(1).maxCoeff(&id);
-    display_update_callable(source[1], target[id], ivec3(0, 0, 0));
+    //Eigen::MatrixXf::Index id;
+    //M.row(1).maxCoeff(&id);
+    //display_update_callable(source[1], target[id], ivec3(0, 0, 0));
 
     // Write M to file
     string filename("myMatrixMFile.txt");
