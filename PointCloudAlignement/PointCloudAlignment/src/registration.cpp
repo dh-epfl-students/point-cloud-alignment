@@ -27,18 +27,31 @@ void Registration::filterPlanes(int nb_planes, vector<SegmentedPointsContainer::
     surfaces.swap(new_surfaces);
 }
 
-void Registration::setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool isMesh,
+void Registration::setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool targetIsMesh, bool sourceIsMesh,
                              PointNormalKCloud::Ptr p_source_cloud, PointNormalKCloud::Ptr p_target_cloud)
 {
     this->source = source;
     this->target = target;
-    this->targetIsMesh = isMesh;
+    this->targetIsMesh = targetIsMesh;
+    this->sourceIsMesh = sourceIsMesh;
     this->p_cloud = p_source_cloud;
 
     // Compute surfaces if surface vectors are empty
     if(this->source_surfaces.empty())
     {
-        this->source_surfaces = estimatePlanesSurface(p_source_cloud, source);
+        if(sourceIsMesh)
+        {
+            // Compute mesh planes surface
+            for(auto s: source)
+            {
+                this->source_surfaces.push_back(s.plane.getNormal().norm());
+            }
+        }
+        else
+        {
+            this->source_surfaces = estimatePlanesSurface(p_source_cloud, source);
+        }
+
 
         // Filter out planes to keep only MIN_SURFACE biggest planes for each set
         //filterPlanes(MIN_SURFACE, this->source, source_surfaces);
@@ -78,6 +91,7 @@ mat3 Registration::findRotation()
     vec3 cS, cT, nS, nT;
     vector<vec3> l_cS, l_cT, l_nS, l_nT;
     vector<float> angles_S, angles_T;
+    vector<float> angles_cS, angles_cT;
 
     #pragma omp parallel sections
     {
@@ -95,8 +109,8 @@ mat3 Registration::findRotation()
 
         #pragma omp section
         {
-            nS = computeCentroid(source, false);
-            l_nS = computeDifSet(source, nS, false);
+            nS = computeCentroid(source, sourceIsMesh);
+            l_nS = computeDifSet(source, nS, sourceIsMesh);
         }
 
         #pragma omp section
@@ -117,20 +131,30 @@ mat3 Registration::findRotation()
         {
             angles_T = computeAngleDifs(l_cT, target);
         }
+
+        #pragma omp section
+        {
+            angles_cS = computeCenterAngles(l_cS);
+        }
+
+        #pragma omp section
+        {
+            angles_cT = computeCenterAngles(l_cT);
+        }
     }
 
-    computeMwithCentroids(l_cS, l_cT, angles_S, angles_T);
+    computeMwithCentroids(l_cS, l_cT, angles_S, angles_T, angles_cS, angles_cT);
 
     //mat3 H = computeHwithNormals(l_nS, l_nT);
     mat3 H = computeHwithCentroids(l_cS, l_cT);
     mat3 R = computeR(H);
 
-    /*
+
     if(R.determinant() < 0.0f)
     {
         cout << "det of R is less than 0" << endl;
         R.col(2) = -1 * R.col(2);
-    }*/
+    }
 
     return R;
 }
@@ -149,7 +173,6 @@ void Registration::computeMwithNormals()
     #pragma omp parallel for
     for(size_t i = 0; i < source.size(); ++i)
     {
-        //TODO change that
         vec3 ni = source[i].plane.getNormalizedN() * source[i].indices_list.size();
 
         for(size_t j = 0; j < target.size(); ++j)
@@ -179,9 +202,9 @@ void Registration::computeMwithNormals()
     cout << "M:" << endl << M.block(0, 0, 5, 5).matrix() << endl;
 }
 
-void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT, vector<float> &l_aS, vector<float> &l_aT)
+void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT, vector<float> &l_aS, vector<float> &l_aT, vector<float> &angles_cS, vector<float> &angles_cT)
 {
-    if(l_cT.empty() || l_cS.empty() || l_aS.empty() || l_aT.empty()) return;
+    if(l_cT.empty() || l_cS.empty() || l_aS.empty() || l_aT.empty() || angles_cS.empty() || angles_cT.empty()) return;
 
     M.resize(l_cS.size(), l_cT.size());
 
@@ -192,7 +215,7 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
 
         for(size_t j = 0; j < l_cT.size(); ++j)
         {
-            M(i, j) = exp(-abs((normCSi - l_cT[j].norm()) /* (l_aS[i] - l_aT[j])*/ * (source_surfaces[i] - target_surfaces[j])));
+            M(i, j) = exp(-abs((normCSi - l_cT[j].norm()) /*+ (l_aS[i] - l_aT[j])*/ + (source_surfaces[i] - target_surfaces[j]) /*+ (angles_cS[i] - angles_cT[j])*/));
             /*float m = abs((normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j]) * (source_surfaces[i] - target_surfaces[j]));
             if(m == 0)
             {
@@ -220,7 +243,7 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
     */
     //cout << "M" << endl << M << endl;
 
-    // TEST: Change color of first plane of source and corresponding plan in target to white
+    // TEST: Change color of second plane of source and corresponding plane in target to black
     //Eigen::MatrixXf::Index id;
     //M.row(1).maxCoeff(&id);
     //display_update_callable(source[1], target[id], ivec3(0, 0, 0));
@@ -287,6 +310,29 @@ vec3 Registration::computeCentroid(vector<SegmentedPointsContainer::SegmentedPla
 
     c /= list.size();
     return c;
+}
+
+vector<float> Registration::computeCenterAngles(vector<vec3> &l_shifted_centroids)
+{
+    vector<float> angles;
+
+    // Compute mean
+    vec3 center_mean(0, 0, 0);
+    for(vec3 a: l_shifted_centroids)
+    {
+        center_mean += a;
+    }
+    center_mean.normalize();
+
+    // Compute angles
+    for(vec3 ci: l_shifted_centroids)
+    {
+        ci.normalize();
+        float cos_a = ci.dot(center_mean);
+        angles.push_back(cos_a);
+    }
+
+    return angles;
 }
 
 vector<vec3> Registration::computeDifSet(vector<SegmentedPointsContainer::SegmentedPlane> &list, vec3 centroid, bool isMesh)

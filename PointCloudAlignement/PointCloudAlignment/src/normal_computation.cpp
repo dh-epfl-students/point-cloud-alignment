@@ -16,12 +16,12 @@ void NormalComputation::computeNormalCloud(PointNormalKCloud::Ptr cloud_in, KdTr
         kdTree_in->nearestKSearch(cloud_in->points.at(i), k, *indices, sqrd_distances);
 
         // compute normal
-        /*
+
         pcl::NormalEstimationOMP<PointNormalK, PointNormalK> ne;
         vec4 plane_parameters;
         float curvature;
-        ne.computePointNormal(*cloud_in, *indices, plane_parameters, curvature);*/
-
+        ne.computePointNormal(*cloud_in, *indices, plane_parameters, curvature);
+/*
         // Estimate best fit plane for the indices found.
         Plane plane;
         Plane::estimatePlane(cloud_in, indices, plane);
@@ -32,11 +32,11 @@ void NormalComputation::computeNormalCloud(PointNormalKCloud::Ptr cloud_in, KdTr
 
         // Need to reorient normals.
         n = (acos(up.dot(n)) <= acos(up.dot(-n)))? n : -n;
-
-        cloud_in->points[i].normal_x = n.x();
-        cloud_in->points[i].normal_y = n.y();
-        cloud_in->points[i].normal_z = n.z();
-        cloud_in->points[i].curvature = curv;
+*/
+        cloud_in->points[i].normal_x = plane_parameters.x(); //n.x();
+        cloud_in->points[i].normal_y = plane_parameters.y(); //n.y();
+        cloud_in->points[i].normal_z = plane_parameters.z(); //n.z();
+        cloud_in->points[i].curvature = curvature;
         cloud_in->points[i].k = k;
     }
 }

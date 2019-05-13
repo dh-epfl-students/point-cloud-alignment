@@ -11,13 +11,14 @@
 
 class Registration {
 public:
-    void setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool isMesh,
-                   PointNormalKCloud::Ptr p_source_cloud, PointNormalKCloud::Ptr p_target_cloud = nullptr);
+    void setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool targetIsMesh, bool sourceIsMesh,
+                   PointNormalKCloud::Ptr p_source_cloud = nullptr, PointNormalKCloud::Ptr p_target_cloud = nullptr);
     mat3 findAlignment();
     void setCallback(function<void(SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane, ivec3)> callable) { this->display_update_callable = callable; }
 
 private:
     bool targetIsMesh = false;
+    bool sourceIsMesh = false;
     Eigen::MatrixXf M;
     PointNormalKCloud::Ptr p_cloud;
     vector<SegmentedPointsContainer::SegmentedPlane> source;
@@ -31,7 +32,7 @@ private:
     mat3 findRotation();
     mat3 findTranslation();
     void computeMwithNormals();
-    void computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT, vector<float> &l_aS, vector<float> &l_aT);
+    void computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT, vector<float> &l_aS, vector<float> &l_aT, vector<float> &angles_cS, vector<float> &angles_cT);
     mat3 computeHwithNormals(vector<vec3> qs, vector<vec3> qt);
     mat3 computeHwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT);
     mat3 computeR(mat3 H);
@@ -41,6 +42,7 @@ private:
     vector<vec3> computeCentersDifSet(vector<SegmentedPointsContainer::SegmentedPlane> &list, vec3 centroid);
     vector<float> computeAngleDifs(vector<vec3> &l_shifted_centroids, vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
     vector<float> estimatePlanesSurface(PointNormalKCloud::Ptr p_cloud, vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
+    vector<float> computeCenterAngles(vector<vec3> &l_shifted_centroids);
     float estimatePlaneSurface(PointNormalKCloud::Ptr p_cloud, SegmentedPointsContainer::SegmentedPlane &plane);
     vector<vec2> pointsTo2D(PointNormalKCloud::Ptr p_cloud, SegmentedPointsContainer::SegmentedPlane &plane, vec3 e1, vec3 e2);
     void computePlaneBase(SegmentedPointsContainer::SegmentedPlane &plane, vec3 &e1, vec3 &e2);

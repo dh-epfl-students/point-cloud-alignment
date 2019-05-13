@@ -109,7 +109,7 @@ int PlaneSegmentation::init(string cloud_file, bool isSource)
 
     // Initialize remaining variables
     safety_distance = 0;
-    curv_bound = 0.5;
+    curv_bound = 0.3f;
 
     // Initialize segmented_points_container
     p_segmented_points_container = SegmentedPointsContainer::Ptr(new SegmentedPointsContainer);
@@ -506,7 +506,7 @@ int PlaneSegmentation::getRegionGrowingStartLocation()
     // Copy indices
     vector<int> tmp_indices(*p_indices);
     sort(tmp_indices.begin(), tmp_indices.end(), [this](const int &lhs, const int &rhs){
-        return this->p_cloud->points[lhs].curvature <= this->p_cloud->points[rhs].curvature;
+        return this->p_cloud->points[lhs].curvature < this->p_cloud->points[rhs].curvature;
     });
 
     /*

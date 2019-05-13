@@ -25,6 +25,7 @@ public:
     bool isMeshSegmented();
 
     pcl::PolygonMeshPtr getMeshPtr() { return p_mesh; }
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr getPointCloud() { return p_cloud; }
     vector<SegmentedPointsContainer::SegmentedPlane> getSegmentedPlanes();
 
     void updateColors(SegmentedPointsContainer::SegmentedPlane p, ivec3 color);
