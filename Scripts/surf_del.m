@@ -37,7 +37,9 @@
         for i = 1 : size( t, 1 )
 
             % update surface %
-            s = s + abs( 0.5 * det( [ x(t(i,1)), y(t(i,1)), 1; x(t(i,2)), y(t(i,2)), 1; x(t(i,3)), y(t(i,3)), 1 ] ) );
+            s = s + abs( 0.5 * det( [ x(t(i,1)), y(t(i,1)), 1; 
+            						  x(t(i,2)), y(t(i,2)), 1;
+            						  x(t(i,3)), y(t(i,3)), 1 ] ) );
 
         end
 
