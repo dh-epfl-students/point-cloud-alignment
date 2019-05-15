@@ -4,6 +4,8 @@
 #include <fstream>
 #include <Eigen/Dense>
 
+#include <opencv2/imgproc/imgproc.hpp>
+
 #include "common.h"
 #include "segmented_points_container.h"
 
@@ -44,6 +46,8 @@ private:
     vector<float> estimatePlanesSurface(PointNormalKCloud::Ptr p_cloud, vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
     vector<float> computeCenterAngles(vector<vec3> &l_shifted_centroids);
     float estimatePlaneSurface(PointNormalKCloud::Ptr p_cloud, SegmentedPointsContainer::SegmentedPlane &plane);
+    vector<float> computeDelaunaySurfaces(PointNormalKCloud::Ptr p_cloud, vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
+    float computeDelaunaySurface(PointNormalKCloud::Ptr p_cloud, SegmentedPointsContainer::SegmentedPlane &plane);
     vector<vec2> pointsTo2D(PointNormalKCloud::Ptr p_cloud, SegmentedPointsContainer::SegmentedPlane &plane, vec3 e1, vec3 e2);
     void computePlaneBase(SegmentedPointsContainer::SegmentedPlane &plane, vec3 &e1, vec3 &e2);
     vec2 compute2dCentroid(vector<vec2> l_points);

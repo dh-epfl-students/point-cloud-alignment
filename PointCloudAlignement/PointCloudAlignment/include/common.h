@@ -80,3 +80,16 @@ inline vec3 pclToVec3(PointNormalK p)
 {
     return vec3(p.x, p.y, p.z);
 }
+
+inline float roundTo(float x, int n)
+{
+    float mult = pow(10, n);
+    float x_rounded = x * mult;
+    x_rounded = std::round(x_rounded);
+    return x_rounded / mult;
+}
+
+inline float crossProduct(vec2 x, vec2 y)
+{
+    return (x.x() * y.y()) - (x.y() * y.x());
+}

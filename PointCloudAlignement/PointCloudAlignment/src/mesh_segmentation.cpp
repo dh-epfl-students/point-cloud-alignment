@@ -183,7 +183,7 @@ vec3 MeshSegmentation::computeFaceNormal(vector<vec3> &vertices)
     vec3 t2 = vertices[2] - vertices[0];
 
     // Return normal vector not normalized
-    return t1.cross(t2);
+    return t1.cross(t2) / 2.0f;
 }
 
 void MeshSegmentation::updatePCcolors()

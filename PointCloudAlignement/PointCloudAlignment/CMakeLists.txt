@@ -5,6 +5,9 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -pthread")
 
 find_package(PCL 1.9 REQUIRED)
 find_package(OpenMP)
+find_package(OpenCV)
+
+message("find ${OpenCV_INCLUDE_DIRS}")
 
 # For CMake < 3.9, we need to make the target ourselves
 if(NOT TARGET OpenMP::OpenMP_CXX)
@@ -21,6 +24,7 @@ endif()
 set(HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 include_directories(${PCL_INCLUDE_DIRS}
+                    ${OpenCV_INCLUDE_DIRS}
                     ${HEADER_DIR})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
@@ -41,5 +45,5 @@ add_executable(${PROJECT_NAME} main.cpp ${SRC_LIST}
     ${HEADER_DIR}/mesh_segmentation.h
     ${HEADER_DIR}/registration.h)
 
-target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} OpenMP::OpenMP_CXX)
+target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} OpenMP::OpenMP_CXX ${OpenCV_LIBRARIES})
 

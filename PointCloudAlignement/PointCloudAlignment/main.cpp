@@ -25,7 +25,7 @@ static MeshSegmentation mesh_source_segmentation;
 static Registration registration;
 static pcl::visualization::PCLVisualizer::Ptr p_viewer;
 
-bool targetIsMesh = false;
+bool targetIsMesh = true;
 bool sourceIsMesh = false;
 bool isNormalDisplayed = false;
 bool isDualViewDisplayed = false;
@@ -80,10 +80,21 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     }
     else if(event.getKeySym() == "F2" && event.keyDown())
     {
-        viewer->removePointCloud("source_point_cloud");
-        pcl::visualization::PointCloudColorHandlerGenericField<PointNormalK> curv(pc_source_segmentation.getPointCloud(), "curvature");
-        viewer->addPointCloud(pc_source_segmentation.getPointCloud(), curv, "source_point_cloud");
-        viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
+        if(!sourceIsMesh)
+        {
+            viewer->removePointCloud("source_point_cloud");
+            pcl::visualization::PointCloudColorHandlerGenericField<PointNormalK> curv(pc_source_segmentation.getPointCloud(), "curvature");
+            viewer->addPointCloud(pc_source_segmentation.getPointCloud(), curv, "source_point_cloud");
+            viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
+        }
+
+        if(!targetIsMesh)
+        {
+            viewer->removePointCloud("target_point_cloud");
+            pcl::visualization::PointCloudColorHandlerGenericField<PointNormalK> curv(pc_target_segmentation.getPointCloud(), "curvature");
+            viewer->addPointCloud(pc_target_segmentation.getPointCloud(), curv, "target_point_cloud");
+            viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "target_point_cloud");
+        }
     }
     else if(event.getKeySym() == "F3" && event.keyDown())
     {
@@ -211,7 +222,10 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         {
             #pragma omp section
             {
-                pc_source_segmentation.preprocessCloud();
+                if(!sourceIsMesh)
+                {
+                    pc_source_segmentation.preprocessCloud();
+                }
             }
 
             #pragma omp section
@@ -220,6 +234,15 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
                 {
                     pc_target_segmentation.preprocessCloud();
                 }
+            }
+        }
+
+        for(size_t i = 0; i < pc_source_segmentation.getPointCloud()->size(); ++i)
+        {
+            if(pc_source_segmentation.getPointCloud()->points[i].curvature != pc_target_segmentation.getPointCloud()->points[i].curvature)
+            {
+                cout << "curvature " << i << " : source curv = " << pc_source_segmentation.getPointCloud()->points[i].curvature
+                     << ", target curv = " << pc_target_segmentation.getPointCloud()->points[i].curvature << endl;
             }
         }
     }
@@ -453,7 +476,7 @@ int main()
 
     if(!sourceIsMesh)
     {
-        pc_source_segmentation.init(pcLIDAR_region3_2017_seg1_rotated_1, true);
+        pc_source_segmentation.init(pcLIDAR_region3_2017_seg1_rot1_preproc, true);
         pc_source_segmentation.setViewerUpdateCallback(display_update_callable);
         pc_source_segmentation.setAddPlaneCallback(add_plane_callable);
         pc_source_segmentation.setUpdateNormalCloudCallback(update_normal_cloud_callable);
@@ -467,7 +490,7 @@ int main()
 
     if(!targetIsMesh)
     {
-        pc_target_segmentation.init(pcLIDAR_region3_2017_seg1, false);
+        pc_target_segmentation.init(pcLIDAR_region3_2017_seg1_preproc, false);
         pc_target_segmentation.setViewerUpdateCallback(display_update_callable);
 
         pc_target_merger.init(display_update_callable, false);

@@ -91,6 +91,7 @@ int PlaneSegmentation::init(string cloud_file, bool isSource)
     // Fill kdtree search strucuture
     p_kdtree = KdTreeFlannK::Ptr(new KdTreeFlannK);
     p_kdtree->setInputCloud(p_cloud);
+    //p_kdtree->addPointsFromInputCloud();
 
     if(p_cloud->points[0].k == 0)
     {
@@ -109,7 +110,7 @@ int PlaneSegmentation::init(string cloud_file, bool isSource)
 
     // Initialize remaining variables
     safety_distance = 0;
-    curv_bound = 0.3f;
+    curv_bound = 0.6f;
 
     // Initialize segmented_points_container
     p_segmented_points_container = SegmentedPointsContainer::Ptr(new SegmentedPointsContainer);

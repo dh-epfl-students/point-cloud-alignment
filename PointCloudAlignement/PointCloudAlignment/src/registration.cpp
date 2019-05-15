@@ -49,7 +49,7 @@ void Registration::setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &s
         }
         else
         {
-            this->source_surfaces = estimatePlanesSurface(p_source_cloud, source);
+            this->source_surfaces = computeDelaunaySurfaces(p_source_cloud, source);//estimatePlanesSurface(p_source_cloud, source);
         }
 
 
@@ -69,7 +69,7 @@ void Registration::setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &s
         }
         else
         {
-            this->target_surfaces = estimatePlanesSurface(p_target_cloud, target);
+            this->target_surfaces = computeDelaunaySurfaces(p_target_cloud, target);//estimatePlanesSurface(p_target_cloud, target);
         }
 
         // Filter out planes to keep only MIN_SURFACE biggest planes for each set
@@ -215,7 +215,7 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
 
         for(size_t j = 0; j < l_cT.size(); ++j)
         {
-            M(i, j) = exp(-abs((normCSi - l_cT[j].norm()) /*+ (l_aS[i] - l_aT[j])*/ + (source_surfaces[i] - target_surfaces[j]) /*+ (angles_cS[i] - angles_cT[j])*/));
+            M(i, j) = exp(-abs(/*(normCSi - l_cT[j].norm()) + (l_aS[i] - l_aT[j]) +*/ (source_surfaces[i] - target_surfaces[j]) /*+ (angles_cS[i] - angles_cT[j])*/));
             /*float m = abs((normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j]) * (source_surfaces[i] - target_surfaces[j]));
             if(m == 0)
             {
@@ -434,8 +434,7 @@ float Registration::estimatePlaneSurface(PointNormalKCloud::Ptr p_cloud, Segment
     }
 
     // SVD Decomposition
-    Eigen::JacobiSVD<mat2> svd(cov/*, Eigen::ComputeFullU*/);
-    //mat2 u = svd.matrixU();
+    Eigen::JacobiSVD<mat2> svd(cov);
     vec2 s = svd.singularValues();
 
     // Non correlated variances
@@ -443,6 +442,94 @@ float Registration::estimatePlaneSurface(PointNormalKCloud::Ptr p_cloud, Segment
 
     // compute surface estimation
     return s.x() * s.y() * 4 * 3; // ???
+}
+
+vector<float> Registration::computeDelaunaySurfaces(PointNormalKCloud::Ptr p_cloud, vector<SegmentedPointsContainer::SegmentedPlane> &l_planes)
+{
+    vector<float> surfaces;
+
+    for(auto plane: l_planes)
+    {
+        surfaces.push_back(computeDelaunaySurface(p_cloud, plane));
+    }
+
+    return surfaces;
+}
+
+float Registration::computeDelaunaySurface(PointNormalKCloud::Ptr p_cloud, SegmentedPointsContainer::SegmentedPlane &plane)
+{
+    // Find Plane base
+    vec3 e1, e2;
+    computePlaneBase(plane, e1, e2);
+
+    // Convert 3D points to 2D
+    vector<vec2> list_2d = pointsTo2D(p_cloud, plane, e1, e2);
+
+    // Compute Rectangle formed by points and fill vector of Point2f
+    vec2 min(0, 0), max(0, 0);
+    vector<cv::Point2f> l_p2f;
+    for(vec2 i: list_2d)
+    {
+        min.x() = min.x() < i.x() ? min.x() : i.x();
+        min.y() = min.y() < i.y() ? min.y() : i.y();
+        max.x() = max.x() > i.x() ? max.x() : i.x();
+        max.y() = max.y() > i.y() ? max.y() : i.y();
+
+        l_p2f.push_back(cv::Point2f(i.x(), i.y()));
+    }
+
+    //DEBUG print points to 2d
+    ofstream file;
+    file.open("2dPoints.txt");
+    for(auto v: l_p2f)
+    {
+        file << v.x << " " << v.y << endl;
+    }
+    file.close();
+
+    // Compute delauney triangle
+    cv::Rect rect(min.x() - 1, min.y() - 1, max.x()-min.x() + 2, max.y()-min.y() + 2);
+    cout << "Rect: " << rect.x << " " << rect.y << " " << rect.width << " " << rect.height << endl;
+    cv::Subdiv2D sub(rect);
+    sub.insert(l_p2f);
+    vector<cv::Vec6f> triangles;
+    sub.getTriangleList(triangles);
+
+    vector<cv::Vec4f> edges;
+    sub.getEdgeList(edges);
+
+    // Sum up every triangles' surface
+    ofstream file2;
+    file2.open("triangles.txt");
+
+    float surface = 0;
+    vec2 x1, x2, x3;
+    for(size_t i = 0; i < triangles.size(); ++i)
+    {
+        // Triangles vertices in 2D
+        cv::Vec6f t = triangles[i];
+        x1 = vec2(t[0], t[1]);
+        x2 = vec2(t[2], t[3]);
+        x3 = vec2(t[4], t[5]);
+
+        if(rect.contains(cv::Point2f(x1.x(), x1.y())) &&
+           rect.contains(cv::Point2f(x2.x(), x2.y())) &&
+           rect.contains(cv::Point2f(x3.x(), x3.y())))
+        {
+            vec2 v1 = x2 - x1;
+            vec2 v2 = x3 - x1;
+
+            float surf = 0.5f * abs(crossProduct(v1, v2));
+
+            file2 << x1.transpose() << ", " << x2.transpose() << ", " << x3.transpose() << ", surface: " << surf << endl;
+            surface += surf;
+        }
+    }
+    file2.close();
+
+    //cout << "List 2D size: " << list_2d.size()  << " triangles size : " << triangles.size() << endl;
+
+    return surface;
 }
 
 vector<vec2> Registration::pointsTo2D(PointNormalKCloud::Ptr p_cloud, SegmentedPointsContainer::SegmentedPlane &plane, vec3 e1, vec3 e2)
