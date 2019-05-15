@@ -22,6 +22,7 @@ public:
     void setCenter(vec3 p);
     vec3 getCenter();
     pcl::PointXYZ getCenterPCL();
+    pcl::PointNormal getPointNormal();
     vec3 getNormal();
     vec3 getNormalizedN();
     void setNormal(vec3 n);

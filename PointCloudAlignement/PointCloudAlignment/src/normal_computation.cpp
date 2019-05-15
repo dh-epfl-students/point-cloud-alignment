@@ -32,12 +32,12 @@ void NormalComputation::computeNormalCloud(PointNormalKCloud::Ptr cloud_in, KdTr
         up.normalize();
 
         // Need to reorient normals.
-        n = (acos(up.dot(n)) <= acos(up.dot(-n)))? n : -n;
+        n = (up.dot(n) < 0) ? -n : n;
 
-        cloud_in->points[i].normal_x = n.x();//plane_parameters.x(); //n.x();
-        cloud_in->points[i].normal_y = n.y();//plane_parameters.y(); //n.y();
-        cloud_in->points[i].normal_z = n.z();//plane_parameters.z(); //n.z();
-        cloud_in->points[i].curvature = roundTo(curv, 3);
+        cloud_in->points[i].normal_x = n.x(); //plane_parameters.x(); //n.x();
+        cloud_in->points[i].normal_y = n.y(); //plane_parameters.y(); //n.y();
+        cloud_in->points[i].normal_z = n.z(); //plane_parameters.z(); //n.z();
+        cloud_in->points[i].curvature = roundTo(curv, 1);
         cloud_in->points[i].k = k;
     }
 }

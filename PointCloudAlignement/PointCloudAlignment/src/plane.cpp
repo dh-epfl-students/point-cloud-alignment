@@ -153,3 +153,18 @@ pcl::PointXYZ Plane::getCenterPCL()
 {
     return pcl::PointXYZ(this->center.x(), this->center.y(), this->center.z());
 }
+
+pcl::PointNormal Plane::getPointNormal()
+{
+    pcl::PointNormal pn;
+    pn.x = this->center.x();
+    pn.y = this->center.y();
+    pn.z = this->center.z();
+
+    vec3 nNormalized = this->getNormalizedN();
+    pn.normal_x = nNormalized.x();
+    pn.normal_y = nNormalized.y();
+    pn.normal_z = nNormalized.z();
+    pn.curvature = 0;
+    return pn;
+}

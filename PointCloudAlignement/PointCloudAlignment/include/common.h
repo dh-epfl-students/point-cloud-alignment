@@ -83,7 +83,7 @@ inline vec3 pclToVec3(PointNormalK p)
 
 inline float roundTo(float x, int n)
 {
-    float mult = pow(10, n);
+    float mult = pow(10.0f, n);
     float x_rounded = x * mult;
     x_rounded = std::round(x_rounded);
     return x_rounded / mult;

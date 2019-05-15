@@ -8,6 +8,7 @@
 
 #include "common.h"
 #include "segmented_points_container.h"
+#include "pfh_evaluation.h"
 
 #define MIN_SURFACE 50
 
@@ -51,4 +52,10 @@ private:
     vector<vec2> pointsTo2D(PointNormalKCloud::Ptr p_cloud, SegmentedPointsContainer::SegmentedPlane &plane, vec3 e1, vec3 e2);
     void computePlaneBase(SegmentedPointsContainer::SegmentedPlane &plane, vec3 &e1, vec3 &e2);
     vec2 compute2dCentroid(vector<vec2> l_points);
+
+    /**
+     * @brief computeMWithPFHSignature
+     * @return The matrix M
+     */
+    Eigen::MatrixXf computeMWithPFHSignature();
 };

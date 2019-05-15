@@ -25,7 +25,7 @@ static MeshSegmentation mesh_source_segmentation;
 static Registration registration;
 static pcl::visualization::PCLVisualizer::Ptr p_viewer;
 
-bool targetIsMesh = true;
+bool targetIsMesh = false;
 bool sourceIsMesh = false;
 bool isNormalDisplayed = false;
 bool isDualViewDisplayed = false;
@@ -108,12 +108,22 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         if(isNormalDisplayed)
         {
             isNormalDisplayed = false;
-            viewer->removePointCloud("normal_cloud");
+
+            if(!sourceIsMesh)
+            {
+                viewer->removePointCloud("source_normal_cloud");
+            }
+
+            if(!targetIsMesh)
+            {
+                viewer->removePointCloud("target_normal_cloud");
+            }
         }
         else
         {
             isNormalDisplayed = true;
-            viewer->addPointCloudNormals<PointNormalK, PointNormalK>(pc_source_segmentation.getPointCloud(), pc_source_segmentation.getPointCloud(), 5, 1, "normal_cloud");
+            viewer->addPointCloudNormals<PointNormalK, PointNormalK>(pc_source_segmentation.getPointCloud(), pc_source_segmentation.getPointCloud(), 5, 1, "source_normal_cloud");
+            viewer->addPointCloudNormals<PointNormalK, PointNormalK>(pc_target_segmentation.getPointCloud(), pc_target_segmentation.getPointCloud(), 5, 1, "target_normal_cloud");
         }
     }
     else if(event.getKeySym() == "F5" && event.keyDown())
@@ -237,7 +247,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
             }
         }
 
-        for(size_t i = 0; i < pc_source_segmentation.getPointCloud()->size(); ++i)
+        for(size_t i = 0; i < 200; ++i)
         {
             if(pc_source_segmentation.getPointCloud()->points[i].curvature != pc_target_segmentation.getPointCloud()->points[i].curvature)
             {
@@ -462,6 +472,7 @@ int main()
     string pcLIDAR_region3_2017_seg1_rotated_4("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float_rotated_4.ply");
     string pcLIDAR_region3_2017_seg4_rotated_1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg4_shifted_float_rotated_1.ply");
     string pcLIDAR_region3_2017_seg2_r1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg2_r1_shifted_float.ply");
+    string pcLIDAR_region3_2017_seg3_r1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg3_r1_shifted_float.ply");
 
     string pcLIDAR_region3_2017_seg1_rot1_preproc("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_rot1_preproc.ply");
     string pcLIDAR_region3_2017_seg1_rot4_preproc("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_rot4_preproc.ply");
@@ -476,7 +487,7 @@ int main()
 
     if(!sourceIsMesh)
     {
-        pc_source_segmentation.init(pcLIDAR_region3_2017_seg1_rot1_preproc, true);
+        pc_source_segmentation.init(pcLIDAR_region3_2017_seg2_r1, true);
         pc_source_segmentation.setViewerUpdateCallback(display_update_callable);
         pc_source_segmentation.setAddPlaneCallback(add_plane_callable);
         pc_source_segmentation.setUpdateNormalCloudCallback(update_normal_cloud_callable);
@@ -490,7 +501,7 @@ int main()
 
     if(!targetIsMesh)
     {
-        pc_target_segmentation.init(pcLIDAR_region3_2017_seg1_preproc, false);
+        pc_target_segmentation.init(pcLIDAR_region3_2017_seg2, false);
         pc_target_segmentation.setViewerUpdateCallback(display_update_callable);
 
         pc_target_merger.init(display_update_callable, false);
@@ -538,8 +549,8 @@ int main()
                 if(isNormalDisplayed && normal_cloud_changed)
                 {
                     normal_cloud_changed = false;
-                    p_viewer->removePointCloud("normal_cloud");
-                    p_viewer->addPointCloudNormals<PointNormalK, PointNormalK>(pc_source_segmentation.getPointCloud(), pc_source_segmentation.getPointCloud(), 5, 1, "normal_cloud");
+                    p_viewer->removePointCloud("source_normal_cloud");
+                    p_viewer->addPointCloudNormals<PointNormalK, PointNormalK>(pc_source_segmentation.getPointCloud(), pc_source_segmentation.getPointCloud(), 5, 1, "source_normal_cloud");
                 }
 
                 if(refresh_target_mesh)

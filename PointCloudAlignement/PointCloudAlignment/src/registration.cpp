@@ -143,7 +143,16 @@ mat3 Registration::findRotation()
         }
     }
 
-    computeMwithCentroids(l_cS, l_cT, angles_S, angles_T, angles_cS, angles_cT);
+    //computeMwithCentroids(l_cS, l_cT, angles_S, angles_T, angles_cS, angles_cT);
+
+    M = computeMWithPFHSignature();
+
+    // Write M to file
+    string filename("myMatrixMFile.txt");
+    ofstream myFile;
+    myFile.open(filename);
+    myFile << M << endl;
+    myFile.close();
 
     //mat3 H = computeHwithNormals(l_nS, l_nT);
     mat3 H = computeHwithCentroids(l_cS, l_cT);
@@ -215,7 +224,7 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
 
         for(size_t j = 0; j < l_cT.size(); ++j)
         {
-            M(i, j) = exp(-abs(/*(normCSi - l_cT[j].norm()) + (l_aS[i] - l_aT[j]) +*/ (source_surfaces[i] - target_surfaces[j]) /*+ (angles_cS[i] - angles_cT[j])*/));
+            M(i, j) = exp(-abs(((normCSi - l_cT[j].norm()) + /*(l_aS[i] - l_aT[j]) +*/ (source_surfaces[i] - target_surfaces[j])) /* (angles_cS[i] - angles_cT[j])*/));
             /*float m = abs((normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j]) * (source_surfaces[i] - target_surfaces[j]));
             if(m == 0)
             {
@@ -489,9 +498,9 @@ float Registration::computeDelaunaySurface(PointNormalKCloud::Ptr p_cloud, Segme
 
     // Compute delauney triangle
     cv::Rect rect(min.x() - 1, min.y() - 1, max.x()-min.x() + 2, max.y()-min.y() + 2);
-    cout << "Rect: " << rect.x << " " << rect.y << " " << rect.width << " " << rect.height << endl;
     cv::Subdiv2D sub(rect);
     sub.insert(l_p2f);
+
     vector<cv::Vec6f> triangles;
     sub.getTriangleList(triangles);
 
@@ -527,8 +536,6 @@ float Registration::computeDelaunaySurface(PointNormalKCloud::Ptr p_cloud, Segme
     }
     file2.close();
 
-    //cout << "List 2D size: " << list_2d.size()  << " triangles size : " << triangles.size() << endl;
-
     return surface;
 }
 
@@ -556,10 +563,8 @@ void Registration::computePlaneBase(SegmentedPointsContainer::SegmentedPlane &pl
     // Build e1 by rotating plane normal by 90 degrees
     e1 = vec3(n.y(), -n.x(), n.z()).normalized();
 
-    // Base should be orthogoal
+    // Base should be orthogonal
     e2 = n.cross(e1).normalized();
-
-    //cout << "Plane " << plane.id << " : e1: " << e1.transpose() << " e2: " << e2.transpose() << endl;
 }
 
 vec2 Registration::compute2dCentroid(vector<vec2> l_points)
@@ -570,4 +575,37 @@ vec2 Registration::compute2dCentroid(vector<vec2> l_points)
     });
     c /= l_points.size();
     return c;
+}
+
+/////======================== PFH Based computation of M =====================================================================
+
+Eigen::MatrixXf Registration::computeMWithPFHSignature()
+{
+    pcl::PointCloud<pcl::PFHSignature125> source_signs = PFHEvaluation::computePFHSignatures(source);
+    pcl::PointCloud<pcl::PFHSignature125> target_signs = PFHEvaluation::computePFHSignatures(target);
+
+    // Construct indice list of planes
+    vector<size_t> source_indices;
+    size_t i = 0;
+    for(auto p: source)
+    {
+        source_indices.push_back(i);
+        i++;
+    }
+
+    // Sort index list by decreasing surface order
+    sort(source_indices.begin(), source_indices.end(), [this](size_t i, size_t j){
+        return this->source_surfaces[i] > this->source_surfaces[j];
+    });
+
+    Eigen::MatrixXf M_pfh = Eigen::MatrixXf::Zero(source.size(), target.size());
+
+    // Fill M by associating each source to one target based on pfh histograms errors
+    for (i = 0; i < source_indices.size(); ++i)
+    {
+        size_t j = PFHEvaluation::getMinTarget(i, source_signs, target_signs);
+        M_pfh(i, j) += 1;
+    }
+
+    return M_pfh;
 }
