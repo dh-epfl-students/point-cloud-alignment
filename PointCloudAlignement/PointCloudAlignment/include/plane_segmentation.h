@@ -30,6 +30,7 @@
 class PlaneSegmentation {
 public:
     int init(string cloud_file, bool isSource = true);
+    void resetSegmentation() { this->isSegmented = false; }
     void preprocessCloud();
     void setViewerUpdateCallback(function<void(PointNormalKCloud::Ptr, ivec3, vector<int>, bool)> callable);
     void setAddPlaneCallback(function<void(pcl::ModelCoefficients, float, float, float)> callable);

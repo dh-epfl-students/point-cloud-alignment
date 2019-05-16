@@ -581,8 +581,8 @@ vec2 Registration::compute2dCentroid(vector<vec2> l_points)
 
 Eigen::MatrixXf Registration::computeMWithPFHSignature()
 {
-    pcl::PointCloud<pcl::PFHSignature125> source_signs = PFHEvaluation::computePFHSignatures(source);
-    pcl::PointCloud<pcl::PFHSignature125> target_signs = PFHEvaluation::computePFHSignatures(target);
+    PFHCloud source_signs = PFHEvaluation::computePFHSignatures(source);
+    PFHCloud target_signs = PFHEvaluation::computePFHSignatures(target);
 
     // Construct indice list of planes
     vector<size_t> source_indices;
@@ -599,13 +599,40 @@ Eigen::MatrixXf Registration::computeMWithPFHSignature()
     });
 
     Eigen::MatrixXf M_pfh = Eigen::MatrixXf::Zero(source.size(), target.size());
+    vector<size_t> ignore_list;
 
     // Fill M by associating each source to one target based on pfh histograms errors
-    for (i = 0; i < source_indices.size(); ++i)
+    for (i = 0; i < std::min((int)source_indices.size(), 30); ++i)
     {
-        size_t j = PFHEvaluation::getMinTarget(i, source_signs, target_signs);
-        M_pfh(i, j) += 1;
+        size_t j = PFHEvaluation::getMinTarget(source_indices[i], source_signs, target_signs, ignore_list);
+        M_pfh(source_indices[i], j) += 1;
+        ignore_list.push_back(j);
     }
+    /*
+    for(i = 0; i < source_signs.size(); ++i)
+    {
+        for(size_t j = 0; j < target_signs.size(); ++j)
+        {
+            M_pfh(i, j) = computePFHError(i, j, source_signs, target_signs);
+        }
+    }*/
+
+    cout << M_pfh << endl;
 
     return M_pfh;
+}
+
+float Registration::computePFHError(size_t i, size_t j, PFHCloud &source, PFHCloud &target)
+{
+    float err(0);
+
+    auto hist_source = source[i].histogram;
+    auto hist_target = target[j].histogram;
+
+    for(size_t k = 0; k < source[i].descriptorSize(); ++k)
+    {
+        err += abs(hist_source[k] - hist_target[k]);
+    }
+
+    return exp(-0.01*err);
 }

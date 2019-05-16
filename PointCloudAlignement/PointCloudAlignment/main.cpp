@@ -369,13 +369,13 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
             p_viewer->removePointCloud("transformed_cloud");
             p_viewer->addPointCloud(p_transformed_cloud, color, "transformed_cloud");
             p_viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "transformed_cloud");
+
+            // Update point cloud
+            //pc_source_segmentation.setPointCloud(p_transformed_cloud);
+
+            // Update merger list of normals and centroids
+            //pc_source_merger.applyTransform(M);
         }
-
-        // Update point cloud
-        //pc_source_segmentation.setPointCloud(p_transformed_cloud);
-
-        // Update merger list of normals and centroids
-        //pc_source_merger.applyTransform(M);
     }
     else if(event.keyDown())
     {
@@ -487,7 +487,7 @@ int main()
 
     if(!sourceIsMesh)
     {
-        pc_source_segmentation.init(pcLIDAR_region3_2017_seg2_r1, true);
+        pc_source_segmentation.init(pcLIDAR_region3_2017_seg1_rotated_4, true);
         pc_source_segmentation.setViewerUpdateCallback(display_update_callable);
         pc_source_segmentation.setAddPlaneCallback(add_plane_callable);
         pc_source_segmentation.setUpdateNormalCloudCallback(update_normal_cloud_callable);
@@ -501,7 +501,7 @@ int main()
 
     if(!targetIsMesh)
     {
-        pc_target_segmentation.init(pcLIDAR_region3_2017_seg2, false);
+        pc_target_segmentation.init(pcLIDAR_region3_2017_seg1, false);
         pc_target_segmentation.setViewerUpdateCallback(display_update_callable);
 
         pc_target_merger.init(display_update_callable, false);

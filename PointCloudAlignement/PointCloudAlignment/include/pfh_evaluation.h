@@ -6,7 +6,7 @@
 #include "segmented_points_container.h"
 
 #define PLANE_TRESHOLD 20
-#define CENTER_KNN 10
+#define CENTER_KNN 20
 
 typedef pcl::PointCloud<pcl::PointNormal> PointNormalCloud;
 typedef pcl::PointNormal PointNormal;
@@ -21,8 +21,7 @@ public:
 
     static pcl::PointCloud<pcl::PFHSignature125> computePFHSignatures(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
 
-    static size_t getMinTarget(size_t i, pcl::PointCloud<pcl::PFHSignature125> source_signs, pcl::PointCloud<pcl::PFHSignature125> target_signs);
+    static size_t getMinTarget(size_t i, pcl::PointCloud<pcl::PFHSignature125> source_signs, pcl::PointCloud<pcl::PFHSignature125> target_signs, vector<size_t> &ignore_list);
 
 private:
-    //pcl::PFHSignature125 computePFHSignature(PointNormalCloud::Ptr p_cloud, KdTreeFlann::Ptr p_kdTree, SegmentedPointsContainer::SegmentedPlane &plane);
 };

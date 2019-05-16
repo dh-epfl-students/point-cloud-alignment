@@ -51,27 +51,30 @@ pcl::PointCloud<pcl::PFHSignature125> PFHEvaluation::computePFHSignatures(vector
     return pfh_cloud;
 }
 
-size_t PFHEvaluation::getMinTarget(size_t i, pcl::PointCloud<pcl::PFHSignature125> source_signs, pcl::PointCloud<pcl::PFHSignature125> target_signs)
+size_t PFHEvaluation::getMinTarget(size_t i, pcl::PointCloud<pcl::PFHSignature125> source_signs, pcl::PointCloud<pcl::PFHSignature125> target_signs, vector<size_t> &ignore_list)
 {
     size_t j = 0;
     float min_error = numeric_limits<float>::infinity();
 
     for(size_t it = 0; it < target_signs.points.size(); ++it)
     {
-        float curr_error = 0;
-
-        for(int bin_index = 0; bin_index < target_signs.points[it].descriptorSize(); ++bin_index)
+        if(find(ignore_list.begin(), ignore_list.end(), it) == ignore_list.end())
         {
-            curr_error += abs(source_signs.points[i].histogram[bin_index] - target_signs.points[it].histogram[bin_index]);
-        }
+            float curr_error = 0;
 
-        if(curr_error < min_error)
-        {
-            min_error = curr_error;
-            j = it;
-        }
-        else if (curr_error == min_error) {
-            cout << "SAME ERROR VALUE -> NEED TO CHANGE THE WAY M IS COMPUTED" << endl;
+            for(int bin_index = 0; bin_index < target_signs.points[it].descriptorSize(); ++bin_index)
+            {
+                curr_error += abs(source_signs.points[i].histogram[bin_index] - target_signs.points[it].histogram[bin_index]);
+            }
+
+            if(curr_error < min_error)
+            {
+                min_error = curr_error;
+                j = it;
+            }
+            else if (curr_error == min_error) {
+                cout << "SAME ERROR VALUE -> NEED TO CHANGE THE WAY M IS COMPUTED" << endl;
+            }
         }
     }
 

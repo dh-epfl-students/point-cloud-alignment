@@ -12,6 +12,8 @@
 
 #define MIN_SURFACE 50
 
+typedef pcl::PointCloud<pcl::PFHSignature125> PFHCloud;
+
 class Registration {
 public:
     void setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool targetIsMesh, bool sourceIsMesh,
@@ -58,4 +60,5 @@ private:
      * @return The matrix M
      */
     Eigen::MatrixXf computeMWithPFHSignature();
+    float computePFHError(size_t i, size_t j, PFHCloud &source, PFHCloud &target);
 };
