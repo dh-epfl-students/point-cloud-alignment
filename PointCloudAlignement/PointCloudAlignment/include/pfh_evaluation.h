@@ -6,7 +6,7 @@
 #include "segmented_points_container.h"
 
 #define PLANE_TRESHOLD 20
-#define CENTER_KNN 20
+#define CENTER_KNN 50
 
 typedef pcl::PointCloud<pcl::PointNormal> PointNormalCloud;
 typedef pcl::PointNormal PointNormal;

@@ -82,6 +82,10 @@ mat3 Registration::findAlignment()
     if(target.empty() || source.empty()) return mat3::Identity();
 
     mat3 R = findRotation();
+    mat4 T = findTranslation();
+
+    cout << "T: " << endl << T << endl;
+
     //R *= -1;
     return R;
 }
@@ -145,7 +149,7 @@ mat3 Registration::findRotation()
 
     //computeMwithCentroids(l_cS, l_cT, angles_S, angles_T, angles_cS, angles_cT);
 
-    M = computeMWithPFHSignature();
+    M = computeMWithPFHSignature(MAX_SOURCE_PLANES);
 
     // Write M to file
     string filename("myMatrixMFile.txt");
@@ -158,19 +162,42 @@ mat3 Registration::findRotation()
     mat3 H = computeHwithCentroids(l_cS, l_cT);
     mat3 R = computeR(H);
 
-
     if(R.determinant() < 0.0f)
     {
         cout << "det of R is less than 0" << endl;
-        R.col(2) = -1 * R.col(2);
+        //vec4 eigv = R.eigenvalues();
+
+        R.col(1) = -1 * R.col(1);
     }
 
     return R;
 }
 
-mat3 Registration::findTranslation()
+mat4 Registration::findTranslation()
 {
-    return mat3::Zero();
+    // Compute the mean of centers from selected corresponding source and target planes
+    vec3 source_cmean(0, 0, 0);
+    vec3 target_cmean(0, 0, 0);
+
+    for(auto t: this->selected_planes)
+    {
+        auto i = get<0>(t);
+        auto j = get<1>(t);
+
+        source_cmean += source[i].plane.getCenter();
+        target_cmean += target[j].plane.getCenter();
+    }
+
+    source_cmean /= selected_planes.size();
+    target_cmean /= selected_planes.size();
+
+    // Compute translation vector from source center mean to target center mean.
+    vec3 t_vec = target_cmean - source_cmean;
+
+    // Compute translation matrix
+    mat4 T = Eigen::Affine3f(Eigen::Translation3f(t_vec)).matrix();
+
+    return T;
 }
 
 void Registration::computeMwithNormals()
@@ -579,7 +606,7 @@ vec2 Registration::compute2dCentroid(vector<vec2> l_points)
 
 /////======================== PFH Based computation of M =====================================================================
 
-Eigen::MatrixXf Registration::computeMWithPFHSignature()
+Eigen::MatrixXf Registration::computeMWithPFHSignature(int source_nb)
 {
     PFHCloud source_signs = PFHEvaluation::computePFHSignatures(source);
     PFHCloud target_signs = PFHEvaluation::computePFHSignatures(target);
@@ -602,11 +629,14 @@ Eigen::MatrixXf Registration::computeMWithPFHSignature()
     vector<size_t> ignore_list;
 
     // Fill M by associating each source to one target based on pfh histograms errors
-    for (i = 0; i < std::min((int)source_indices.size(), 30); ++i)
+    for (i = 0; i < (int)source_indices.size() / 2.0f/*std::min((int)source_indices.size(), source_nb)*/; ++i)
     {
         size_t j = PFHEvaluation::getMinTarget(source_indices[i], source_signs, target_signs, ignore_list);
         M_pfh(source_indices[i], j) += 1;
         ignore_list.push_back(j);
+
+        //List of selected plane tuples (source, target) for translation computation
+        selected_planes.push_back(make_tuple(source_indices[i], j));
     }
     /*
     for(i = 0; i < source_signs.size(); ++i)

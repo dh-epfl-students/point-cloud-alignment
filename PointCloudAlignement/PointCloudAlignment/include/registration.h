@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tuple>
 #include <cmath>
 #include <fstream>
 #include <Eigen/Dense>
@@ -11,6 +12,7 @@
 #include "pfh_evaluation.h"
 
 #define MIN_SURFACE 50
+#define MAX_SOURCE_PLANES 50
 
 typedef pcl::PointCloud<pcl::PFHSignature125> PFHCloud;
 
@@ -30,12 +32,13 @@ private:
     vector<SegmentedPointsContainer::SegmentedPlane> target;
     vector<float> source_surfaces;
     vector<float> target_surfaces;
+    vector<tuple<size_t, size_t>> selected_planes;
 
     function<void(SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane, ivec3)> display_update_callable;
 
     void filterPlanes(int nb_planes, vector<SegmentedPointsContainer::SegmentedPlane> &planes, vector<float> &surfaces);
     mat3 findRotation();
-    mat3 findTranslation();
+    mat4 findTranslation();
     void computeMwithNormals();
     void computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT, vector<float> &l_aS, vector<float> &l_aT, vector<float> &angles_cS, vector<float> &angles_cT);
     mat3 computeHwithNormals(vector<vec3> qs, vector<vec3> qt);
@@ -59,6 +62,6 @@ private:
      * @brief computeMWithPFHSignature
      * @return The matrix M
      */
-    Eigen::MatrixXf computeMWithPFHSignature();
+    Eigen::MatrixXf computeMWithPFHSignature(int source_nb);
     float computePFHError(size_t i, size_t j, PFHCloud &source, PFHCloud &target);
 };

@@ -487,7 +487,7 @@ int main()
 
     if(!sourceIsMesh)
     {
-        pc_source_segmentation.init(pcLIDAR_region3_2017_seg1_rotated_4, true);
+        pc_source_segmentation.init(pcLIDAR_region3_2017_seg4_rotated_1, true);
         pc_source_segmentation.setViewerUpdateCallback(display_update_callable);
         pc_source_segmentation.setAddPlaneCallback(add_plane_callable);
         pc_source_segmentation.setUpdateNormalCloudCallback(update_normal_cloud_callable);
@@ -501,7 +501,7 @@ int main()
 
     if(!targetIsMesh)
     {
-        pc_target_segmentation.init(pcLIDAR_region3_2017_seg1, false);
+        pc_target_segmentation.init(pcLIDAR_region3_2017_seg4, false);
         pc_target_segmentation.setViewerUpdateCallback(display_update_callable);
 
         pc_target_merger.init(display_update_callable, false);
