@@ -19,7 +19,7 @@ bool PFHEvaluation::isValidPlane(PointNormalKCloud::Ptr points, vector<int> &ind
     return pfh_histogram[62] > PLANE_TRESHOLD;
 }
 
-pcl::PointCloud<pcl::PFHSignature125> PFHEvaluation::computePFHSignatures(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes)
+PFHCloud PFHEvaluation::computePFHSignatures(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes)
 {
     // First, build cloud of points+normals of every planes' centers and normals.
     PointNormalCloud::Ptr cloud(new PointNormalCloud);
@@ -45,39 +45,38 @@ pcl::PointCloud<pcl::PFHSignature125> PFHEvaluation::computePFHSignatures(vector
     pfh.setInputCloud(cloud);
     pfh.setInputNormals(cloud);
     pfh.setSearchMethod(p_kdTree);
-    pfh.setKSearch(CENTER_KNN);
+    pfh.setKSearch(/*cloud->size()*/CENTER_KNN);
     pfh.compute(pfh_cloud);
 
     return pfh_cloud;
 }
 
-size_t PFHEvaluation::getMinTarget(size_t i, pcl::PointCloud<pcl::PFHSignature125> source_signs, pcl::PointCloud<pcl::PFHSignature125> target_signs, vector<size_t> &ignore_list)
+size_t PFHEvaluation::getMinTarget(size_t i, PFHCloud source_signs, PFHCloud target_signs, float &out_error)
 {
     size_t j = 0;
     float min_error = numeric_limits<float>::infinity();
 
     for(size_t it = 0; it < target_signs.points.size(); ++it)
     {
-        if(find(ignore_list.begin(), ignore_list.end(), it) == ignore_list.end())
+
+        float curr_error = 0;
+
+        for(int bin_index = 0; bin_index < target_signs.points[it].descriptorSize(); ++bin_index)
         {
-            float curr_error = 0;
+            curr_error += abs(source_signs.points[i].histogram[bin_index] - target_signs.points[it].histogram[bin_index]);
+        }
 
-            for(int bin_index = 0; bin_index < target_signs.points[it].descriptorSize(); ++bin_index)
-            {
-                curr_error += abs(source_signs.points[i].histogram[bin_index] - target_signs.points[it].histogram[bin_index]);
-            }
-
-            if(curr_error < min_error)
-            {
-                min_error = curr_error;
-                j = it;
-            }
-            else if (curr_error == min_error) {
-                cout << "SAME ERROR VALUE -> NEED TO CHANGE THE WAY M IS COMPUTED" << endl;
-            }
+        if(curr_error < min_error)
+        {
+            min_error = curr_error;
+            j = it;
+        }
+        else if (curr_error == min_error) {
+            cout << "SAME ERROR VALUE: " << curr_error << endl;
         }
     }
 
+    out_error = min_error;
     return j;
 }
 

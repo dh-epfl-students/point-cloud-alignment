@@ -671,28 +671,27 @@ Eigen::MatrixXf Registration::computeMWithPFHSignature(int source_nb)
     });
 
     Eigen::MatrixXf M_pfh = Eigen::MatrixXf::Zero(source.size(), target.size());
-    vector<size_t> ignore_list;
 
     // Fill M by associating each source to one target based on pfh histograms errors
     for (i = 0; i < (int)source_indices.size() / 2.0f/*std::min((int)source_indices.size(), source_nb)*/; ++i)
     {
-        size_t j = PFHEvaluation::getMinTarget(source_indices[i], source_signs, target_signs, ignore_list);
+        float error;
+        size_t j = PFHEvaluation::getMinTarget(source_indices[i], source_signs, target_signs, error);
+
+        remove_if(selected_planes.begin(), selected_planes.end(), [&j, &error](tuple<size_t, size_t, float> t){
+            return (get<1>(t) == j) && (get<2>(t) > error);
+        });
+
         M_pfh(source_indices[i], j) += 1;
-        ignore_list.push_back(j);
 
         //List of selected plane tuples (source, target) for translation computation
-        selected_planes.push_back(make_tuple(source_indices[i], j));
+        selected_planes.push_back(make_tuple(source_indices[i], j, error));
     }
-    /*
-    for(i = 0; i < source_signs.size(); ++i)
-    {
-        for(size_t j = 0; j < target_signs.size(); ++j)
-        {
-            M_pfh(i, j) = computePFHError(i, j, source_signs, target_signs);
-        }
-    }*/
 
-    cout << M_pfh << endl;
+    cout << "Chosen list is: " << endl;
+    //cout << selected_planes << endl;
+
+    //cout << M_pfh << endl;
 
     return M_pfh;
 }

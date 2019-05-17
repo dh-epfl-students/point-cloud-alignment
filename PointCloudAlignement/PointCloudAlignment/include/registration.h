@@ -14,8 +14,6 @@
 #define MIN_SURFACE 50
 #define MAX_SOURCE_PLANES 50
 
-typedef pcl::PointCloud<pcl::PFHSignature125> PFHCloud;
-
 class Registration {
 public:
     void setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool targetIsMesh, bool sourceIsMesh,
@@ -35,7 +33,7 @@ private:
     vector<SegmentedPointsContainer::SegmentedPlane> target;
     vector<float> source_surfaces;
     vector<float> target_surfaces;
-    vector<tuple<size_t, size_t>> selected_planes;
+    vector<tuple<size_t, size_t, float>> selected_planes;
     int curr_highlighted_plane = -1;
 
     function<void(SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane, ivec3)> display_update_callable;

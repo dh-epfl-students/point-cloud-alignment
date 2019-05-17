@@ -19,9 +19,9 @@ public:
 
     static bool isValidPlane(PointNormalKCloud::Ptr points, vector<int> &indices_in);
 
-    static pcl::PointCloud<pcl::PFHSignature125> computePFHSignatures(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
+    static PFHCloud computePFHSignatures(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
 
-    static size_t getMinTarget(size_t i, pcl::PointCloud<pcl::PFHSignature125> source_signs, pcl::PointCloud<pcl::PFHSignature125> target_signs, vector<size_t> &ignore_list);
+    static size_t getMinTarget(size_t i, PFHCloud source_signs, PFHCloud target_signs, float &out_error);
 
 private:
 };
