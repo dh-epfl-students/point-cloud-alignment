@@ -77,20 +77,39 @@ void Registration::setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &s
     }
 }
 
-mat3 Registration::findAlignment()
+void Registration::highlightAssociatedPlanes()
 {
-    if(target.empty() || source.empty()) return mat3::Identity();
+    // First reset colors if previous plane was highlighted
+    if(curr_highlighted_plane != -1)
+    {
+        size_t source_id = std::get<0>(selected_planes[curr_highlighted_plane]);
+        size_t target_id = std::get<1>(selected_planes[curr_highlighted_plane]);
 
-    mat3 R = findRotation();
-    mat4 T = findTranslation();
+        display_update_callable(source[source_id], target[target_id], source[source_id].color);
+    }
+
+    // Increment for next plane
+    curr_highlighted_plane = curr_highlighted_plane < selected_planes.size()-1 ? curr_highlighted_plane + 1 : 0;
+
+    size_t source_id = std::get<0>(selected_planes[curr_highlighted_plane]);
+    size_t target_id = std::get<1>(selected_planes[curr_highlighted_plane]);
+
+    display_update_callable(source[source_id], target[target_id], ivec3::Zero());
+}
+
+mat4 Registration::findAlignment()
+{
+    if(target.empty() || source.empty()) return mat4::Identity();
+
+    mat4 R = findRotation();
+    mat4 T = findAndAddTranslation(R);
 
     cout << "T: " << endl << T << endl;
 
-    //R *= -1;
-    return R;
+    return T;
 }
 
-mat3 Registration::findRotation()
+mat4 Registration::findRotation()
 {
     vec3 cS, cT, nS, nT;
     vector<vec3> l_cS, l_cT, l_nS, l_nT;
@@ -160,20 +179,15 @@ mat3 Registration::findRotation()
 
     //mat3 H = computeHwithNormals(l_nS, l_nT);
     mat3 H = computeHwithCentroids(l_cS, l_cT);
-    mat3 R = computeR(H);
+    mat3 R3 = computeR(H);
 
-    if(R.determinant() < 0.0f)
-    {
-        cout << "det of R is less than 0" << endl;
-        //vec4 eigv = R.eigenvalues();
-
-        R.col(1) = -1 * R.col(1);
-    }
+    mat4 R = mat4::Identity();
+    R.block(0, 0, 3, 3) << R3;
 
     return R;
 }
 
-mat4 Registration::findTranslation()
+mat4 Registration::findAndAddTranslation(mat4 &R)
 {
     // Compute the mean of centers from selected corresponding source and target planes
     vec3 source_cmean(0, 0, 0);
@@ -191,13 +205,20 @@ mat4 Registration::findTranslation()
     source_cmean /= selected_planes.size();
     target_cmean /= selected_planes.size();
 
+    // We have to compute the translation vector from the rotated source to the target. Need to find the translation to origin from centroid of selected points
+    mat4 T1 = Eigen::Affine3f(Eigen::Translation3f(-source_cmean)).matrix();
+    mat4 T2 = T1.inverse();
+
+    // Rotate the source centroid
+    vec4 source_rotated = T2 * R * T1 * vec4(source_cmean.x(), source_cmean.y(), source_cmean.z(), 1);
+
     // Compute translation vector from source center mean to target center mean.
-    vec3 t_vec = target_cmean - source_cmean;
+    vec3 t_vec = target_cmean - vec3(source_rotated.x(), source_rotated.y(), source_rotated.z());
 
     // Compute translation matrix
     mat4 T = Eigen::Affine3f(Eigen::Translation3f(t_vec)).matrix();
 
-    return T;
+    return T * T2 * R * T1;
 }
 
 void Registration::computeMwithNormals()
@@ -327,7 +348,31 @@ mat3 Registration::computeR(mat3 H)
     Eigen::JacobiSVD<mat3> svd(H, Eigen::ComputeFullU | Eigen::ComputeFullV);
     mat3 u = svd.matrixU();
     mat3 v = svd.matrixV();
-    return v * u.transpose();
+
+    mat3 R = v * u.transpose();
+
+    if(R.determinant() < 0.0f)
+    {
+        cout << "det of R is less than 0" << endl;
+        cout << "Initial R: " << endl << R << endl;
+
+        v.col(2) = -1 * v.col(2);
+        R = v * u.transpose();
+
+        //R.col(0) *= -1;
+
+        cout << "Corrected R: " << endl << R << endl;
+
+        auto eigv = svd.singularValues();
+        cout << "Eigenvalues: " << eigv.transpose() << endl;
+
+//        for(int i = 0; i < R3.cols(); ++i)
+//        {
+//            if(eigv[i] < 0) R3.col(i) = -1 * R3.col(i);
+//        }
+    }
+
+    return R;
 }
 
 vec3 Registration::computeCentroid(vector<SegmentedPointsContainer::SegmentedPlane> &list, bool isMesh)

@@ -176,38 +176,43 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         // Display source in red and target in green
         if(isDualViewDisplayed)
         {
-            viewer->removePointCloud("target_point_cloud");
-            viewer->removePointCloud("source_point_cloud");
+            if(!sourceIsMesh)
+            {
+                viewer->removePointCloud("source_point_cloud");
+                pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb_source(pc_source_segmentation.getPointCloud());
+                p_viewer->addPointCloud(pc_source_segmentation.getPointCloud(), rgb_source, "source_point_cloud");
+                p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
+            }
 
-            pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb_target(pc_target_segmentation.getPointCloud());
-            pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb_source(pc_source_segmentation.getPointCloud());
-
-            p_viewer->addPointCloud(pc_target_segmentation.getPointCloud(), rgb_target, "target_point_cloud");
-            p_viewer->addPointCloud(pc_source_segmentation.getPointCloud(), rgb_source, "source_point_cloud");
-
-            p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "target_point_cloud");
-            p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
+            if(!targetIsMesh)
+            {
+                viewer->removePointCloud("target_point_cloud");
+                pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb_target(pc_target_segmentation.getPointCloud());
+                p_viewer->addPointCloud(pc_target_segmentation.getPointCloud(), rgb_target, "target_point_cloud");
+                p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "target_point_cloud");
+            }
 
             isDualViewDisplayed = false;
         }
         else
         {
-            viewer->removePointCloud("target_point_cloud");
-            viewer->removePointCloud("source_point_cloud");
+            if(!sourceIsMesh)
+            {
+                viewer->removePointCloud("source_point_cloud");
+                PointNormalKCloud::Ptr red_c = pc_source_segmentation.getPointCloud();
+                pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> red(red_c, 255, 15, 15);
+                viewer->addPointCloud(red_c, red, "source_point_cloud");
+                viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
+            }
 
-            PointNormalKCloud::Ptr red_c = pc_source_segmentation.getPointCloud();
-            PointNormalKCloud::Ptr green_c = pc_target_segmentation.getPointCloud();
-
-            // Display the available points in green and excluded points in red
-            pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> red(red_c, 255, 15, 15);
-            pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> green(green_c, 15, 255, 15);
-
-            // Add the 2 point clouds
-            viewer->addPointCloud(green_c, green, "target_point_cloud");
-            viewer->addPointCloud(red_c, red, "source_point_cloud");
-
-            viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "target_point_cloud");
-            viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
+            if(!targetIsMesh)
+            {
+                viewer->removePointCloud("target_point_cloud");
+                PointNormalKCloud::Ptr green_c = pc_target_segmentation.getPointCloud();
+                pcl::visualization::PointCloudColorHandlerCustom<PointNormalK> green(green_c, 15, 255, 15);
+                viewer->addPointCloud(green_c, green, "target_point_cloud");
+                viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "target_point_cloud");
+            }
 
             isDualViewDisplayed = true;
         }
@@ -244,15 +249,6 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
                 {
                     pc_target_segmentation.preprocessCloud();
                 }
-            }
-        }
-
-        for(size_t i = 0; i < 200; ++i)
-        {
-            if(pc_source_segmentation.getPointCloud()->points[i].curvature != pc_target_segmentation.getPointCloud()->points[i].curvature)
-            {
-                cout << "curvature " << i << " : source curv = " << pc_source_segmentation.getPointCloud()->points[i].curvature
-                     << ", target curv = " << pc_target_segmentation.getPointCloud()->points[i].curvature << endl;
             }
         }
     }
@@ -316,30 +312,9 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
 
         // Find Rotation
         registration.setClouds(source, target, targetIsMesh, sourceIsMesh, pc_source_segmentation.getPointCloud(), pc_target_segmentation.getPointCloud());
-        mat3 R = registration.findAlignment();
+        mat4 finalTransform = registration.findAlignment();
 
-        // We need to compose the transformation matrix -> translate point cloud to origin
-        //                                              -> apply the rotation
-        //                                              -> translate it back to original position
-        vec4 centroid;
-        if(sourceIsMesh)
-        {
-            pcl::compute3DCentroid(*mesh_source_segmentation.getPointCloud(), centroid);
-        }
-        else
-        {
-            pcl::compute3DCentroid(*pc_source_segmentation.getPointCloud(), centroid);
-        }
-
-        mat4 T1 = Eigen::Affine3f(Eigen::Translation3f(vec3(-centroid.x(), -centroid.y(), -centroid.z()))).matrix();
-        mat4 T2 = T1.inverse();
-        mat4 M = mat4::Identity();
-        M.block(0, 0, 3, 3) << R;
-        cout << "R:" << endl << M << endl;
-
-        mat4 finalTransform = T2 * M * T1;
-        cout << "Final Transformation:" << endl << finalTransform << endl;
-
+        // Apply the transformation to the source
         if(sourceIsMesh)
         {
             pcl::PointCloud<pcl::PointXYZRGB> cloud;
@@ -376,6 +351,10 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
             // Update merger list of normals and centroids
             //pc_source_merger.applyTransform(M);
         }
+    }
+    else if(event.getKeySym() == "k" && event.keyDown())
+    {
+        registration.highlightAssociatedPlanes();
     }
     else if(event.keyDown())
     {
@@ -417,12 +396,30 @@ void update_normal_cloud_callback()
 
 void pc_planes_callback(SegmentedPointsContainer::SegmentedPlane source_plane, SegmentedPointsContainer::SegmentedPlane target_plane, ivec3 color)
 {
-    auto pc = pc_source_segmentation.getPointCloud();
-    display_update_callback(pc, color, source_plane.indices_list);
+    if(targetIsMesh)
+    {
+        mesh_target_segmentation.updateColors(target_plane, color);
+        refresh_target_mesh = true;
+    }
+    else
+    {
+        auto pc = pc_target_segmentation.getPointCloud();
+        display_update_callback(pc, color, target_plane.indices_list, false);
+    }
 
-    mesh_target_segmentation.updateColors(target_plane, color);
+    if(sourceIsMesh)
+    {
+        mesh_source_segmentation.updateColors(source_plane, color);
+        refresh_source_mesh = true;
+    }
+    else
+    {
+        auto pc = pc_source_segmentation.getPointCloud();
+        display_update_callback(pc, color, source_plane.indices_list);
+    }
 
-    refresh_target_mesh = true;
+
+
 }
 
 function<void(PointNormalKCloud::Ptr, ivec3 color, vector<int> indices, bool isSource)> display_update_callable = &display_update_callback;
@@ -452,7 +449,7 @@ int main()
     string mesh_region3_2_extended1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg2_extended1_shifted.ply");
 
     string mesh_region3_1_rot1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg1_shifted_float_rot1.ply");
-    target_mesh_filename = mesh_region3_1;
+    target_mesh_filename = mesh_region3_2;
     source_mesh_filename = mesh_region3_1_rot1;
 
     // Original PC sources
@@ -487,7 +484,7 @@ int main()
 
     if(!sourceIsMesh)
     {
-        pc_source_segmentation.init(pcLIDAR_region3_2017_seg4_rotated_1, true);
+        pc_source_segmentation.init(pcLIDAR_region3_2017_seg3_r1, true);
         pc_source_segmentation.setViewerUpdateCallback(display_update_callable);
         pc_source_segmentation.setAddPlaneCallback(add_plane_callable);
         pc_source_segmentation.setUpdateNormalCloudCallback(update_normal_cloud_callable);
@@ -501,7 +498,7 @@ int main()
 
     if(!targetIsMesh)
     {
-        pc_target_segmentation.init(pcLIDAR_region3_2017_seg4, false);
+        pc_target_segmentation.init(pcLIDAR_region3_2017_seg3, false);
         pc_target_segmentation.setViewerUpdateCallback(display_update_callable);
 
         pc_target_merger.init(display_update_callable, false);

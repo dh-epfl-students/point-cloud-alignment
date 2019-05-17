@@ -20,8 +20,11 @@ class Registration {
 public:
     void setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &source, vector<SegmentedPointsContainer::SegmentedPlane> &target, bool targetIsMesh, bool sourceIsMesh,
                    PointNormalKCloud::Ptr p_source_cloud = nullptr, PointNormalKCloud::Ptr p_target_cloud = nullptr);
-    mat3 findAlignment();
+
     void setCallback(function<void(SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane, ivec3)> callable) { this->display_update_callable = callable; }
+
+    mat4 findAlignment();
+    void highlightAssociatedPlanes();
 
 private:
     bool targetIsMesh = false;
@@ -33,12 +36,13 @@ private:
     vector<float> source_surfaces;
     vector<float> target_surfaces;
     vector<tuple<size_t, size_t>> selected_planes;
+    int curr_highlighted_plane = -1;
 
     function<void(SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane, ivec3)> display_update_callable;
 
     void filterPlanes(int nb_planes, vector<SegmentedPointsContainer::SegmentedPlane> &planes, vector<float> &surfaces);
-    mat3 findRotation();
-    mat4 findTranslation();
+    mat4 findRotation();
+    mat4 findAndAddTranslation(mat4 &R);
     void computeMwithNormals();
     void computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT, vector<float> &l_aS, vector<float> &l_aT, vector<float> &angles_cS, vector<float> &angles_cT);
     mat3 computeHwithNormals(vector<vec3> qs, vector<vec3> qt);
