@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pcl/features/pfh.h>
+#include <pcl/features/fpfh_omp.h>
 
 #include "common.h"
 #include "segmented_points_container.h"
@@ -21,7 +22,12 @@ public:
 
     static PFHCloud computePFHSignatures(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
 
+    static FPFHCloud computeFPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
+
     static size_t getMinTarget(size_t i, PFHCloud source_signs, PFHCloud target_signs, float &out_error);
 
+    static size_t getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, FPFHCloud &source_signs, FPFHCloud &target_signs, float &out_error);
+
 private:
+    static PointNormalCloud::Ptr buildPointCloud(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
 };

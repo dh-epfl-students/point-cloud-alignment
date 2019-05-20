@@ -94,7 +94,8 @@ void Registration::highlightAssociatedPlanes()
     size_t source_id = std::get<0>(selected_planes[curr_highlighted_plane]);
     size_t target_id = std::get<1>(selected_planes[curr_highlighted_plane]);
 
-    display_update_callable(source[source_id], target[target_id], ivec3::Zero());
+    display_update_callable(source[source_id], target[target_id], ivec3(255, 255, 255));
+    cout << "Associated source " << source_id << " : " << source_surfaces[source_id] << " with target " << target_id << " : " << target_surfaces[target_id] << endl;
 }
 
 mat4 Registration::findAlignment()
@@ -102,8 +103,13 @@ mat4 Registration::findAlignment()
     if(target.empty() || source.empty()) return mat4::Identity();
 
     mat4 R = findRotation();
+
+    float init_error = getAlignmentError();
+    cout << "Initial error: " << init_error << endl;
+
     mat4 T = findAndAddTranslation(R);
 
+    cout << "R: " << endl << R << endl;
     cout << "T: " << endl << T << endl;
 
     return T;
@@ -168,7 +174,8 @@ mat4 Registration::findRotation()
 
     //computeMwithCentroids(l_cS, l_cT, angles_S, angles_T, angles_cS, angles_cT);
 
-    M = computeMWithPFHSignature(MAX_SOURCE_PLANES);
+    //M = computeMWithPFHSignature(MAX_SOURCE_PLANES);
+    M = computeMwithFPFHSignatures();
 
     // Write M to file
     string filename("myMatrixMFile.txt");
@@ -205,12 +212,8 @@ mat4 Registration::findAndAddTranslation(mat4 &R)
     source_cmean /= selected_planes.size();
     target_cmean /= selected_planes.size();
 
-    // We have to compute the translation vector from the rotated source to the target. Need to find the translation to origin from centroid of selected points
-    mat4 T1 = Eigen::Affine3f(Eigen::Translation3f(-source_cmean)).matrix();
-    mat4 T2 = T1.inverse();
-
     // Rotate the source centroid
-    vec4 source_rotated = T2 * R * T1 * vec4(source_cmean.x(), source_cmean.y(), source_cmean.z(), 1);
+    vec4 source_rotated = /*T2 */ R /* T1*/ * vec4(source_cmean.x(), source_cmean.y(), source_cmean.z(), 1);
 
     // Compute translation vector from source center mean to target center mean.
     vec3 t_vec = target_cmean - vec3(source_rotated.x(), source_rotated.y(), source_rotated.z());
@@ -218,7 +221,9 @@ mat4 Registration::findAndAddTranslation(mat4 &R)
     // Compute translation matrix
     mat4 T = Eigen::Affine3f(Eigen::Translation3f(t_vec)).matrix();
 
-    return T * T2 * R * T1;
+    cout << "T:" << endl << T << endl;
+
+    return T * R;
 }
 
 void Registration::computeMwithNormals()
@@ -576,9 +581,6 @@ float Registration::computeDelaunaySurface(PointNormalKCloud::Ptr p_cloud, Segme
     vector<cv::Vec6f> triangles;
     sub.getTriangleList(triangles);
 
-    vector<cv::Vec4f> edges;
-    sub.getEdgeList(edges);
-
     // Sum up every triangles' surface
     ofstream file2;
     file2.open("triangles.txt");
@@ -600,7 +602,7 @@ float Registration::computeDelaunaySurface(PointNormalKCloud::Ptr p_cloud, Segme
             vec2 v1 = x2 - x1;
             vec2 v2 = x3 - x1;
 
-            float surf = 0.5f * abs(crossProduct(v1, v2));
+            float surf = 0.5f * fabs(crossProduct(v1, v2));
 
             file2 << x1.transpose() << ", " << x2.transpose() << ", " << x3.transpose() << ", surface: " << surf << endl;
             surface += surf;
@@ -633,7 +635,20 @@ void Registration::computePlaneBase(SegmentedPointsContainer::SegmentedPlane &pl
     vec3 n = plane.plane.getNormalizedN();
 
     // Build e1 by rotating plane normal by 90 degrees
-    e1 = vec3(n.y(), -n.x(), n.z()).normalized();
+    if(n.x() != 0)
+    {
+        e1 = vec3(n.y(), -n.x(), 0).normalized();
+    }
+    else if(n.y() != 0)
+    {
+        e1 = vec3(-n.y(), n.x(), 0).normalized();
+    }
+    else
+    {
+        e1 = vec3(-n.z(), 0, n.x()).normalized();
+    }
+
+    //e1 = vec3(n.y(), -n.x(), n.z()).normalized();
 
     // Base should be orthogonal
     e2 = n.cross(e1).normalized();
@@ -688,12 +703,62 @@ Eigen::MatrixXf Registration::computeMWithPFHSignature(int source_nb)
         selected_planes.push_back(make_tuple(source_indices[i], j, error));
     }
 
-    cout << "Chosen list is: " << endl;
-    //cout << selected_planes << endl;
+    //cout << M_pfh << endl;
+
+    return M_pfh;
+}
+
+Eigen::MatrixXf Registration::computeMwithFPFHSignatures()
+{
+    // Compute fpfh forall planes' centers
+    FPFHCloud source_signs = PFHEvaluation::computeFPFHSignature(source);
+    FPFHCloud target_signs = PFHEvaluation::computeFPFHSignature(target);
+
+    // Construct indice list of planes
+    vector<size_t> source_indices = getSortedIndicesGiven(source_surfaces);
+
+    Eigen::MatrixXf M_pfh = Eigen::MatrixXf::Zero(source.size(), target.size());
+
+    // Fill M by associating each source to one target based on fpfh histograms errors
+    for (size_t i = 0; i < static_cast<size_t>(source_indices.size() / 2.0f)/*std::min((int)source_indices.size(), source_nb)*/; ++i)
+    {
+        float error;
+        size_t j = PFHEvaluation::getMinTarget(source_indices[i], source_surfaces[source_indices[i]], target_surfaces, source_signs, target_signs, error);
+
+        selected_planes.erase(remove_if(selected_planes.begin(), selected_planes.end(), [this, &j, &error](tuple<size_t, size_t, float> t){
+            float s_surf = source_surfaces[get<0>(t)];
+            float prev_t_surf = target_surfaces[get<1>(t)];
+            float curr_t_surf = target_surfaces[j];
+            return (get<1>(t) == j) && (/*(get<2>(t) > error) ||*/ (abs(s_surf - prev_t_surf) > abs(s_surf - curr_t_surf)));
+        }), selected_planes.end());
+
+        M_pfh(source_indices[i], j) += 1;
+
+        //List of selected plane tuples (source, target) for translation computation
+        selected_planes.push_back(make_tuple(source_indices[i], j, error));
+    }
 
     //cout << M_pfh << endl;
 
     return M_pfh;
+}
+
+vector<size_t> Registration::getSortedIndicesGiven(vector<float> &l_surfaces)
+{
+    // Construct indice list of planes
+    vector<size_t> indices_list;
+
+    for(size_t i = 0; i < l_surfaces.size(); ++i)
+    {
+        indices_list.push_back(i);
+    }
+
+    // Sort index list by decreasing order given by l_surfaces
+    sort(indices_list.begin(), indices_list.end(), [l_surfaces](size_t i, size_t j){
+        return l_surfaces[i] > l_surfaces[j];
+    });
+
+    return indices_list;
 }
 
 float Registration::computePFHError(size_t i, size_t j, PFHCloud &source, PFHCloud &target)
@@ -709,4 +774,33 @@ float Registration::computePFHError(size_t i, size_t j, PFHCloud &source, PFHClo
     }
 
     return exp(-0.01*err);
+}
+
+float Registration::getAlignmentError()
+{
+    if(selected_planes.empty()) return -1;
+
+    // Compute the error between selected center associations
+    float err(0);
+
+    for(auto t: selected_planes)
+    {
+        size_t i = get<0>(t);
+        size_t j = get<1>(t);
+
+        err += (source[i].plane.getCenter() - target[j].plane.getCenter()).norm();
+    }
+
+    return err;
+
+}
+
+void Registration::applyTransform(mat4 finalTransform)
+{
+    for(size_t i = 0; i < source.size(); ++i)
+    {
+        vec3 c = source[i].plane.getCenter();
+        vec4 c2 = finalTransform * vec4(c.x(), c.y(), c.z(), 1);
+        source[i].plane.setCenter(vec3(c2.x(), c2.y(), c2.z()));
+    }
 }

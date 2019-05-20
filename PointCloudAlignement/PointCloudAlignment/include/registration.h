@@ -24,6 +24,9 @@ public:
     mat4 findAlignment();
     void highlightAssociatedPlanes();
 
+    void applyTransform(mat4 finalTransform);
+    float getAlignmentError();
+
 private:
     bool targetIsMesh = false;
     bool sourceIsMesh = false;
@@ -65,5 +68,8 @@ private:
      * @return The matrix M
      */
     Eigen::MatrixXf computeMWithPFHSignature(int source_nb);
+    Eigen::MatrixXf computeMwithFPFHSignatures();
     float computePFHError(size_t i, size_t j, PFHCloud &source, PFHCloud &target);
+
+    vector<size_t> getSortedIndicesGiven(vector<float> &l_surfaces);
 };

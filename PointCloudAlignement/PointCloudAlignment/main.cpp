@@ -264,7 +264,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     }
     else if(event.getKeySym() == "F11" && event.keyDown())
     {
-        if(pc_source_segmentation.isCloudSegmented())
+        if(!sourceIsMesh && pc_source_segmentation.isCloudSegmented())
         {
             vector<SegmentedPointsContainer::SegmentedPlane> planes_list = pc_source_segmentation.getSegmentedPlanes();
             // Merge similar planes
@@ -312,6 +312,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
 
         // Find Rotation
         registration.setClouds(source, target, targetIsMesh, sourceIsMesh, pc_source_segmentation.getPointCloud(), pc_target_segmentation.getPointCloud());
+
         mat4 finalTransform = registration.findAlignment();
 
         // Apply the transformation to the source
@@ -349,7 +350,10 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
             //pc_source_segmentation.setPointCloud(p_transformed_cloud);
 
             // Update merger list of normals and centroids
-            //pc_source_merger.applyTransform(M);
+            //pc_source_merger.applyTransform(finalTransform);
+            registration.applyTransform(finalTransform);
+            float align_err = registration.getAlignmentError();
+            cout << "Alignment error: " << align_err << endl;
         }
     }
     else if(event.getKeySym() == "k" && event.keyDown())
