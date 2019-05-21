@@ -7,7 +7,8 @@
 #include "segmented_points_container.h"
 
 #define PLANE_TRESHOLD 20
-#define CENTER_KNN 50
+#define CENTER_KNN 40
+#define SURFACE_INTERVAL 50
 
 typedef pcl::PointCloud<pcl::PointNormal> PointNormalCloud;
 typedef pcl::PointNormal PointNormal;
@@ -26,7 +27,7 @@ public:
 
     static size_t getMinTarget(size_t i, PFHCloud source_signs, PFHCloud target_signs, float &out_error);
 
-    static size_t getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, FPFHCloud &source_signs, FPFHCloud &target_signs, float &out_error);
+    static int getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, FPFHCloud &source_signs, FPFHCloud &target_signs, float &out_error);
 
 private:
     static PointNormalCloud::Ptr buildPointCloud(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);

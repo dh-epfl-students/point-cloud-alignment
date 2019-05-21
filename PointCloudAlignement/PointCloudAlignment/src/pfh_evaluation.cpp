@@ -110,12 +110,22 @@ size_t PFHEvaluation::getMinTarget(size_t i, PFHCloud source_signs, PFHCloud tar
     return j;
 }
 
-size_t PFHEvaluation::getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, FPFHCloud &source_signs, FPFHCloud &target_signs, float &out_error)
+int PFHEvaluation::getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, FPFHCloud &source_signs, FPFHCloud &target_signs, float &out_error)
 {
-    size_t j = 0;
+    int j = -1;
     float min_error = numeric_limits<float>::infinity();
 
-    for(size_t it = 0; it < target_signs.points.size(); ++it)
+    // Get subset of target planes that are in surface interval of source surface
+    vector<size_t> target_indices;
+    for(size_t t_id = 0; t_id < t_surfs.size(); ++t_id)
+    {
+        if(abs(s_surf - t_surfs[t_id]) < SURFACE_INTERVAL)
+        {
+            target_indices.push_back(t_id);
+        }
+    }
+
+    for(size_t it: target_indices)
     {
 
         float curr_error = 0;

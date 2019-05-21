@@ -93,9 +93,10 @@ void Registration::highlightAssociatedPlanes()
 
     size_t source_id = std::get<0>(selected_planes[curr_highlighted_plane]);
     size_t target_id = std::get<1>(selected_planes[curr_highlighted_plane]);
+    float error = get<2>(selected_planes[curr_highlighted_plane]);
 
     display_update_callable(source[source_id], target[target_id], ivec3(255, 255, 255));
-    cout << "Associated source " << source_id << " : " << source_surfaces[source_id] << " with target " << target_id << " : " << target_surfaces[target_id] << endl;
+    cout << "Associated source " << source_id << " : " << source_surfaces[source_id] << " with target " << target_id << " : " << target_surfaces[target_id] << " with error: " << error << endl;
 }
 
 mat4 Registration::findAlignment()
@@ -720,22 +721,40 @@ Eigen::MatrixXf Registration::computeMwithFPFHSignatures()
     Eigen::MatrixXf M_pfh = Eigen::MatrixXf::Zero(source.size(), target.size());
 
     // Fill M by associating each source to one target based on fpfh histograms errors
-    for (size_t i = 0; i < static_cast<size_t>(source_indices.size() / 2.0f)/*std::min((int)source_indices.size(), source_nb)*/; ++i)
+    for (size_t i = 0; i < source_indices.size()/*std::min((int)source_indices.size(), source_nb)*/; ++i)
     {
         float error;
-        size_t j = PFHEvaluation::getMinTarget(source_indices[i], source_surfaces[source_indices[i]], target_surfaces, source_signs, target_signs, error);
+        int j = PFHEvaluation::getMinTarget(source_indices[i], source_surfaces[source_indices[i]], target_surfaces, source_signs, target_signs, error);
 
-        selected_planes.erase(remove_if(selected_planes.begin(), selected_planes.end(), [this, &j, &error](tuple<size_t, size_t, float> t){
-            float s_surf = source_surfaces[get<0>(t)];
-            float prev_t_surf = target_surfaces[get<1>(t)];
-            float curr_t_surf = target_surfaces[j];
-            return (get<1>(t) == j) && (/*(get<2>(t) > error) ||*/ (abs(s_surf - prev_t_surf) > abs(s_surf - curr_t_surf)));
-        }), selected_planes.end());
+        if(j > -1)
+        {
+            auto end_it = remove_if(selected_planes.begin(), selected_planes.end(), [this, &source_indices, &i, &j, &error](tuple<size_t, size_t, float> t){
+                float curr_s_surf = source_surfaces[source_indices[i]];
+                float prev_s_surf = source_surfaces[get<0>(t)];
+                float t_surf = target_surfaces[j];
+                size_t t_id = get<1>(t);
+                float t_err = get<2>(t);
+                return (t_id == j) && (/*(t_err > error) &&*/ (abs(prev_s_surf - t_surf) > abs(curr_s_surf - t_surf)));
+            });
 
-        M_pfh(source_indices[i], j) += 1;
+            //List of selected plane tuples (source, target) for translation computation
+            if(end_it != selected_planes.end())
+            {
+                selected_planes.erase(end_it, selected_planes.end());
+                selected_planes.push_back(make_tuple(source_indices[i], j, error));
+            } else if(find_if(selected_planes.begin(), selected_planes.end(), [&j](tuple<size_t, size_t, float> t){
+                return get<1>(t) == j;
+            }) == selected_planes.end())
+            {
+                selected_planes.push_back(make_tuple(source_indices[i], j, error));
+            }
+        }
+    }
 
-        //List of selected plane tuples (source, target) for translation computation
-        selected_planes.push_back(make_tuple(source_indices[i], j, error));
+    // Go through selected planes and fill M
+    for(auto tuple: selected_planes)
+    {
+        M_pfh(get<0>(tuple), get<1>(tuple)) += 1;
     }
 
     //cout << M_pfh << endl;
