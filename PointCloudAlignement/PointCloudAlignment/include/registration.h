@@ -13,6 +13,10 @@
 
 #define MIN_SURFACE 50
 #define MAX_SOURCE_PLANES 50
+#define PROGRESSION_TRESHOLD 20
+#define MAX_ACCEPTED_DISTANCE 20
+
+typedef tuple<size_t, size_t, float> PlaneTuples;
 
 class Registration {
 public:
@@ -24,13 +28,15 @@ public:
     mat4 findAlignment();
     void highlightAssociatedPlanes();
 
-    void applyTransform(mat4 finalTransform);
+    bool applyTransform(mat4 &finalTransform);
     float getAlignmentError();
 
 private:
     bool targetIsMesh = false;
     bool sourceIsMesh = false;
     Eigen::MatrixXf M;
+    mat4 R;
+    mat4 T;
     PointNormalKCloud::Ptr p_cloud;
     vector<SegmentedPointsContainer::SegmentedPlane> source;
     vector<SegmentedPointsContainer::SegmentedPlane> target;
@@ -42,16 +48,16 @@ private:
     function<void(SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane, ivec3)> display_update_callable;
 
     void filterPlanes(int nb_planes, vector<SegmentedPointsContainer::SegmentedPlane> &planes, vector<float> &surfaces);
-    mat4 findRotation();
+    mat4 findRotation(matX aggregation_matrix);
     mat4 findAndAddTranslation(mat4 &R);
     void computeMwithNormals();
     void computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT, vector<float> &l_aS, vector<float> &l_aT, vector<float> &angles_cS, vector<float> &angles_cT);
     mat3 computeHwithNormals(vector<vec3> qs, vector<vec3> qt);
-    mat3 computeHwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT);
+    mat3 computeHwithCentroids(matX aggregation_m, vector<vec3> &l_cS, vector<vec3> &l_cT);
     mat3 computeR(mat3 H);
-    vec3 computeCentroid(vector<SegmentedPointsContainer::SegmentedPlane> &list, bool isMesh);
+    vec3 computeNormalsCentroid(vector<SegmentedPointsContainer::SegmentedPlane> &list, bool isMesh);
     vec3 computeCentersCentroid(vector<SegmentedPointsContainer::SegmentedPlane> &list);
-    vector<vec3> computeDifSet(vector<SegmentedPointsContainer::SegmentedPlane> &list, vec3 centroid, bool isMesh);
+    vector<vec3> computeNormalsDifSet(vector<SegmentedPointsContainer::SegmentedPlane> &list, vec3 centroid, bool isMesh);
     vector<vec3> computeCentersDifSet(vector<SegmentedPointsContainer::SegmentedPlane> &list, vec3 centroid);
     vector<float> computeAngleDifs(vector<vec3> &l_shifted_centroids, vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
     vector<float> estimatePlanesSurface(PointNormalKCloud::Ptr p_cloud, vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
@@ -67,9 +73,13 @@ private:
      * @brief computeMWithPFHSignature
      * @return The matrix M
      */
-    Eigen::MatrixXf computeMWithPFHSignature(int source_nb);
-    Eigen::MatrixXf computeMwithFPFHSignatures();
+    Eigen::MatrixXf buildM(vector<PlaneTuples> &l_tuples);
+    Eigen::MatrixXf planeTuplesWithPFH(int source_nb);
+    vector<PlaneTuples> planeTuplesWithFPFH();
+
     float computePFHError(size_t i, size_t j, PFHCloud &source, PFHCloud &target);
 
     vector<size_t> getSortedIndicesGiven(vector<float> &l_surfaces);
+    void rotateSourceNormals();
+    vector<float> computeDistanceErrors();
 };

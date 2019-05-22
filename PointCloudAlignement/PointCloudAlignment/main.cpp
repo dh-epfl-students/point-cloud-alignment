@@ -338,6 +338,17 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         }
         else
         {
+            // Update list of normals and centroids
+            mat4 firstTransform = finalTransform;
+            //bool realign = registration.applyTransform(finalTransform);
+            while(registration.applyTransform(finalTransform))
+            {
+                cout << "Trying to enhance alignment. Transform:" << endl;
+                cout << finalTransform << endl;
+                finalTransform = finalTransform * firstTransform;
+                firstTransform = finalTransform;
+            }
+
             PointNormalKCloud::Ptr p_transformed_cloud = PointNormalKCloud().makeShared();
             pcl::transformPointCloud(*pc_source_segmentation.getPointCloud(), *p_transformed_cloud, finalTransform);
 
@@ -348,12 +359,6 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
 
             // Update point cloud
             //pc_source_segmentation.setPointCloud(p_transformed_cloud);
-
-            // Update merger list of normals and centroids
-            //pc_source_merger.applyTransform(finalTransform);
-            registration.applyTransform(finalTransform);
-            float align_err = registration.getAlignmentError();
-            cout << "Alignment error: " << align_err << endl;
         }
     }
     else if(event.getKeySym() == "k" && event.keyDown())

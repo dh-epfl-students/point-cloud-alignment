@@ -103,12 +103,14 @@ mat4 Registration::findAlignment()
 {
     if(target.empty() || source.empty()) return mat4::Identity();
 
-    mat4 R = findRotation();
+    selected_planes = planeTuplesWithFPFH();
+    M = buildM(selected_planes);
+    R = findRotation(M);
 
     float init_error = getAlignmentError();
     cout << "Initial error: " << init_error << endl;
 
-    mat4 T = findAndAddTranslation(R);
+    T = findAndAddTranslation(R);
 
     cout << "R: " << endl << R << endl;
     cout << "T: " << endl << T << endl;
@@ -116,7 +118,7 @@ mat4 Registration::findAlignment()
     return T;
 }
 
-mat4 Registration::findRotation()
+mat4 Registration::findRotation(matX aggregation_matrix)
 {
     vec3 cS, cT, nS, nT;
     vector<vec3> l_cS, l_cT, l_nS, l_nT;
@@ -139,17 +141,17 @@ mat4 Registration::findRotation()
 
         #pragma omp section
         {
-            nS = computeCentroid(source, sourceIsMesh);
-            l_nS = computeDifSet(source, nS, sourceIsMesh);
+            nS = computeNormalsCentroid(source, sourceIsMesh);
+            l_nS = computeNormalsDifSet(source, nS, sourceIsMesh);
         }
 
         #pragma omp section
         {
-            nT = computeCentroid(target, targetIsMesh);
-            l_nT = computeDifSet(target, nT, targetIsMesh);
+            nT = computeNormalsCentroid(target, targetIsMesh);
+            l_nT = computeNormalsDifSet(target, nT, targetIsMesh);
         }
     }
-
+/*
     #pragma omp parallel sections
     {
         #pragma omp section
@@ -172,11 +174,11 @@ mat4 Registration::findRotation()
             angles_cT = computeCenterAngles(l_cT);
         }
     }
-
+*/
     //computeMwithCentroids(l_cS, l_cT, angles_S, angles_T, angles_cS, angles_cT);
 
     //M = computeMWithPFHSignature(MAX_SOURCE_PLANES);
-    M = computeMwithFPFHSignatures();
+    //M = planeTuplesWithFPFH();
 
     // Write M to file
     string filename("myMatrixMFile.txt");
@@ -186,7 +188,7 @@ mat4 Registration::findRotation()
     myFile.close();
 
     //mat3 H = computeHwithNormals(l_nS, l_nT);
-    mat3 H = computeHwithCentroids(l_cS, l_cT);
+    mat3 H = computeHwithCentroids(aggregation_matrix, l_cS, l_cT);
     mat3 R3 = computeR(H);
 
     mat4 R = mat4::Identity();
@@ -214,7 +216,7 @@ mat4 Registration::findAndAddTranslation(mat4 &R)
     target_cmean /= selected_planes.size();
 
     // Rotate the source centroid
-    vec4 source_rotated = /*T2 */ R /* T1*/ * vec4(source_cmean.x(), source_cmean.y(), source_cmean.z(), 1);
+    vec4 source_rotated = R * vec4(source_cmean.x(), source_cmean.y(), source_cmean.z(), 1);
 
     // Compute translation vector from source center mean to target center mean.
     vec3 t_vec = target_cmean - vec3(source_rotated.x(), source_rotated.y(), source_rotated.z());
@@ -291,26 +293,6 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
         }
     }
 
-    //M.normalize();
-    /*
-    Eigen::MatrixXf M_binary = Eigen::MatrixXf::Zero(M.rows(), M.cols());
-
-    for (int i = 0; i < M_binary.rows(); ++i) {
-        Eigen::MatrixXf::Index id;
-        M.row(i).maxCoeff(&id);
-
-        M_binary(i, id) = 1;
-    }
-
-    M = M_binary;
-    */
-    //cout << "M" << endl << M << endl;
-
-    // TEST: Change color of second plane of source and corresponding plane in target to black
-    //Eigen::MatrixXf::Index id;
-    //M.row(1).maxCoeff(&id);
-    //display_update_callable(source[1], target[id], ivec3(0, 0, 0));
-
     // Write M to file
     string filename("myMatrixMFile.txt");
     ofstream myFile;
@@ -334,7 +316,7 @@ mat3 Registration::computeHwithNormals(vector<vec3> qs, vector<vec3> qt)
     return H;
 }
 
-mat3 Registration::computeHwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT)
+mat3 Registration::computeHwithCentroids(matX aggregation_m, vector<vec3> &l_cS, vector<vec3> &l_cT)
 {
     mat3 H = mat3::Zero();
 
@@ -342,7 +324,7 @@ mat3 Registration::computeHwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT)
     {
         for(size_t j = 0; j < l_cT.size(); ++j)
         {
-            H += M(i, j) * l_cS[i].normalized() * l_cT[j].normalized().transpose();
+            H += aggregation_m(i, j) * l_cS[i].normalized() * l_cT[j].normalized().transpose();
         }
     }
 
@@ -365,23 +347,13 @@ mat3 Registration::computeR(mat3 H)
         v.col(2) = -1 * v.col(2);
         R = v * u.transpose();
 
-        //R.col(0) *= -1;
-
         cout << "Corrected R: " << endl << R << endl;
-
-        auto eigv = svd.singularValues();
-        cout << "Eigenvalues: " << eigv.transpose() << endl;
-
-//        for(int i = 0; i < R3.cols(); ++i)
-//        {
-//            if(eigv[i] < 0) R3.col(i) = -1 * R3.col(i);
-//        }
     }
 
     return R;
 }
 
-vec3 Registration::computeCentroid(vector<SegmentedPointsContainer::SegmentedPlane> &list, bool isMesh)
+vec3 Registration::computeNormalsCentroid(vector<SegmentedPointsContainer::SegmentedPlane> &list, bool isMesh)
 {
     vec3 c = vec3::Zero();
 
@@ -422,7 +394,7 @@ vector<float> Registration::computeCenterAngles(vector<vec3> &l_shifted_centroid
     return angles;
 }
 
-vector<vec3> Registration::computeDifSet(vector<SegmentedPointsContainer::SegmentedPlane> &list, vec3 centroid, bool isMesh)
+vector<vec3> Registration::computeNormalsDifSet(vector<SegmentedPointsContainer::SegmentedPlane> &list, vec3 centroid, bool isMesh)
 {
     vector<vec3> demeaned(list.size());
 
@@ -667,7 +639,7 @@ vec2 Registration::compute2dCentroid(vector<vec2> l_points)
 
 /////======================== PFH Based computation of M =====================================================================
 
-Eigen::MatrixXf Registration::computeMWithPFHSignature(int source_nb)
+Eigen::MatrixXf Registration::planeTuplesWithPFH(int source_nb)
 {
     PFHCloud source_signs = PFHEvaluation::computePFHSignatures(source);
     PFHCloud target_signs = PFHEvaluation::computePFHSignatures(target);
@@ -709,7 +681,7 @@ Eigen::MatrixXf Registration::computeMWithPFHSignature(int source_nb)
     return M_pfh;
 }
 
-Eigen::MatrixXf Registration::computeMwithFPFHSignatures()
+vector<PlaneTuples> Registration::planeTuplesWithFPFH()
 {
     // Compute fpfh forall planes' centers
     FPFHCloud source_signs = PFHEvaluation::computeFPFHSignature(source);
@@ -718,7 +690,7 @@ Eigen::MatrixXf Registration::computeMwithFPFHSignatures()
     // Construct indice list of planes
     vector<size_t> source_indices = getSortedIndicesGiven(source_surfaces);
 
-    Eigen::MatrixXf M_pfh = Eigen::MatrixXf::Zero(source.size(), target.size());
+    vector<PlaneTuples> plane_tuples;
 
     // Fill M by associating each source to one target based on fpfh histograms errors
     for (size_t i = 0; i < source_indices.size()/*std::min((int)source_indices.size(), source_nb)*/; ++i)
@@ -728,36 +700,41 @@ Eigen::MatrixXf Registration::computeMwithFPFHSignatures()
 
         if(j > -1)
         {
-            auto end_it = remove_if(selected_planes.begin(), selected_planes.end(), [this, &source_indices, &i, &j, &error](tuple<size_t, size_t, float> t){
+            auto end_it = remove_if(plane_tuples.begin(), plane_tuples.end(), [this, &source_indices, &i, &j, &error](tuple<size_t, size_t, float> t){
                 float curr_s_surf = source_surfaces[source_indices[i]];
                 float prev_s_surf = source_surfaces[get<0>(t)];
                 float t_surf = target_surfaces[j];
                 size_t t_id = get<1>(t);
                 float t_err = get<2>(t);
-                return (t_id == j) && (/*(t_err > error) &&*/ (abs(prev_s_surf - t_surf) > abs(curr_s_surf - t_surf)));
+                return (t_id == j) && (/*(t_err > error) ||*/ (abs(prev_s_surf - t_surf) > abs(curr_s_surf - t_surf)));
             });
 
             //List of selected plane tuples (source, target) for translation computation
-            if(end_it != selected_planes.end())
+            if(end_it != plane_tuples.end())
             {
-                selected_planes.erase(end_it, selected_planes.end());
-                selected_planes.push_back(make_tuple(source_indices[i], j, error));
-            } else if(find_if(selected_planes.begin(), selected_planes.end(), [&j](tuple<size_t, size_t, float> t){
+                plane_tuples.erase(end_it, plane_tuples.end());
+                plane_tuples.push_back(make_tuple(source_indices[i], j, error));
+            } else if(find_if(plane_tuples.begin(), plane_tuples.end(), [&j](tuple<size_t, size_t, float> t){
                 return get<1>(t) == j;
-            }) == selected_planes.end())
+            }) == plane_tuples.end())
             {
-                selected_planes.push_back(make_tuple(source_indices[i], j, error));
+                plane_tuples.push_back(make_tuple(source_indices[i], j, error));
             }
         }
     }
 
+    return plane_tuples;
+}
+
+Eigen::MatrixXf Registration::buildM(vector<PlaneTuples> &l_tuples)
+{
+    Eigen::MatrixXf M_pfh = Eigen::MatrixXf::Zero(source.size(), target.size());
+
     // Go through selected planes and fill M
-    for(auto tuple: selected_planes)
+    for(auto tuple: l_tuples)
     {
         M_pfh(get<0>(tuple), get<1>(tuple)) += 1;
     }
-
-    //cout << M_pfh << endl;
 
     return M_pfh;
 }
@@ -814,12 +791,85 @@ float Registration::getAlignmentError()
 
 }
 
-void Registration::applyTransform(mat4 finalTransform)
+bool Registration::applyTransform(mat4 &finalTransform)
 {
+    // First compute the distance between each selected centers before the transformation
+    vector<float> distances = computeDistanceErrors();
+
     for(size_t i = 0; i < source.size(); ++i)
     {
         vec3 c = source[i].plane.getCenter();
         vec4 c2 = finalTransform * vec4(c.x(), c.y(), c.z(), 1);
         source[i].plane.setCenter(vec3(c2.x(), c2.y(), c2.z()));
     }
+
+    rotateSourceNormals();
+
+    // Recompute distance errors after the transformation
+    vector<float> new_distances = computeDistanceErrors();
+
+    // Recompute fpfh errors for each selected tuples and print them in a file
+    ofstream file;
+    file.open("distances_errors.txt");
+    file << "Source, Target, Old Distance, New Distance, FPFH error" << endl;
+
+    for(size_t i = 0; i < distances.size(); ++i)
+    {
+        auto t = selected_planes[i];
+        size_t s_id = get<0>(t);
+        size_t t_id = get<1>(t);
+        float error = get<2>(t);
+
+        file << s_id << ", " << t_id << ", " << distances[i] << ", " << new_distances[i] << ", " << error << endl;
+    }
+
+    file.close();
+
+    // Exclude tuples based on distances - new_distances differences
+    size_t i = 0;
+    auto it = remove_if(selected_planes.begin(), selected_planes.end(), [&i, &distances, &new_distances](tuple<size_t, size_t, float> t){
+        bool ret = /*((distances[i] - new_distances[i]) < PROGRESSION_TRESHOLD) &&*/ (distances[i] > MAX_ACCEPTED_DISTANCE) && (new_distances[i] > MAX_ACCEPTED_DISTANCE);
+        i++;
+        return ret;
+    });
+
+    // If tuples have been excluded that means that the alignement can possibly be enhanced
+    if(it != selected_planes.end())
+    {
+        selected_planes.erase(it, selected_planes.end());
+
+        //recompute M with updated tuples
+        M = buildM(selected_planes);
+        R = findRotation(M);
+        T = findAndAddTranslation(R);
+        finalTransform = T;
+        return true;
+    }
+
+    return false;
+}
+
+void Registration::rotateSourceNormals()
+{
+    for(size_t i = 0; i < source.size(); ++i)
+    {
+        vec3 n = source[i].plane.getNormal();
+        vec4 n2 = R * vec4(n.x(), n.y(), n.z(), 1);
+        source[i].plane.setNormal(vec3(n2.x(), n2.y(), n2.z()));
+    }
+}
+
+vector<float> Registration::computeDistanceErrors()
+{
+    vector<float> errors;
+
+    for(auto i: selected_planes)
+    {
+        size_t s_id = get<0>(i);
+        size_t t_id = get<1>(i);
+
+        errors.push_back(distance(source[s_id].plane.getCenter(), target[t_id].plane.getCenter()));
+    }
+
+    return errors;
 }

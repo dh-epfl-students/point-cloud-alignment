@@ -16,6 +16,7 @@ typedef Eigen::Vector3d vec3d;
 typedef Eigen::Matrix4f mat4;
 typedef Eigen::Matrix3f mat3;
 typedef Eigen::Matrix2f mat2;
+typedef Eigen::MatrixXf matX;
 
 typedef pcl::PointCloud<pcl::PFHSignature125> PFHCloud;
 typedef pcl::PointCloud<pcl::FPFHSignature33> FPFHCloud;

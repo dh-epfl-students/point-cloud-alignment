@@ -29,6 +29,8 @@ public:
 
     static int getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, FPFHCloud &source_signs, FPFHCloud &target_signs, float &out_error);
 
+    static float computeFPFHError(size_t s_id, size_t t_id, FPFHCloud &source_signs, FPFHCloud &target_signs);
+
 private:
     static PointNormalCloud::Ptr buildPointCloud(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
 };

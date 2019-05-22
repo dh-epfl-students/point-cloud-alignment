@@ -127,13 +127,7 @@ int PFHEvaluation::getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, 
 
     for(size_t it: target_indices)
     {
-
-        float curr_error = 0;
-
-        for(int bin_index = 0; bin_index < target_signs.points[it].descriptorSize(); ++bin_index)
-        {
-            curr_error += abs(source_signs.points[i].histogram[bin_index] - target_signs.points[it].histogram[bin_index]);
-        }
+        float curr_error = PFHEvaluation::computeFPFHError(i, it, source_signs, target_signs);
 
         if(curr_error < min_error)
         {
@@ -152,6 +146,22 @@ int PFHEvaluation::getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, 
 
     out_error = min_error;
     return j;
+}
+
+float PFHEvaluation::computeFPFHError(size_t s_id, size_t t_id, FPFHCloud &source_signs, FPFHCloud &target_signs)
+{
+    float error = 0;
+
+    auto s_bin = source_signs.points[s_id];
+    auto t_bin = target_signs.points[t_id];
+
+    for(int i = 0; i < s_bin.descriptorSize(); ++i)
+    {
+        error += abs(s_bin.histogram[i] - t_bin.histogram[i]);
+        //error = max(error, abs(s_bin.histogram[i] - t_bin.histogram[i]));
+    }
+
+    return error;
 }
 
 /*
