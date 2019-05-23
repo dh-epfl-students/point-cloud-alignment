@@ -706,7 +706,7 @@ vector<PlaneTuples> Registration::planeTuplesWithFPFH()
                 float t_surf = target_surfaces[j];
                 size_t t_id = get<1>(t);
                 float t_err = get<2>(t);
-                return (t_id == j) && (/*(t_err > error) ||*/ (abs(prev_s_surf - t_surf) > abs(curr_s_surf - t_surf)));
+                return (t_id == j) && ((t_err > error) && (abs(prev_s_surf - t_surf) > abs(curr_s_surf - t_surf)));
             });
 
             //List of selected plane tuples (source, target) for translation computation
@@ -828,13 +828,17 @@ bool Registration::applyTransform(mat4 &finalTransform)
     // Exclude tuples based on distances - new_distances differences
     size_t i = 0;
     auto it = remove_if(selected_planes.begin(), selected_planes.end(), [&i, &distances, &new_distances](tuple<size_t, size_t, float> t){
-        bool ret = /*((distances[i] - new_distances[i]) < PROGRESSION_TRESHOLD) &&*/ (distances[i] > MAX_ACCEPTED_DISTANCE) && (new_distances[i] > MAX_ACCEPTED_DISTANCE);
+        bool ret = /*(distances[i] < new_distances[i]) &&*/ (new_distances[i] > MAX_ACCEPTED_DISTANCE);
         i++;
         return ret;
     });
 
     // If tuples have been excluded that means that the alignement can possibly be enhanced
-    if(it != selected_planes.end())
+    if(it == selected_planes.begin())
+    {
+        cout << "Error: every plane has been removed from selected tuples list, nor realigning" << endl;
+    }
+    else if(it != selected_planes.end())
     {
         selected_planes.erase(it, selected_planes.end());
 

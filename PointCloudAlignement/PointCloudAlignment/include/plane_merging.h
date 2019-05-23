@@ -3,10 +3,10 @@
 #include "common.h"
 #include "segmented_points_container.h"
 
-#define KNN 10
-#define NORMAL_ERROR 0.174533f  // 0.0872665f = 5°
+#define KNN 20
+#define NORMAL_ERROR 0.0872665f  // 0.0872665f = 5°
 #define DISTANCE_ERROR 0.1f
-#define OVERLAP_ANGLE 0.174533f // 0.0872665f = 5°, 0.174533f = 10°
+#define OVERLAP_ANGLE 0.0872665f // 0.0872665f = 5°, 0.174533f = 10°
 
 class PlaneMerging {
 public:

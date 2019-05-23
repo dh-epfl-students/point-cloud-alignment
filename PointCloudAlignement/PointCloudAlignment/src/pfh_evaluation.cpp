@@ -129,18 +129,15 @@ int PFHEvaluation::getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, 
     {
         float curr_error = PFHEvaluation::computeFPFHError(i, it, source_signs, target_signs);
 
-        if(curr_error < min_error)
+        if(curr_error < min_error /*&& abs(s_surf - t_surfs[j]) > abs(s_surf - t_surfs[it])*/)
         {
             min_error = curr_error;
             j = it;
         }
-        else if (curr_error == min_error) {
+        else if (curr_error == min_error && (abs(s_surf - t_surfs[j]) > abs(s_surf - t_surfs[it]))) {
             // In case of same error, keep target plane that has the nearest surface
-            if(abs(s_surf - t_surfs[j]) > abs(s_surf - t_surfs[it]))
-            {
-                min_error = curr_error;
-                j = it;
-            }
+            min_error = curr_error;
+            j = it;
         }
     }
 

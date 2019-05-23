@@ -16,7 +16,7 @@
 #include "pfh_evaluation.h"
 
 #define PHASE1_ITERATIONS 3
-#define MIN_STABLE_SIZE 100
+#define MIN_STABLE_SIZE 500
 #define MIN_PLANE_SIZE 10
 #define MAX_ITERATIONS 100
 

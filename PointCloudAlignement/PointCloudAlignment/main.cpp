@@ -340,13 +340,13 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         {
             // Update list of normals and centroids
             mat4 firstTransform = finalTransform;
-            //bool realign = registration.applyTransform(finalTransform);
-            while(registration.applyTransform(finalTransform))
+            bool realign = registration.applyTransform(finalTransform);
+            if(realign)
             {
                 cout << "Trying to enhance alignment. Transform:" << endl;
                 cout << finalTransform << endl;
                 finalTransform = finalTransform * firstTransform;
-                firstTransform = finalTransform;
+                //firstTransform = finalTransform;
             }
 
             PointNormalKCloud::Ptr p_transformed_cloud = PointNormalKCloud().makeShared();
