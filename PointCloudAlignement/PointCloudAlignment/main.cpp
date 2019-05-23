@@ -164,12 +164,23 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     }
     else if(event.getKeySym() == "F6" && event.keyDown())
     {
-        string filename = "myPC.ply";
 
-        cout << "Saving ply file " << filename << endl;
+        if(!sourceIsMesh)
+        {
+            cout << "Saving Source in ply file." << endl;
+            string filename = "mySourcePC.ply";
 
-        // Writing PC to file
-        pcl::io::savePLYFile(filename, *pc_source_segmentation.getPointCloud());
+            // Writing PC to file
+            pcl::io::savePLYFile(filename, *pc_source_segmentation.getPointCloud());
+        }
+
+        if(!targetIsMesh)
+        {
+            cout << "Saving Target in ply file." << endl;
+            string filename = "myTargetPC.ply";
+
+            pcl::io::savePLYFile(filename, *pc_target_segmentation.getPointCloud());
+        }
     }
     else if(event.getKeySym() == "F7" && event.keyDown())
     {
@@ -255,7 +266,10 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     else if(event.getKeySym() == "F10" && event.keyDown())
     {
         // Resample cloud
-        pc_source_segmentation.resampleCloud();
+        if(!sourceIsMesh)
+        {
+            pc_source_segmentation.resampleCloud();
+        }
 
         if(!targetIsMesh)
         {
@@ -502,7 +516,7 @@ int main()
 
         pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb(pc_source_segmentation.getPointCloud());
         p_viewer->addPointCloud(pc_source_segmentation.getPointCloud(), rgb, "source_point_cloud");
-        p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
+        p_viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "source_point_cloud");
     }
 
     if(!targetIsMesh)
@@ -514,7 +528,7 @@ int main()
 
         pcl::visualization::PointCloudColorHandlerRGBField<PointNormalK> rgb_target(pc_target_segmentation.getPointCloud());
         p_viewer->addPointCloud(pc_target_segmentation.getPointCloud(), rgb_target, "target_point_cloud");
-        p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "target_point_cloud");
+        p_viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "target_point_cloud");
     }
 
     registration.setCallback(pc_planes_callable);

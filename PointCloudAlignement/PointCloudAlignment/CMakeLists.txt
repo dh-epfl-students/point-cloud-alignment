@@ -7,8 +7,6 @@ find_package(PCL 1.9 REQUIRED)
 find_package(OpenMP)
 find_package(OpenCV)
 
-message("find ${OpenCV_INCLUDE_DIRS}")
-
 # For CMake < 3.9, we need to make the target ourselves
 if(NOT TARGET OpenMP::OpenMP_CXX)
     find_package(Threads REQUIRED)
@@ -22,19 +20,7 @@ if(NOT TARGET OpenMP::OpenMP_CXX)
 endif()
 
 set(HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-include_directories(${PCL_INCLUDE_DIRS}
-                    ${OpenCV_INCLUDE_DIRS}
-                    ${HEADER_DIR})
-link_directories(${PCL_LIBRARY_DIRS})
-add_definitions(${PCL_DEFINITIONS})
-
-aux_source_directory(./src SRC_LIST)
-
-message(${SRC_LIST})
-
-add_executable(${PROJECT_NAME} main.cpp ${SRC_LIST}
-    ${HEADER_DIR}/common.h
+set(PROJECT_HEADERS ${HEADER_DIR}/common.h
     ${HEADER_DIR}/point_normal_k.h
     ${HEADER_DIR}/plane_segmentation.h
     ${HEADER_DIR}/normal_computation.h
@@ -45,5 +31,17 @@ add_executable(${PROJECT_NAME} main.cpp ${SRC_LIST}
     ${HEADER_DIR}/mesh_segmentation.h
     ${HEADER_DIR}/registration.h)
 
+include_directories(${PCL_INCLUDE_DIRS}
+                    ${OpenCV_INCLUDE_DIRS}
+                    ${HEADER_DIR})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+
+aux_source_directory(./src SRC_LIST)
+
+add_executable(${PROJECT_NAME} main.cpp ${SRC_LIST} ${PROJECT_HEADERS})
+add_executable(createTestSet make_test_set.cpp ${SRC_LIST} ${PROJECT_HEADERS})
+
 target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} OpenMP::OpenMP_CXX ${OpenCV_LIBRARIES})
+target_link_libraries(createTestSet ${PCL_LIBRARIES} OpenMP::OpenMP_CXX ${OpenCV_LIBRARIES})
 
