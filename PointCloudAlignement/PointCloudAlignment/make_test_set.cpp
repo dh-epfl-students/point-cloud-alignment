@@ -42,13 +42,22 @@ int main()
 
             // Preprocessed file is stored in the same folder as the input file
             boost::filesystem::path p(currFile);
-            string pc_file = p.filename().string();
-            auto path = p.remove_filename();
-            cout << "Saving PC in " << pc_file << endl;
 
-            pcl::io::savePLYFile(pc_file, *segmenter.getPointCloud());
+            //New name will be "point_cloud_preproc" + i
+            stringstream ss;
+            ss << "point_cloud_preproc_" << i << ".ply";
+            string pc = ss.str();
+
+            auto path = p.remove_filename();
+            path.append(pc);
+
+            cout << "Saving PC in " << path.string() << endl;
+
+            pcl::io::savePLYFile(path.string(), *segmenter.getPointCloud());
         }
     }
+
+    cout << "All files were successfully preprocessed. Exiting..." << endl;
 
     return 0;
 }
