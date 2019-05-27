@@ -1,7 +1,7 @@
 project(PointCloudAlignment)
 cmake_minimum_required(VERSION 3.6.2)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -pthread")
+set(CMAKE_CXX_FLAGS "-std=c++17 -pthread")
 
 find_package(PCL 1.9 REQUIRED)
 find_package(OpenMP)
@@ -41,7 +41,9 @@ aux_source_directory(./src SRC_LIST)
 
 add_executable(${PROJECT_NAME} main.cpp ${SRC_LIST} ${PROJECT_HEADERS})
 add_executable(createTestSet make_test_set.cpp ${SRC_LIST} ${PROJECT_HEADERS})
+add_executable(RunTestSet run_test_set.cpp ${SRC_LIST} ${PROJECT_HEADERS})
 
 target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} OpenMP::OpenMP_CXX ${OpenCV_LIBRARIES})
 target_link_libraries(createTestSet ${PCL_LIBRARIES} OpenMP::OpenMP_CXX ${OpenCV_LIBRARIES})
+target_link_libraries(RunTestSet ${PCL_LIBRARIES} OpenMP::OpenMP_CXX ${OpenCV_LIBRARIES})
 

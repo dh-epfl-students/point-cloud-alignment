@@ -112,6 +112,8 @@ private:
     boost::shared_ptr<vector<int>> p_indices;
     boost::shared_ptr<vector<int>> p_excluded_indices;
 
+    void callDisplayCallback(PointNormalKCloud::Ptr p_cloud, ivec3 c, vector<int> indices, bool isSource);
+
     float getMeanOfMinDistances();
     int getRegionGrowingStartLocation();
     void getNeighborsOf(boost::shared_ptr<vector<int>> indices_in, float search_d, vector<int> &indices_out);

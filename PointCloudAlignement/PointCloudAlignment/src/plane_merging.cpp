@@ -87,7 +87,7 @@ void PlaneMerging::merge()
                         cout << "Plane " << plane.id << " is merged with plane " << plane_list[j].id << endl;
 
                         //  - change color of points
-                        display_update_callable(p_point_cloud, plane.color, plane_list[j].indices_list, isSource);
+                        callDisplayCallback(p_point_cloud, plane.color, plane_list[j].indices_list, isSource);
 
                         //TODO:  - change plane_id for merged points
 
@@ -214,4 +214,12 @@ void PlaneMerging::printVectorsInFile(string filename)
     }
 
     file.close();
+}
+
+void PlaneMerging::callDisplayCallback(PointNormalKCloud::Ptr p_cloud, ivec3 c, vector<int> indices, bool isSource)
+{
+    if(this->display_update_callable != nullptr)
+    {
+        this->display_update_callable(p_cloud, c, indices, isSource);
+    }
 }

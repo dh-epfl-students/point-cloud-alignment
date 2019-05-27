@@ -28,6 +28,9 @@ int main()
 
     file.close();
 
+    // Write the preprocessed clouds filenames in this file
+    ofstream outputFile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/PCTestingSet.txt");
+
     #pragma omp parallel for
     for(size_t i = 0; i < fileList.size(); ++i)
     {
@@ -43,9 +46,11 @@ int main()
             // Preprocessed file is stored in the same folder as the input file
             boost::filesystem::path p(currFile);
 
-            //New name will be "point_cloud_preproc" + i
+            string name = p.stem().string();
+
+            //New name will be original + "_preproc"
             stringstream ss;
-            ss << "point_cloud_preproc_" << i << ".ply";
+            ss << name << "_preproc.ply";
             string pc = ss.str();
 
             auto path = p.remove_filename();
@@ -54,8 +59,11 @@ int main()
             cout << "Saving PC in " << path.string() << endl;
 
             pcl::io::savePLYFile(path.string(), *segmenter.getPointCloud());
+            outputFile << path.string() << endl;
         }
     }
+
+    outputFile.close();
 
     cout << "All files were successfully preprocessed. Exiting..." << endl;
 

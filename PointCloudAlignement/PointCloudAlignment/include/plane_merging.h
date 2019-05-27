@@ -42,4 +42,5 @@ private:
     void merge();
     bool planeOverlap(SegmentedPointsContainer::SegmentedPlane &p1, SegmentedPointsContainer::SegmentedPlane &p2, float d_tolerance = 0);
     float farestPointInDir(SegmentedPointsContainer::SegmentedPlane &plane, vec3 dir);
+    void callDisplayCallback(PointNormalKCloud::Ptr p_cloud, ivec3 c, vector<int> indices, bool isSource);
 };

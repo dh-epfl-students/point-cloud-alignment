@@ -52,7 +52,6 @@ void Registration::setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &s
             this->source_surfaces = computeDelaunaySurfaces(p_source_cloud, source);//estimatePlanesSurface(p_source_cloud, source);
         }
 
-
         // Filter out planes to keep only MIN_SURFACE biggest planes for each set
         //filterPlanes(MIN_SURFACE, this->source, source_surfaces);
     }
@@ -836,7 +835,7 @@ bool Registration::applyTransform(mat4 &finalTransform)
     // If tuples have been excluded that means that the alignement can possibly be enhanced
     if(it == selected_planes.begin())
     {
-        cout << "Error: every plane has been removed from selected tuples list, nor realigning" << endl;
+        cout << "Error: every plane has been removed from selected tuples list, not realigning" << endl;
     }
     else if(it != selected_planes.end())
     {

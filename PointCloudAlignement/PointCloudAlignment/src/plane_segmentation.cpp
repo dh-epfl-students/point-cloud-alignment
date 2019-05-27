@@ -588,7 +588,7 @@ void PlaneSegmentation::exclude_points(vector<int> indices)
     exclude_from_search(indices);
 
     // Update point display
-    this->display_update_callable(p_cloud, p_segmented_points_container->getMiscColor(), indices, isSource);
+    this->callDisplayCallback(p_cloud, p_segmented_points_container->getMiscColor(), indices, isSource);
 }
 
 void PlaneSegmentation::filterOutCurvature(float max_curvature)
@@ -605,14 +605,14 @@ void PlaneSegmentation::filterOutCurvature(float max_curvature)
 
 void PlaneSegmentation::color_points(vector<int> indices, ivec3 color)
 {
-    this->display_update_callable(p_cloud, color, indices, isSource);
+    this->callDisplayCallback(p_cloud, color, indices, isSource);
 }
 
 void PlaneSegmentation::color_point(int index, ivec3 color)
 {
     vector<int> indices;
     indices.push_back(index);
-    this->display_update_callable(p_cloud, color, indices, isSource);
+    this->callDisplayCallback(p_cloud, color, indices, isSource);
 }
 
 PointNormalKCloud::Ptr PlaneSegmentation::getAvailablePointCloud()
@@ -710,5 +710,13 @@ void PlaneSegmentation::fillSegmentedPointsContainer()
     {
         // TODO: Setup cloud to resume segmentation.
         //      - Set available indices list for kdtree
+    }
+}
+
+void PlaneSegmentation::callDisplayCallback(PointNormalKCloud::Ptr p_cloud, ivec3 c, vector<int> indices, bool isSource)
+{
+    if(this->display_update_callable != nullptr)
+    {
+        this->display_update_callable(p_cloud, c, indices, isSource);
     }
 }
