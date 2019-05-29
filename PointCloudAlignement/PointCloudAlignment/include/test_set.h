@@ -12,6 +12,7 @@
 #include "plane_segmentation.h"
 #include "plane_merging.h"
 #include "segmented_points_container.h"
+#include "mesh_segmentation.h"
 #include "registration.h"
 
 #define TARGET_COLOR ivec3(15, 255, 15)

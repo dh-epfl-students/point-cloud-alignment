@@ -85,21 +85,57 @@ bool CloudObject::isCloud()
 
 void MeshObject::displayObjectIn(pcl::visualization::PCLVisualizer::Ptr p_viewer, ivec3 color, int viewport, string id_prefix)
 {
+    cout << "i am here!" << endl;
+
+    // Color mesh vertices in color
+    pcl::PointCloud<pcl::PointXYZRGB> cloud;
+    pcl::fromPCLPointCloud2(this->p_object->cloud, cloud);
+
+    // Color whole point in blue
+    for(size_t i = 0; i < cloud.size(); ++i)
+    {
+        cloud.points[i].rgba = static_cast<uint8_t>(color.x()) << 16 |
+                 static_cast<uint8_t>(color.y()) << 8 |
+                 static_cast<uint8_t>(color.z());
+    }
+
+    pcl::toPCLPointCloud2(cloud, this->p_object->cloud);
+
     stringstream ss;
     ss << id_prefix << (isSource()? "source_mesh_vp" : "target_mesh_vp") << viewport;
     string object_id = ss.str();
 
-    p_viewer->addPolygonMesh(*p_object, object_id, viewport);
+    p_viewer->addPolygonMesh(*this->p_object, object_id, viewport);
 }
 
 void MeshObject::segment(vector<SegmentedPointsContainer::SegmentedPlane> &out_planes)
 {
-
+    MeshSegmentation seg;
+    seg.loadMesh(this->getFilename());
+    seg.segmentPlanes();
+    seg.mergePlanes();
+    out_planes = seg.getSegmentedPlanes();
+    this->p_object = seg.getMeshPtr();
 }
 
 void MeshObject::transform(mat4 &M)
 {
+    pcl::PointCloud<pcl::PointXYZRGB> cloud;
+    //pcl::PolygonMesh p_transformed_mesh(*this->p_object);
+    pcl::fromPCLPointCloud2(this->p_object->cloud, cloud);
+    pcl::transformPointCloud(cloud, cloud, M);
 
+    // Color whole point in blue
+    ivec3 color(0, 0, 255);
+    for(auto i: cloud.points)
+    {
+        i.rgba = static_cast<uint8_t>(color.x()) << 16 |
+                 static_cast<uint8_t>(color.y()) << 8 |
+                 static_cast<uint8_t>(color.z());
+    }
+
+    pcl::toPCLPointCloud2(cloud, this->p_object->cloud);
+    //this->p_object = pcl::PolygonMesh::Ptr(&p_transformed_mesh);
 }
 
 pcl::PolygonMesh::Ptr MeshObject::getObject()
