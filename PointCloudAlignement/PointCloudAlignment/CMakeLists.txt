@@ -30,7 +30,8 @@ set(PROJECT_HEADERS ${HEADER_DIR}/common.h
     ${HEADER_DIR}/plane_merging.h
     ${HEADER_DIR}/mesh_segmentation.h
     ${HEADER_DIR}/registration.h
-    ${HEADER_DIR}/test_set.h)
+    ${HEADER_DIR}/test_set.h
+    ${HEADER_DIR}/test_parser.h)
 
 include_directories(${PCL_INCLUDE_DIRS}
                     ${OpenCV_INCLUDE_DIRS}

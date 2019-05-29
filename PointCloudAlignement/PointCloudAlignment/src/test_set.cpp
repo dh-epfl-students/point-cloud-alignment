@@ -28,6 +28,24 @@ void CloudObject::displayObjectIn(pcl::visualization::PCLVisualizer::Ptr p_viewe
     p_viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, object_id);
 }
 
+void CloudObject::preprocess()
+{
+    PlaneSegmentation seg;
+
+    if(this->p_object == nullptr)
+    {
+        seg.init(this->getFilename(), this->isSource());
+    }
+    else {
+        seg.init(this->p_object, this->isSource());
+    }
+
+    seg.resampleCloud();
+    seg.preprocessCloud();
+
+    this->p_object = seg.getPointCloud();
+}
+
 void CloudObject::segment(vector<SegmentedPointsContainer::SegmentedPlane> &out_planes)
 {
     vector<SegmentedPointsContainer::SegmentedPlane> segmented_planes;
@@ -59,12 +77,38 @@ void CloudObject::segment(vector<SegmentedPointsContainer::SegmentedPlane> &out_
 
 void CloudObject::transform(mat4 &M)
 {
+    if(this->p_object == nullptr)
+    {
+        p_object = PointNormalKCloud::Ptr(new PointNormalKCloud);
+        int r = pcl::io::loadPCDFile(this->getFilename(), *p_object);
+
+        if(r == -1 && pcl::io::loadPLYFile(this->getFilename(), *p_object) == -1)
+        {
+            PCL_ERROR("Could not read given file\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
     // Transform source cloud
     PointNormalKCloud::Ptr aligned_cloud(new PointNormalKCloud);
     pcl::transformPointCloudWithNormals(*this->p_object, *aligned_cloud, M);
     this->p_object = aligned_cloud;
 }
 
+void CloudObject::saveObject(string suffix)
+{
+    if(this->p_object == nullptr) return;
+
+    boost::filesystem::path p(this->getFilename());
+    string name = p.stem().string();
+
+    stringstream ss;
+    ss << name << suffix << ".ply";
+    auto new_p = p.remove_filename();
+    new_p.append(ss.str());
+
+    pcl::io::savePLYFile(new_p.string(), *this->p_object, true);
+}
 
 PointNormalKCloud::Ptr CloudObject::getObject()
 {
@@ -108,6 +152,12 @@ void MeshObject::displayObjectIn(pcl::visualization::PCLVisualizer::Ptr p_viewer
     p_viewer->addPolygonMesh(*this->p_object, object_id, viewport);
 }
 
+void MeshObject::preprocess()
+{
+    // DO NOTHING BECAUSE IT IS NOT NECESSARY
+    // TO PREPROCESS A MESH BEFORE PLANE SEGMENTATION
+}
+
 void MeshObject::segment(vector<SegmentedPointsContainer::SegmentedPlane> &out_planes)
 {
     MeshSegmentation seg;
@@ -120,22 +170,35 @@ void MeshObject::segment(vector<SegmentedPointsContainer::SegmentedPlane> &out_p
 
 void MeshObject::transform(mat4 &M)
 {
-    pcl::PointCloud<pcl::PointXYZRGB> cloud;
-    //pcl::PolygonMesh p_transformed_mesh(*this->p_object);
-    pcl::fromPCLPointCloud2(this->p_object->cloud, cloud);
-    pcl::transformPointCloud(cloud, cloud, M);
-
-    // Color whole point in blue
-    ivec3 color(0, 0, 255);
-    for(auto i: cloud.points)
+    if(this->p_object == nullptr)
     {
-        i.rgba = static_cast<uint8_t>(color.x()) << 16 |
-                 static_cast<uint8_t>(color.y()) << 8 |
-                 static_cast<uint8_t>(color.z());
+        this->p_object = pcl::PolygonMeshPtr(new pcl::PolygonMesh);
+        if(pcl::io::loadPolygonFilePLY(this->getFilename(), *p_object) == -1)
+        {
+            cout << "Failed to load given mesh file" << endl;
+            exit(EXIT_FAILURE);
+        }
     }
 
+    pcl::PointCloud<pcl::PointXYZRGB> cloud;
+    pcl::fromPCLPointCloud2(this->p_object->cloud, cloud);
+    pcl::transformPointCloud(cloud, cloud, M);
     pcl::toPCLPointCloud2(cloud, this->p_object->cloud);
-    //this->p_object = pcl::PolygonMesh::Ptr(&p_transformed_mesh);
+}
+
+void MeshObject::saveObject(string suffix)
+{
+    if(this->p_object == nullptr) return;
+
+    boost::filesystem::path p(this->getFilename());
+    string name = p.stem().string();
+
+    stringstream ss;
+    ss << name << suffix << ".ply";
+    auto new_p = p.remove_filename();
+    new_p.append(ss.str());
+
+    pcl::io::savePLYFile(new_p.string(), *this->p_object);
 }
 
 pcl::PolygonMesh::Ptr MeshObject::getObject()
@@ -187,7 +250,6 @@ bool TestingSet::isInitialized()
 void TestingSet::runTests()
 {
     // First the objects are segmented
-
     #pragma omp parallel sections
     {
         #pragma omp section
@@ -209,7 +271,7 @@ void TestingSet::runTests()
 
     cout << "Plane segmentation finished, starting alignment..." << endl;
 
-    // Then the registration
+    // Then they are registered
     this->sources_aligned.resize(this->sources.size());
 
     #pragma omp parallel for
@@ -286,4 +348,45 @@ void TestingSet::display(pcl::visualization::PCLVisualizer::Ptr p_viewer, vector
 
         this->sources_aligned[i]->displayObjectIn(p_viewer, ALIGNED_COLOR, viewports[i], "aligned_");
     }
+}
+
+void TestingSet::applyRandomTransforms()
+{
+    // Apply a different random rotation and translation to every source
+    for(size_t i = 0; i < this->sources.size(); ++i)
+    {
+        mat4 R = mat4::Identity();
+        R.block(0,0,3,3) << getRandomRotation();
+        mat4 T = getRandomTranslation();
+        mat4 M = T * R;
+
+        this->sources[i]->transform(M);
+    }
+}
+
+void TestingSet::preprocessClouds()
+{
+    this->p_target->preprocess();
+
+    for(size_t i = 0; i < this->sources.size(); ++i)
+    {
+        this->sources[i]->preprocess();
+    }
+}
+
+void TestingSet::saveObjectsPLY()
+{
+    this->p_target->saveObject("target");
+
+    for (size_t i = 0; i < this->sources.size(); ++i)
+    {
+        stringstream ss;
+        ss << "source_" << i;
+        this->sources[i]->saveObject(ss.str());
+    }
+}
+
+void TestingSet::writeTestSet(ofstream &output)
+{
+    output << "group" << endl;
 }

@@ -3,6 +3,7 @@
 #include <functional>
 
 #include <Eigen/Core>
+#include <Eigen/QR>
 
 #include "point_normal_k.h"
 
@@ -98,4 +99,20 @@ inline float roundTo(float x, int n)
 inline float crossProduct(vec2 x, vec2 y)
 {
     return (x.x() * y.y()) - (x.y() * y.x());
+}
+
+inline mat3 getRandomRotation()
+{
+    // QR decomposition on a random 3x3 matrix, Q is the random rotation
+    mat3 n = mat3::Random();
+    Eigen::HouseholderQR<mat3> qrDecomp(n);
+    mat3 Q = qrDecomp.householderQ();
+    return Q;
+}
+
+inline mat4 getRandomTranslation()
+{
+    vec3 r = vec3::Random();
+    mat4 T = Eigen::Affine3f(Eigen::Translation3f(r)).matrix();
+    return T;
 }

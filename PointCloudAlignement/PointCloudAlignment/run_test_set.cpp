@@ -18,7 +18,6 @@
 #include "registration.h"
 #include "test_set.h"
 
-//#define MAX_CURVATURE 0.5f
 #define MAX_VIEWPORT_NB 4
 
 using namespace std;
