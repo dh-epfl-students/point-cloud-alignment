@@ -4,6 +4,11 @@
 
 AlignObjectInterface::~AlignObjectInterface() {}
 
+void AlignObjectInterface::setFilename(string file)
+{
+    this->filename = file;
+}
+
 string AlignObjectInterface::getFilename()
 {
     return this->filename;
@@ -106,8 +111,9 @@ void CloudObject::saveObject(string suffix)
     ss << name << suffix << ".ply";
     auto new_p = p.remove_filename();
     new_p.append(ss.str());
+    this->setFilename(new_p.string());
 
-    pcl::io::savePLYFile(new_p.string(), *this->p_object, true);
+    pcl::io::savePLYFile(this->getFilename(), *this->p_object, true);
 }
 
 PointNormalKCloud::Ptr CloudObject::getObject()
@@ -129,8 +135,6 @@ bool CloudObject::isCloud()
 
 void MeshObject::displayObjectIn(pcl::visualization::PCLVisualizer::Ptr p_viewer, ivec3 color, int viewport, string id_prefix)
 {
-    cout << "i am here!" << endl;
-
     // Color mesh vertices in color
     pcl::PointCloud<pcl::PointXYZRGB> cloud;
     pcl::fromPCLPointCloud2(this->p_object->cloud, cloud);
@@ -197,8 +201,9 @@ void MeshObject::saveObject(string suffix)
     ss << name << suffix << ".ply";
     auto new_p = p.remove_filename();
     new_p.append(ss.str());
+    this->setFilename(new_p.string());
 
-    pcl::io::savePLYFile(new_p.string(), *this->p_object);
+    pcl::io::savePLYFile(this->getFilename(), *this->p_object);
 }
 
 pcl::PolygonMesh::Ptr MeshObject::getObject()
@@ -389,4 +394,10 @@ void TestingSet::saveObjectsPLY()
 void TestingSet::writeTestSet(ofstream &output)
 {
     output << "group" << endl;
+    output << this->p_target->getFilename() << " " << (this->p_target->isCloud() ? "c" : "m") << endl;
+
+    for(size_t i = 0; i < this->sources.size(); ++i)
+    {
+        output << this->sources[i]->getFilename() << " " << (this->sources[i]->isCloud() ? "c" : "m") << endl;
+    }
 }

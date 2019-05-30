@@ -30,6 +30,7 @@ public:
     bool isSource();
 
     string getFilename();
+    void setFilename(string file);
 
     virtual void displayObjectIn(pcl::visualization::PCLVisualizer::Ptr p_viewer, ivec3 color, int viewport = 0, string id_prefix = "") = 0;
 

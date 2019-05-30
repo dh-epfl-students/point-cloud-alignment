@@ -110,7 +110,7 @@ static bool parseTestingFile(string file_path)
 
 int main()
 {
-    if(!parseTestingFile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/TestingSet.txt"))
+    if(!parseTestingFile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/testing_set_list.txt"))
     {
         cout << "Error while parsing input file" << endl;
         exit(EXIT_FAILURE);

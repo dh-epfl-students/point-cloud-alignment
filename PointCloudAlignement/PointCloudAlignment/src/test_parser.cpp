@@ -48,7 +48,7 @@ vector<ParsedTestSet> TestParser::parseFile(string inputfile)
 
             nextIsTarget = true;
         }
-        else if(tokens.empty())
+        else if(tokens.size() < 2)
         {
             if(set.isInitialised()) l_output.push_back(set);
         }
@@ -91,6 +91,8 @@ vector<TestingSet> TestParser::createTestSet(vector<ParsedTestSet> &l_test)
         {
             set.addSource(item.source_mesh, false);
         }
+
+        output_list.push_back(set);
     }
 
     return output_list;
