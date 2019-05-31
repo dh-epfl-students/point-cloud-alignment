@@ -354,14 +354,13 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         {
             // Update list of normals and centroids
             mat4 firstTransform = finalTransform;
-            bool realign = registration.applyTransform(finalTransform);
-            if(realign)
-            {
-                cout << "Trying to enhance alignment. Transform:" << endl;
-                cout << finalTransform << endl;
-                finalTransform = finalTransform * firstTransform;
-                //firstTransform = finalTransform;
-            }
+            registration.applyTransform(finalTransform);
+
+            // Try to refine the initial alignment by excluding center pairs
+            mat4 realignTransform = registration.refineAlignment();
+            registration.applyTransform(realignTransform);
+
+            finalTransform = realignTransform * finalTransform;
 
             PointNormalKCloud::Ptr p_transformed_cloud = PointNormalKCloud().makeShared();
             pcl::transformPointCloud(*pc_source_segmentation.getPointCloud(), *p_transformed_cloud, finalTransform);

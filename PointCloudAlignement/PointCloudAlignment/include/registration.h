@@ -7,6 +7,8 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include <pcl/registration/icp.h>
+
 #include "common.h"
 #include "segmented_points_container.h"
 #include "pfh_evaluation.h"
@@ -21,9 +23,19 @@ public:
     void setCallback(function<void(SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane, ivec3)> callable) { this->display_update_callable = callable; }
 
     mat4 findAlignment();
+
+    mat4 refineAlignment();
+
     void highlightAssociatedPlanes();
 
-    bool applyTransform(mat4 &finalTransform);
+    void applyTransform(mat4 &M);
+
+    /**
+     * @brief Apply ICP to refine the initial alignement
+     * @return The Transform found by ICP
+     */
+    mat4 finalICP();
+
     float getAlignmentError();
 
 private:

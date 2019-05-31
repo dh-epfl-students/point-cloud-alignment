@@ -274,24 +274,15 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
         for(size_t j = 0; j < l_cT.size(); ++j)
         {
             M(i, j) = exp(-abs(((normCSi - l_cT[j].norm()) + /*(l_aS[i] - l_aT[j]) +*/ (source_surfaces[i] - target_surfaces[j])) /* (angles_cS[i] - angles_cT[j])*/));
-            /*float m = abs((normCSi - l_cT[j].norm()) * (l_aS[i] - l_aT[j]) * (source_surfaces[i] - target_surfaces[j]));
-            if(m == 0)
-            {
-                M(i, j) = 1000000.0f;
-            }
-            else
-            {
-                M(i, j) = 1.0f / m;
-            }*/
         }
     }
 
     // Write M to file
-    string filename("myMatrixMFile.txt");
-    ofstream myFile;
-    myFile.open(filename);
-    myFile << M << endl;
-    myFile.close();
+//    string filename("myMatrixMFile.txt");
+//    ofstream myFile;
+//    myFile.open(filename);
+//    myFile << M << endl;
+//    myFile.close();
 }
 
 mat3 Registration::computeHwithNormals(vector<vec3> qs, vector<vec3> qt)
@@ -353,10 +344,6 @@ vec3 Registration::computeNormalsCentroid(vector<SegmentedPointsContainer::Segme
     for(auto plane: list)
     {
         vec3 n = plane.plane.getNormalizedN();
-        /*if(!isMesh)
-        {
-            n = n.normalized() * plane.indices_list.size();
-        }*/
         c += n;
     }
 
@@ -395,10 +382,6 @@ vector<vec3> Registration::computeNormalsDifSet(vector<SegmentedPointsContainer:
     for(size_t i = 0; i < list.size(); ++i)
     {
         vec3 n = list[i].plane.getNormalizedN();
-        /*if(!isMesh)
-        {
-            n = n.normalized() * list[i].indices_list.size();
-        }*/
         demeaned[i] = n - centroid;
     }
 
@@ -531,13 +514,13 @@ float Registration::computeDelaunaySurface(PointNormalKCloud::Ptr p_cloud, Segme
     }
 
     //DEBUG print points to 2d
-    ofstream file;
-    file.open("2dPoints.txt");
-    for(auto v: l_p2f)
-    {
-        file << v.x << " " << v.y << endl;
-    }
-    file.close();
+//    ofstream file;
+//    file.open("2dPoints.txt");
+//    for(auto v: l_p2f)
+//    {
+//        file << v.x << " " << v.y << endl;
+//    }
+//    file.close();
 
     // Compute delauney triangle
     cv::Rect rect(min.x() - 1, min.y() - 1, max.x()-min.x() + 2, max.y()-min.y() + 2);
@@ -548,8 +531,8 @@ float Registration::computeDelaunaySurface(PointNormalKCloud::Ptr p_cloud, Segme
     sub.getTriangleList(triangles);
 
     // Sum up every triangles' surface
-    ofstream file2;
-    file2.open("triangles.txt");
+//    ofstream file2;
+//    file2.open("triangles.txt");
 
     float surface = 0;
     vec2 x1, x2, x3;
@@ -570,11 +553,11 @@ float Registration::computeDelaunaySurface(PointNormalKCloud::Ptr p_cloud, Segme
 
             float surf = 0.5f * fabs(crossProduct(v1, v2));
 
-            file2 << x1.transpose() << ", " << x2.transpose() << ", " << x3.transpose() << ", surface: " << surf << endl;
+//            file2 << x1.transpose() << ", " << x2.transpose() << ", " << x3.transpose() << ", surface: " << surf << endl;
             surface += surf;
         }
     }
-    file2.close();
+//    file2.close();
 
     return surface;
 }
@@ -668,8 +651,6 @@ Eigen::MatrixXf Registration::planeTuplesWithPFH(int source_nb)
         //List of selected plane tuples (source, target) for translation computation
         selected_planes.push_back(make_tuple(source_indices[i], j, error));
     }
-
-    //cout << M_pfh << endl;
 
     return M_pfh;
 }
@@ -784,47 +765,20 @@ float Registration::getAlignmentError()
 
 }
 
-bool Registration::applyTransform(mat4 &finalTransform)
+//====================================== REALIGNEMENT =================================================================//
+
+mat4 Registration::refineAlignment()
 {
-    // First compute the distance between each selected centers before the transformation
-    vector<float> distances = computeDistanceErrors();
-
-    for(size_t i = 0; i < source.size(); ++i)
-    {
-        vec3 c = source[i].plane.getCenter();
-        vec4 c2 = finalTransform * vec4(c.x(), c.y(), c.z(), 1);
-        source[i].plane.setCenter(vec3(c2.x(), c2.y(), c2.z()));
-    }
-
-    rotateSourceNormals();
-
     // Recompute distance errors after the transformation
     vector<float> new_distances = computeDistanceErrors();
 
     // compute std deviation on new_distances
     float stdDev = getStdDeviation(new_distances);
 
-    // Recompute fpfh errors for each selected tuples and print them in a file
-    ofstream file;
-    file.open("distances_errors.txt");
-    file << "Source, Target, Old Distance, New Distance, FPFH error" << endl;
-
-    for(size_t i = 0; i < distances.size(); ++i)
-    {
-        auto t = selected_planes[i];
-        size_t s_id = get<0>(t);
-        size_t t_id = get<1>(t);
-        float error = get<2>(t);
-
-        file << s_id << ", " << t_id << ", " << distances[i] << ", " << new_distances[i] << ", " << error << endl;
-    }
-
-    file.close();
-
-    // Exclude tuples based on distances - new_distances differences
+    // Exclude tuples based on new_distances
     size_t i = 0;
-    auto it = remove_if(selected_planes.begin(), selected_planes.end(), [&i, &distances, &new_distances, &stdDev](tuple<size_t, size_t, float> t){
-        bool ret = /*(distances[i] < new_distances[i]) &&*/ (new_distances[i] > STD_DEV_MULT * stdDev);
+    auto it = remove_if(selected_planes.begin(), selected_planes.end(), [&i, &new_distances, &stdDev](tuple<size_t, size_t, float> t){
+        bool ret = (new_distances[i] > STD_DEV_MULT * stdDev);
         i++;
         return ret;
     });
@@ -841,12 +795,40 @@ bool Registration::applyTransform(mat4 &finalTransform)
         //recompute M with updated tuples
         M = buildM(selected_planes);
         R = findRotation(M);
-        T = findAndAddTranslation(R);
-        finalTransform = T;
-        return true;
+        return findAndAddTranslation(R);
     }
 
-    return false;
+    return mat4::Identity();
+}
+
+void Registration::applyTransform(mat4 &M)
+{
+    // First compute the distance between each selected centers before the transformation
+    //vector<float> distances = computeDistanceErrors();
+
+    for(size_t i = 0; i < source.size(); ++i)
+    {
+        vec3 c = source[i].plane.getCenter();
+        vec4 c2 = M * vec4(c.x(), c.y(), c.z(), 1);
+        source[i].plane.setCenter(vec3(c2.x(), c2.y(), c2.z()));
+    }
+
+    rotateSourceNormals();
+
+    // Recompute fpfh errors for each selected tuples and print them in a file
+//    ofstream file;
+//    file.open("distances_errors.txt");
+//    file << "Source, Target, Old Distance, New Distance, FPFH error" << endl;
+//
+//    for(size_t i = 0; i < distances.size(); ++i)
+//    {
+//        auto t = selected_planes[i];
+//        size_t s_id = get<0>(t);
+//        size_t t_id = get<1>(t);
+//        float error = get<2>(t);
+//        file << s_id << ", " << t_id << ", " << distances[i] << ", " << new_distances[i] << ", " << error << endl;
+//    }
+//    file.close();
 }
 
 void Registration::rotateSourceNormals()
@@ -872,4 +854,37 @@ vector<float> Registration::computeDistanceErrors()
     }
 
     return errors;
+}
+
+//===================================== FINAL ICP ALIGNMENT ====================================================//
+
+mat4 Registration::finalICP()
+{
+    // Build PC for source and target
+    pcl::PointCloud<pcl::PointXYZ>::Ptr p_source(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr p_target(new pcl::PointCloud<pcl::PointXYZ>);
+
+    for(size_t i = 0; i < this->source.size(); ++i)
+    {
+        p_source->push_back(this->source[i].plane.getCenterPCL());
+    }
+
+    for(size_t i = 0; i < this->target.size(); ++i)
+    {
+        p_target->push_back(this->target[i].plane.getCenterPCL());
+    }
+
+    // Setup icp object
+    pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+    icp.setInputSource(p_source);
+    icp.setInputTarget(p_target);
+
+    // Compute alignement
+    pcl::PointCloud<pcl::PointXYZ> final;
+    icp.align(final);
+
+    cout << "Has converged: " << icp.hasConverged() << " score: " << icp.getFitnessScore() << endl;
+
+    auto finalTransform = icp.getFinalTransformation();
+    return finalTransform;
 }

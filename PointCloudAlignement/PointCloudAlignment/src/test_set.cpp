@@ -309,15 +309,16 @@ void TestingSet::runAlignment(size_t source_id)
 
     registration.setClouds(source_planes, this->target_planes, !this->p_target->isCloud(), !this->sources[source_id]->isCloud(), s_cloud, t_cloud);
     mat4 M = registration.findAlignment();
-    mat4 finalM = M;
-    bool realign = registration.applyTransform(M);
 
-    if(realign)
-    {
-        finalM = M * finalM;
-    }
+    registration.applyTransform(M);
 
-    this->results[source_id].transform = finalM;
+    mat4 realign_M = registration.refineAlignment();
+
+    registration.applyTransform(realign_M);
+
+    mat4 ICP_M = registration.finalICP();
+
+    this->results[source_id].transform = ICP_M * realign_M * M;
 
     // Save aligned object in the sources_aligned vector
     // First deep copy of current source
@@ -333,7 +334,7 @@ void TestingSet::runAlignment(size_t source_id)
     }
 
     // transform the object
-    source_aligned->transform(finalM);
+    source_aligned->transform(this->results[source_id].transform);
 
     // store the transformed object
     this->sources_aligned[source_id] = source_aligned;
