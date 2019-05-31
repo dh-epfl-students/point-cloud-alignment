@@ -807,6 +807,9 @@ bool Registration::applyTransform(mat4 &finalTransform)
     // Recompute distance errors after the transformation
     vector<float> new_distances = computeDistanceErrors();
 
+    // compute std deviation on new_distances
+    float stdDev = getStdDeviation(new_distances);
+
     // Recompute fpfh errors for each selected tuples and print them in a file
     ofstream file;
     file.open("distances_errors.txt");
@@ -826,8 +829,8 @@ bool Registration::applyTransform(mat4 &finalTransform)
 
     // Exclude tuples based on distances - new_distances differences
     size_t i = 0;
-    auto it = remove_if(selected_planes.begin(), selected_planes.end(), [&i, &distances, &new_distances](tuple<size_t, size_t, float> t){
-        bool ret = /*(distances[i] < new_distances[i]) &&*/ (new_distances[i] > MAX_ACCEPTED_DISTANCE);
+    auto it = remove_if(selected_planes.begin(), selected_planes.end(), [&i, &distances, &new_distances, &stdDev](tuple<size_t, size_t, float> t){
+        bool ret = /*(distances[i] < new_distances[i]) &&*/ (new_distances[i] > 2.0 * stdDev);
         i++;
         return ret;
     });

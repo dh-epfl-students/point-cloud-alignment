@@ -35,7 +35,7 @@ PFHCloud PFHEvaluation::computePFHSignatures(vector<SegmentedPointsContainer::Se
     pfh.setInputCloud(cloud);
     pfh.setInputNormals(cloud);
     pfh.setSearchMethod(p_kdTree);
-    pfh.setKSearch(/*cloud->size()*/CENTER_KNN);
+    pfh.setKSearch(CENTER_KNN);
     pfh.compute(pfh_cloud);
 
     return pfh_cloud;
@@ -57,7 +57,9 @@ FPFHCloud PFHEvaluation::computeFPFHSignature(vector<SegmentedPointsContainer::S
     fpfh.setInputCloud(cloud);
     fpfh.setInputNormals(cloud);
     fpfh.setSearchMethod(p_kdTree);
-    fpfh.setKSearch(CENTER_KNN);
+    // K is a percentage of number of points in cloud: to test: 5%, 10%, 15%, 20%
+    int K = static_cast<int>(ceil(l_planes.size() * 0.1));
+    fpfh.setKSearch(K);
     fpfh.compute(fpfh_cloud);
 
     return fpfh_cloud;

@@ -116,3 +116,23 @@ inline mat4 getRandomTranslation()
     mat4 T = Eigen::Affine3f(Eigen::Translation3f(r)).matrix();
     return T;
 }
+
+inline float getStdDeviation(vector<float> list)
+{
+    float mean(0);
+
+    for(float i: list)
+    {
+        mean += i;
+    }
+    mean /= list.size();
+
+    float dev(0);
+
+    for(float i: list)
+    {
+        dev += pow(i - mean, 2);
+    }
+    dev /= list.size();
+    return sqrt(dev);
+}
