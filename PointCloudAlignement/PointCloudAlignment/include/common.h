@@ -5,6 +5,7 @@
 #include <Eigen/Core>
 #include <Eigen/QR>
 
+#include "variables.h"
 #include "point_normal_k.h"
 
 using namespace std;
@@ -21,8 +22,6 @@ typedef Eigen::MatrixXf matX;
 
 typedef pcl::PointCloud<pcl::PFHSignature125> PFHCloud;
 typedef pcl::PointCloud<pcl::FPFHSignature33> FPFHCloud;
-
-#define MAX_CURVATURE 0.5
 
 inline float squaredDistance(vec3 p1, vec3 p2) {
     vec3 p = p1 - p2;

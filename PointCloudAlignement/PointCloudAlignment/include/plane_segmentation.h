@@ -15,11 +15,6 @@
 #include "segmented_points_container.h"
 #include "pfh_evaluation.h"
 
-#define PHASE1_ITERATIONS 3
-#define MIN_STABLE_SIZE 500
-#define MIN_PLANE_SIZE 10
-#define MAX_ITERATIONS 100
-
 /**
  * @brief Max angle in radians between two normals to be
  * considered in the same plane. Examples: 0.349066f = 20°, 0.261799 = 15°

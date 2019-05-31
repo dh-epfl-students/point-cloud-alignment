@@ -21,6 +21,7 @@ endif()
 
 set(HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(PROJECT_HEADERS ${HEADER_DIR}/common.h
+    ${HEADER_DIR}/variables.h
     ${HEADER_DIR}/point_normal_k.h
     ${HEADER_DIR}/plane_segmentation.h
     ${HEADER_DIR}/normal_computation.h

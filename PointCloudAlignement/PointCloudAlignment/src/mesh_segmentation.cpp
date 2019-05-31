@@ -151,7 +151,7 @@ bool MeshSegmentation::planesAreMergeable(SegmentedPointsContainer::SegmentedPla
     // may need to reorient normal
     n2  = n2.dot(n1) < 0.0f ? -n2 : n2;
 
-    return (n2.dot(n1) >= COS_5) && haveCommonVertex(p1, p2);
+    return (n2.dot(n1) >= MESH_NORMAL_ERROR) && haveCommonVertex(p1, p2);
 }
 
 bool MeshSegmentation::haveCommonVertex(SegmentedPointsContainer::SegmentedPlane &p1, SegmentedPointsContainer::SegmentedPlane &p2)

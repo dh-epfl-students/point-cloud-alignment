@@ -6,10 +6,6 @@
 #include "common.h"
 #include "segmented_points_container.h"
 
-#define PLANE_TRESHOLD 20
-#define CENTER_KNN 10
-#define SURFACE_INTERVAL 200
-
 typedef pcl::PointCloud<pcl::PointNormal> PointNormalCloud;
 typedef pcl::PointNormal PointNormal;
 typedef pcl::KdTreeFLANN<PointNormal, flann::L2_Simple<float>> KdTreeFlann;

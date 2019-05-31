@@ -51,9 +51,6 @@ void Registration::setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &s
         {
             this->source_surfaces = computeDelaunaySurfaces(p_source_cloud, source);//estimatePlanesSurface(p_source_cloud, source);
         }
-
-        // Filter out planes to keep only MIN_SURFACE biggest planes for each set
-        //filterPlanes(MIN_SURFACE, this->source, source_surfaces);
     }
 
     if(this->target_surfaces.empty())
@@ -70,9 +67,6 @@ void Registration::setClouds(vector<SegmentedPointsContainer::SegmentedPlane> &s
         {
             this->target_surfaces = computeDelaunaySurfaces(p_target_cloud, target);//estimatePlanesSurface(p_target_cloud, target);
         }
-
-        // Filter out planes to keep only MIN_SURFACE biggest planes for each set
-        //filterPlanes(MIN_SURFACE, this->target, target_surfaces);
     }
 }
 
@@ -830,7 +824,7 @@ bool Registration::applyTransform(mat4 &finalTransform)
     // Exclude tuples based on distances - new_distances differences
     size_t i = 0;
     auto it = remove_if(selected_planes.begin(), selected_planes.end(), [&i, &distances, &new_distances, &stdDev](tuple<size_t, size_t, float> t){
-        bool ret = /*(distances[i] < new_distances[i]) &&*/ (new_distances[i] > 2.0 * stdDev);
+        bool ret = /*(distances[i] < new_distances[i]) &&*/ (new_distances[i] > STD_DEV_MULT * stdDev);
         i++;
         return ret;
     });

@@ -15,10 +15,6 @@
 #include "mesh_segmentation.h"
 #include "registration.h"
 
-#define TARGET_COLOR ivec3(15, 255, 15)
-#define SOURCE_COLOR ivec3(255, 15, 15)
-#define ALIGNED_COLOR ivec3(15, 15, 255)
-
 using namespace std;
 
 class AlignObjectInterface

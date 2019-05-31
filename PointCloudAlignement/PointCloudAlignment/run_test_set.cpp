@@ -18,8 +18,6 @@
 #include "registration.h"
 #include "test_set.h"
 
-#define MAX_VIEWPORT_NB 4
-
 using namespace std;
 
 /// The Viewer in which the results will be displayed

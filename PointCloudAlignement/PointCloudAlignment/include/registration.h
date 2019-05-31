@@ -11,11 +11,6 @@
 #include "segmented_points_container.h"
 #include "pfh_evaluation.h"
 
-#define MIN_SURFACE 50
-#define MAX_SOURCE_PLANES 50
-#define PROGRESSION_TRESHOLD 20
-#define MAX_ACCEPTED_DISTANCE 20
-
 typedef tuple<size_t, size_t, float> PlaneTuples;
 
 class Registration {
