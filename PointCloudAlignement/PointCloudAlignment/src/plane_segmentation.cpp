@@ -150,7 +150,7 @@ void PlaneSegmentation::resampleCloud()
 
     pcl::VoxelGrid<PointNormalK>::Ptr filter(new pcl::VoxelGrid<PointNormalK>);
     filter->setInputCloud(p_cloud);
-    filter->setLeafSize(1, 1, 1);
+    filter->setLeafSize(LEAF_SIZE, LEAF_SIZE, LEAF_SIZE);
     filter->filter(*p_cloud_filtered);
 
     cout << "Cloud filtered from " << p_cloud->size() << " to " << p_cloud_filtered->size() << " points." << endl;

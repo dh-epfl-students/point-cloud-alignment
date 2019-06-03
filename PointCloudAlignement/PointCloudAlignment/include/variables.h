@@ -5,6 +5,8 @@
 
 ///================================ PREPROCESSING STEPS: contains normal and curvature computation. =========================================///
 
+/// Size of the leaf used when resampling cloud
+#define LEAF_SIZE 1
 /// Upper bound on K computation.
 #define MAX_K_ORIGINAL 50
 /// Upper bound on K computation if the point cloud was resampled.
@@ -16,6 +18,11 @@
 
 ///================================ PLANE SEGMENTATION CLOUD ===============================================================================///
 
+/**
+ * @brief Max angle in radians between two normals to be
+ * considered in the same plane. Examples: 0.349066f = 20°, 0.261799 = 15°
+ */
+#define MAX_NORMAL_ANGLE 0.174533f // = 10°
 /// PFH evaluation threshold of 62nd bin to be classified as a plane.
 #define PLANE_TRESHOLD 20
 /// Number of iteration of phase 1. At the third iteration, the neighborhood set is classified as a plane or not.
@@ -53,7 +60,7 @@
 
 /// Factor for the Std deviation upper bound when excluding center pairs for realignment.
 #define STD_DEV_MULT 2.0
-/// Number of center's neighbour to take when computing FPFH signature.
+/// Number of center's neighbour to take when computing PFH signature.
 #define CENTER_KNN 10
 /// Upper bound on the surface difference between a source and target plane to be associated.
 #define SURFACE_INTERVAL 200

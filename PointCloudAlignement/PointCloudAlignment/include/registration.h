@@ -38,6 +38,9 @@ public:
 
     float getAlignmentError();
 
+    vector<tuple<SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane> > getSelectedPlanes();
+    vector<float> computeDistanceErrors();
+
 private:
     bool targetIsMesh = false;
     bool sourceIsMesh = false;
@@ -88,5 +91,4 @@ private:
 
     vector<size_t> getSortedIndicesGiven(vector<float> &l_surfaces);
     void rotateSourceNormals();
-    vector<float> computeDistanceErrors();
 };

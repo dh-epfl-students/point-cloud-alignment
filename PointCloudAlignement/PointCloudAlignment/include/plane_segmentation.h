@@ -15,12 +15,6 @@
 #include "segmented_points_container.h"
 #include "pfh_evaluation.h"
 
-/**
- * @brief Max angle in radians between two normals to be
- * considered in the same plane. Examples: 0.349066f = 20°, 0.261799 = 15°
- */
-#define MAX_NORMAL_ANGLE 0.174533f // = 10°
-
 
 class PlaneSegmentation {
 public:

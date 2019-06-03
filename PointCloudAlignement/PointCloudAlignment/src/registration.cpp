@@ -1,5 +1,20 @@
 #include "registration.h"
 
+vector<tuple<SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane>> Registration::getSelectedPlanes()
+{
+    vector<tuple<SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane>> planes;
+
+    for(auto pair: this->selected_planes)
+    {
+        size_t s_id = get<0>(pair);
+        size_t t_id = get<1>(pair);
+
+        planes.push_back(make_tuple(this->source[s_id], this->target[t_id]));
+    }
+
+    return planes;
+}
+
 void Registration::filterPlanes(int nb_planes, vector<SegmentedPointsContainer::SegmentedPlane> &planes, vector<float> &surfaces)
 {
     //Build list of available indices that will be sorted in decreasing surface order
@@ -434,6 +449,8 @@ vector<float> Registration::computeAngleDifs(vector<vec3> &l_shifted_centroids, 
     return angles;
 }
 
+// ========================================= Plane Surface Estimation =================================================== //
+
 vector<float> Registration::estimatePlanesSurface(PointNormalKCloud::Ptr p_cloud, vector<SegmentedPointsContainer::SegmentedPlane> &l_planes)
 {
     vector<float> surfaces(l_planes.size());
@@ -762,7 +779,6 @@ float Registration::getAlignmentError()
     }
 
     return err;
-
 }
 
 //====================================== REALIGNEMENT =================================================================//
@@ -803,9 +819,6 @@ mat4 Registration::refineAlignment()
 
 void Registration::applyTransform(mat4 &M)
 {
-    // First compute the distance between each selected centers before the transformation
-    //vector<float> distances = computeDistanceErrors();
-
     for(size_t i = 0; i < source.size(); ++i)
     {
         vec3 c = source[i].plane.getCenter();
@@ -814,21 +827,6 @@ void Registration::applyTransform(mat4 &M)
     }
 
     rotateSourceNormals();
-
-    // Recompute fpfh errors for each selected tuples and print them in a file
-//    ofstream file;
-//    file.open("distances_errors.txt");
-//    file << "Source, Target, Old Distance, New Distance, FPFH error" << endl;
-//
-//    for(size_t i = 0; i < distances.size(); ++i)
-//    {
-//        auto t = selected_planes[i];
-//        size_t s_id = get<0>(t);
-//        size_t t_id = get<1>(t);
-//        float error = get<2>(t);
-//        file << s_id << ", " << t_id << ", " << distances[i] << ", " << new_distances[i] << ", " << error << endl;
-//    }
-//    file.close();
 }
 
 void Registration::rotateSourceNormals()
@@ -885,6 +883,5 @@ mat4 Registration::finalICP()
 
     cout << "Has converged: " << icp.hasConverged() << " score: " << icp.getFitnessScore() << endl;
 
-    auto finalTransform = icp.getFinalTransformation();
-    return finalTransform;
+    return icp.getFinalTransformation();
 }

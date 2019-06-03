@@ -28,6 +28,9 @@ public:
     string getFilename();
     void setFilename(string file);
 
+    mat4 getOriginalTransform();
+    void setOriginalTransform(mat4 &t);
+
     virtual void displayObjectIn(pcl::visualization::PCLVisualizer::Ptr p_viewer, ivec3 color, int viewport = 0, string id_prefix = "") = 0;
 
     /**
@@ -50,6 +53,7 @@ private:
 
 protected:
     bool isCld;
+    mat4 originalT;
 };
 
 class CloudObject : public AlignObjectInterface

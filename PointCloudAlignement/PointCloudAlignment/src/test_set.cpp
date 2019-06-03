@@ -14,6 +14,16 @@ string AlignObjectInterface::getFilename()
     return this->filename;
 }
 
+mat4 AlignObjectInterface::getOriginalTransform()
+{
+    return this->originalT;
+}
+
+void AlignObjectInterface::setOriginalTransform(mat4 &t)
+{
+    this->originalT = t;
+}
+
 bool AlignObjectInterface::isSource()
 {
     return this->isSrc;
@@ -76,7 +86,7 @@ void CloudObject::segment(vector<SegmentedPointsContainer::SegmentedPlane> &out_
     merger.start_merge(segmented_planes, segmentation.getPointCloud());
     out_planes = merger.getSegmentedPlanes();
 
-    // We also keep the pointer to the cloud for later useage
+    // We also keep the pointer to the cloud for later use
     this->p_object = segmentation.getPointCloud();
 }
 
@@ -318,6 +328,8 @@ void TestingSet::runAlignment(size_t source_id)
 
     mat4 ICP_M = registration.finalICP();
 
+    registration.applyTransform(ICP_M);
+
     this->results[source_id].transform = ICP_M * realign_M * M;
 
     // Save aligned object in the sources_aligned vector
@@ -340,6 +352,32 @@ void TestingSet::runAlignment(size_t source_id)
     this->sources_aligned[source_id] = source_aligned;
 
     //TODO: save alignment statistics in results[i]
+    // TEST: compare distance between selected pairs, and nearest centers to see if they correspond
+    auto pair_list = registration.getSelectedPlanes();
+    auto distances = registration.computeDistanceErrors();
+
+    // Create a cloud with target planes centers
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+    for(auto i: this->target_planes)
+    {
+        cloud->push_back(i.plane.getCenterPCL());
+    }
+    pcl::KdTreeFLANN<pcl::PointXYZ, flann::L2_Simple<float>>::Ptr kdtree(new pcl::KdTreeFLANN<pcl::PointXYZ, flann::L2_Simple<float>>);
+    kdtree->setInputCloud(cloud);
+
+    // Now for each point in source list, get nearest center and compute distance
+    for(size_t i = 0; i < pair_list.size(); ++i)
+    {
+        auto s_plane = get<0>(pair_list[i]);
+        auto t_plane = get<1>(pair_list[i]);
+
+        vector<int> indices;
+        vector<float> dists;
+        kdtree->nearestKSearch(s_plane.plane.getCenterPCL(), 1, indices, dists);
+
+        cout << "Before ICP: source id " << s_plane.id << " with target id " << t_plane.id << ": " << distances[i]
+                << ". After ICP: found target id " << this->target_planes[indices[0]].id << ": " << sqrt(dists[0]) << endl;
+    }
 }
 
 void TestingSet::display(pcl::visualization::PCLVisualizer::Ptr p_viewer, vector<int> &viewports)
@@ -366,6 +404,7 @@ void TestingSet::applyRandomTransforms()
         mat4 T = getRandomTranslation();
         mat4 M = T * R;
 
+        this->sources[i]->setOriginalTransform(M);
         this->sources[i]->transform(M);
     }
 }
@@ -387,7 +426,7 @@ void TestingSet::saveObjectsPLY()
     for (size_t i = 0; i < this->sources.size(); ++i)
     {
         stringstream ss;
-        ss << "source_" << i;
+        ss << "_source_" << i;
         this->sources[i]->saveObject(ss.str());
     }
 }
@@ -399,6 +438,6 @@ void TestingSet::writeTestSet(ofstream &output)
 
     for(size_t i = 0; i < this->sources.size(); ++i)
     {
-        output << this->sources[i]->getFilename() << " " << (this->sources[i]->isCloud() ? "c" : "m") << endl;
+        output << this->sources[i]->getFilename() << " " << (this->sources[i]->isCloud() ? "c" : "m") << this->sources[i]->getOriginalTransform() << endl;
     }
 }
