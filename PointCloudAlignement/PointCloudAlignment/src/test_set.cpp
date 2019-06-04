@@ -245,15 +245,15 @@ TestingSet::TestingSet(string targetfile, bool isCloud)
     }
 }
 
-void TestingSet::addSource(string sourcefile, bool isCloud)
+void TestingSet::addSource(string sourcefile, bool isCloud, mat4 m)
 {
     if(isCloud)
     {
-        sources.emplace_back(new CloudObject(sourcefile, true));
+        sources.emplace_back(new CloudObject(sourcefile, true, m));
     }
     else
     {
-        sources.emplace_back(new MeshObject(sourcefile, true));
+        sources.emplace_back(new MeshObject(sourcefile, true, m));
     }
 }
 
@@ -330,6 +330,7 @@ void TestingSet::runAlignment(size_t source_id)
 
     registration.applyTransform(ICP_M);
 
+    // Saving the final transformation because we need it to compute alignment errors when writing results
     this->results[source_id].transform = ICP_M * realign_M * M;
 
     // Save aligned object in the sources_aligned vector
@@ -421,7 +422,7 @@ void TestingSet::preprocessClouds()
 
 void TestingSet::saveObjectsPLY()
 {
-    this->p_target->saveObject("target");
+    this->p_target->saveObject("_target");
 
     for (size_t i = 0; i < this->sources.size(); ++i)
     {
@@ -438,6 +439,23 @@ void TestingSet::writeTestSet(ofstream &output)
 
     for(size_t i = 0; i < this->sources.size(); ++i)
     {
-        output << this->sources[i]->getFilename() << " " << (this->sources[i]->isCloud() ? "c" : "m") << this->sources[i]->getOriginalTransform() << endl;
+        mat4 m = this->sources[i]->getOriginalTransform();
+        output << this->sources[i]->getFilename() << " " << (this->sources[i]->isCloud() ? "c " : "m ") << this->getMatStr(m) << endl;
     }
+}
+
+string TestingSet::getMatStr(mat4 &m)
+{
+    stringstream ss;
+    ss << m.row(0) << " " << m.row(1) << " " << m.row(2) << " " << m.row(3);
+    return ss.str();
+}
+
+void TestingSet::writeResults()
+{
+    // Name of the file in which to write the stats
+
+    // Rotation error
+
+    // Sum of distances between each points
 }

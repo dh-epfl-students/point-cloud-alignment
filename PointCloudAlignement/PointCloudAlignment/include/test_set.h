@@ -21,6 +21,7 @@ class AlignObjectInterface
 {
 public:
     AlignObjectInterface(string file, bool isSource): filename(file), isSrc(isSource) {}
+    AlignObjectInterface(string file, bool isSource, mat4 m): filename(file), isSrc(isSource), originalT(m) {}
     virtual ~AlignObjectInterface();
 
     bool isSource();
@@ -47,6 +48,8 @@ public:
 
     virtual bool isCloud() = 0;
 
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
 private:
     string filename;
     bool isSrc;
@@ -65,7 +68,9 @@ public:
         this->p_object = nullptr;
     }
 
-    CloudObject(CloudObject &object): AlignObjectInterface (object.getFilename(), object.isSource())
+    CloudObject(string file, bool isSource, mat4 m): AlignObjectInterface(file, isSource, m) {}
+
+    CloudObject(CloudObject &object): AlignObjectInterface (object.getFilename(), object.isSource(), object.getOriginalTransform())
     {
         this->isCld = true;
         this->p_object = PointNormalKCloud::Ptr(new PointNormalKCloud);
@@ -100,7 +105,9 @@ public:
         this->p_object = nullptr;
     }
 
-    MeshObject(MeshObject &object): AlignObjectInterface(object.getFilename(), object.isSource())
+    MeshObject(string file, bool isSource, mat4 m): AlignObjectInterface(file, isSource, m) {}
+
+    MeshObject(MeshObject &object): AlignObjectInterface(object.getFilename(), object.isSource(), object.getOriginalTransform())
     {
         this->isCld = false;
         this->p_object = pcl::PolygonMesh::Ptr(new pcl::PolygonMesh(*object.getObject()));
@@ -141,7 +148,7 @@ public:
     TestingSet() {}
     TestingSet(string targetfile, bool isCloud = true);
 
-    void addSource(string sourcefile, bool isCloud = true);
+    void addSource(string sourcefile, bool isCloud = true,  mat4 m = mat4::Identity());
     bool isInitialized();
 
     void runTests();
@@ -153,6 +160,8 @@ public:
     void saveObjectsPLY();
     void writeTestSet(ofstream &output);
 
+    void writeResults();
+
 private:
     shared_ptr<AlignObjectInterface> p_target;
     vector<shared_ptr<AlignObjectInterface>> sources;
@@ -162,4 +171,6 @@ private:
     vector<AlignmentResults, Eigen::aligned_allocator<AlignmentResults> > results;
 
     void runAlignment(size_t source_id);
+
+    string getMatStr(mat4 &m);
 };

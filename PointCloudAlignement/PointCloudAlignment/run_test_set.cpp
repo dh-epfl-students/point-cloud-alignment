@@ -83,7 +83,7 @@ static bool parseTestingFile(string file_path)
             vector<string> tokens;
             boost::split(tokens, line, boost::is_any_of(" "), boost::token_compress_on);
 
-            if(tokens.size() != 2)
+            if(tokens.size() < 2)
             {
                 cout << "Synthax Error in " << file_path << endl;
                 return false;
@@ -98,7 +98,15 @@ static bool parseTestingFile(string file_path)
             }
             else
             {
-                set.addSource(tokens[0], isCloud);
+                // Also parse the original transform for each source.
+                mat4 m = mat4::Zero();
+                for(int i = 0; i < m.rows(); ++i)
+                {
+                    ulong id = 2 + (i * 4);
+                    m.row(i) << stof(tokens.at(id)), stof(tokens.at(id+1)), stof(tokens.at(id+2)), stof(tokens.at(id+3));
+                }
+
+                set.addSource(tokens[0], isCloud, m);
             }
         }
     }
@@ -108,7 +116,7 @@ static bool parseTestingFile(string file_path)
 
 int main()
 {
-    if(!parseTestingFile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/testing_set_list.txt"))
+    if(!parseTestingFile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/DEBUG_testing_set_list.txt"))
     {
         cout << "Error while parsing input file" << endl;
         exit(EXIT_FAILURE);
@@ -119,9 +127,9 @@ int main()
     for(size_t i = 0; i < testing_set.size(); ++i)
     {
         testing_set[i].runTests();
-    }
 
-    //TODO print stats in a file
+        testing_set[i].writeResults();
+    }
 
     // Display final alignments
     p_viewer = pcl::visualization::PCLVisualizer::Ptr(new pcl::visualization::PCLVisualizer("PointCloud Viewer"));
