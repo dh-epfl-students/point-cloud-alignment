@@ -118,7 +118,7 @@ void TestParser::saveObjectsPLY(vector<TestingSet> &l_test)
 {
     for(size_t i = 0; i < l_test.size(); ++i)
     {
-        l_test[i].saveObjectsPLY();
+        l_test[i].saveObjectsPLY(i);
     }
 }
 

@@ -116,18 +116,16 @@ static bool parseTestingFile(string file_path)
 
 int main()
 {
-    if(!parseTestingFile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/DEBUG_testing_set_list.txt"))
+    if(!parseTestingFile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/ConM_test_list.txt"))
     {
         cout << "Error while parsing input file" << endl;
         exit(EXIT_FAILURE);
     }
 
     // Launch the tests for all testing set
-    #pragma omp parallel for
     for(size_t i = 0; i < testing_set.size(); ++i)
     {
         testing_set[i].runTests();
-
         testing_set[i].writeResults();
     }
 

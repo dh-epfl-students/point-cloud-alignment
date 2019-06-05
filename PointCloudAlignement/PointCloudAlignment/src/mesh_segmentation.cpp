@@ -12,7 +12,17 @@ bool MeshSegmentation::loadMesh(string filename)
 
     cout << "Loaded mesh " << filename << endl;
 
-    // Converting PolygonMesh->cloud to PointCloud<PointNormal>
+    // Converting PolygonMesh->cloud to PointCloud<pcl::PointXYZ>
+    p_cloud = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::fromPCLPointCloud2(p_mesh->cloud, *p_cloud);
+
+    return true;
+}
+
+bool MeshSegmentation::loadMesh(pcl::PolygonMeshPtr mesh_ptr)
+{
+    this->p_mesh = mesh_ptr;
+
     p_cloud = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::fromPCLPointCloud2(p_mesh->cloud, *p_cloud);
 

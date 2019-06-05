@@ -32,6 +32,18 @@ bool AlignObjectInterface::isSource()
 
 // =========================== // CloudObject // ============================================== //
 
+void CloudObject::loadObject()
+{
+    p_object = PointNormalKCloud::Ptr(new PointNormalKCloud);
+    int r = pcl::io::loadPCDFile(this->getFilename(), *p_object);
+
+    if(r == -1 && pcl::io::loadPLYFile(this->getFilename(), *p_object) == -1)
+    {
+        PCL_ERROR("Could not read given file\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
 void CloudObject::displayObjectIn(pcl::visualization::PCLVisualizer::Ptr p_viewer, ivec3 color, int viewport, string id_prefix)
 {
     stringstream ss;
@@ -66,7 +78,15 @@ void CloudObject::segment(vector<SegmentedPointsContainer::SegmentedPlane> &out_
     vector<SegmentedPointsContainer::SegmentedPlane> segmented_planes;
 
     PlaneSegmentation segmentation;
-    segmentation.init(this->getFilename(), this->isSource());
+
+    if(this->p_object == nullptr)
+    {
+        segmentation.init(this->getFilename(), this->isSource());
+    }
+    else
+    {
+        segmentation.init(this->p_object, this->isSource());
+    }
 
     if(segmentation.isReady())
     {
@@ -92,17 +112,7 @@ void CloudObject::segment(vector<SegmentedPointsContainer::SegmentedPlane> &out_
 
 void CloudObject::transform(mat4 &M)
 {
-    if(this->p_object == nullptr)
-    {
-        p_object = PointNormalKCloud::Ptr(new PointNormalKCloud);
-        int r = pcl::io::loadPCDFile(this->getFilename(), *p_object);
-
-        if(r == -1 && pcl::io::loadPLYFile(this->getFilename(), *p_object) == -1)
-        {
-            PCL_ERROR("Could not read given file\n");
-            exit(EXIT_FAILURE);
-        }
-    }
+    if(this->p_object == nullptr) this->loadObject();
 
     // Transform source cloud
     PointNormalKCloud::Ptr aligned_cloud(new PointNormalKCloud);
@@ -110,15 +120,15 @@ void CloudObject::transform(mat4 &M)
     this->p_object = aligned_cloud;
 }
 
-void CloudObject::saveObject(string suffix)
+void CloudObject::saveObject(string suffix, int set_id)
 {
-    if(this->p_object == nullptr) return;
+    if(this->p_object == nullptr) this->loadObject();
 
     boost::filesystem::path p(this->getFilename());
     string name = p.stem().string();
 
     stringstream ss;
-    ss << name << suffix << ".ply";
+    ss << set_id << "_" << name << suffix << ".ply";
     auto new_p = p.remove_filename();
     new_p.append(ss.str());
     this->setFilename(new_p.string());
@@ -142,6 +152,16 @@ bool CloudObject::isCloud()
 }
 
 // =========================== // MeshObject // ============================================== //
+
+void MeshObject::loadObject()
+{
+    this->p_object = pcl::PolygonMeshPtr(new pcl::PolygonMesh);
+    if(pcl::io::loadPolygonFilePLY(this->getFilename(), *p_object) == -1)
+    {
+        cout << "Failed to load given mesh file" << endl;
+        exit(EXIT_FAILURE);
+    }
+}
 
 void MeshObject::displayObjectIn(pcl::visualization::PCLVisualizer::Ptr p_viewer, ivec3 color, int viewport, string id_prefix)
 {
@@ -175,7 +195,7 @@ void MeshObject::preprocess()
 void MeshObject::segment(vector<SegmentedPointsContainer::SegmentedPlane> &out_planes)
 {
     MeshSegmentation seg;
-    seg.loadMesh(this->getFilename());
+    seg.loadMesh(this->p_object);
     seg.segmentPlanes();
     seg.mergePlanes();
     out_planes = seg.getSegmentedPlanes();
@@ -184,15 +204,7 @@ void MeshObject::segment(vector<SegmentedPointsContainer::SegmentedPlane> &out_p
 
 void MeshObject::transform(mat4 &M)
 {
-    if(this->p_object == nullptr)
-    {
-        this->p_object = pcl::PolygonMeshPtr(new pcl::PolygonMesh);
-        if(pcl::io::loadPolygonFilePLY(this->getFilename(), *p_object) == -1)
-        {
-            cout << "Failed to load given mesh file" << endl;
-            exit(EXIT_FAILURE);
-        }
-    }
+    if(this->p_object == nullptr) this->loadObject();
 
     pcl::PointCloud<pcl::PointXYZRGB> cloud;
     pcl::fromPCLPointCloud2(this->p_object->cloud, cloud);
@@ -200,20 +212,20 @@ void MeshObject::transform(mat4 &M)
     pcl::toPCLPointCloud2(cloud, this->p_object->cloud);
 }
 
-void MeshObject::saveObject(string suffix)
+void MeshObject::saveObject(string suffix, int set_id)
 {
-    if(this->p_object == nullptr) return;
+    if(this->p_object == nullptr) this->loadObject();
 
     boost::filesystem::path p(this->getFilename());
     string name = p.stem().string();
 
     stringstream ss;
-    ss << name << suffix << ".ply";
+    ss << set_id << "_" << name << suffix << ".ply";
     auto new_p = p.remove_filename();
     new_p.append(ss.str());
     this->setFilename(new_p.string());
 
-    pcl::io::savePLYFile(this->getFilename(), *this->p_object);
+    pcl::io::savePolygonFilePLY(this->getFilename(), *this->p_object);
 }
 
 pcl::PolygonMesh::Ptr MeshObject::getObject()
@@ -262,8 +274,21 @@ bool TestingSet::isInitialized()
     return !sources.empty();
 }
 
+void TestingSet::loadSet()
+{
+    this->p_target->loadObject();
+
+    for(size_t i = 0; i < this->sources.size(); ++i)
+    {
+        this->sources[i]->loadObject();
+    }
+}
+
 void TestingSet::runTests()
 {
+    // Load the objects before going in parallel sections. Workaround for crash when loading polygonfile in parallel
+    this->loadSet();
+
     // First the objects are segmented
     #pragma omp parallel sections
     {
@@ -420,15 +445,15 @@ void TestingSet::preprocessClouds()
     }
 }
 
-void TestingSet::saveObjectsPLY()
+void TestingSet::saveObjectsPLY(int set_id)
 {
-    this->p_target->saveObject("_target");
+    this->p_target->saveObject("_target", set_id);
 
     for (size_t i = 0; i < this->sources.size(); ++i)
     {
         stringstream ss;
         ss << "_source_" << i;
-        this->sources[i]->saveObject(ss.str());
+        this->sources[i]->saveObject(ss.str(), set_id);
     }
 }
 

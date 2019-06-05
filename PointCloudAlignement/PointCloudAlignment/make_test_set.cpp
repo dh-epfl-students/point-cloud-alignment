@@ -8,10 +8,10 @@ using namespace std;
 int main()
 {
     // Read file containing the list of PC to process
-    string inputfile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/testset_creation_list.txt");
+    string inputfile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/full_creation_list.txt");
 
     // Write the preprocessed clouds filenames in this file
-    string outputFile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/DEBUG_testing_set_list.txt");
+    string outputFile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/full_testing_set_list.txt");
 
     TestParser parser;
     parser.prepareTestingSet(inputfile, outputFile);

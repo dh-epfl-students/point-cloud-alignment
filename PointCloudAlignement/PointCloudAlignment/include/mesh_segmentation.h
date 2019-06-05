@@ -13,6 +13,7 @@
 class MeshSegmentation {
 public:
     bool loadMesh(string filename);
+    bool loadMesh(pcl::PolygonMeshPtr mesh_ptr);
     void segmentPlanes();
     void mergePlanes();
 

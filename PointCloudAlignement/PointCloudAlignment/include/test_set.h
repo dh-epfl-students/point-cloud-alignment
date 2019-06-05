@@ -32,6 +32,8 @@ public:
     mat4 getOriginalTransform();
     void setOriginalTransform(mat4 &t);
 
+    virtual void loadObject() = 0;
+
     virtual void displayObjectIn(pcl::visualization::PCLVisualizer::Ptr p_viewer, ivec3 color, int viewport = 0, string id_prefix = "") = 0;
 
     /**
@@ -44,7 +46,7 @@ public:
 
     virtual void transform(mat4 &M) = 0;
 
-    virtual void saveObject(string suffix) = 0;
+    virtual void saveObject(string suffix, int set_id) = 0;
 
     virtual bool isCloud() = 0;
 
@@ -68,7 +70,10 @@ public:
         this->p_object = nullptr;
     }
 
-    CloudObject(string file, bool isSource, mat4 m): AlignObjectInterface(file, isSource, m) {}
+    CloudObject(string file, bool isSource, mat4 m): AlignObjectInterface(file, isSource, m) {
+        this->isCld = true;
+        this->p_object = nullptr;
+    }
 
     CloudObject(CloudObject &object): AlignObjectInterface (object.getFilename(), object.isSource(), object.getOriginalTransform())
     {
@@ -76,6 +81,8 @@ public:
         this->p_object = PointNormalKCloud::Ptr(new PointNormalKCloud);
         pcl::copyPointCloud(*object.getObject(), *this->p_object);
     }
+
+    void loadObject();
 
     void displayObjectIn(pcl::visualization::PCLVisualizer::Ptr p_viewer, ivec3 color, int viewport = 0, string id_prefix = "");
 
@@ -85,7 +92,7 @@ public:
 
     void transform(mat4 &M);
 
-    void saveObject(string suffix);
+    void saveObject(string suffix, int set_id);
 
     PointNormalKCloud::Ptr getObject();
     void setObject(PointNormalKCloud::Ptr object_ptr);
@@ -105,13 +112,18 @@ public:
         this->p_object = nullptr;
     }
 
-    MeshObject(string file, bool isSource, mat4 m): AlignObjectInterface(file, isSource, m) {}
+    MeshObject(string file, bool isSource, mat4 m): AlignObjectInterface(file, isSource, m) {
+        this->isCld = false;
+        this->p_object = nullptr;
+    }
 
     MeshObject(MeshObject &object): AlignObjectInterface(object.getFilename(), object.isSource(), object.getOriginalTransform())
     {
         this->isCld = false;
         this->p_object = pcl::PolygonMesh::Ptr(new pcl::PolygonMesh(*object.getObject()));
     }
+
+    void loadObject();
 
     void displayObjectIn(pcl::visualization::PCLVisualizer::Ptr p_viewer, ivec3 color, int viewport = 0, string id_prefix = "");
 
@@ -121,7 +133,7 @@ public:
 
     void transform(mat4 &M);
 
-    void saveObject(string suffix);
+    void saveObject(string suffix, int set_id);
 
     pcl::PolygonMesh::Ptr getObject();
     void setObject(pcl::PolygonMesh::Ptr object_ptr);
@@ -151,13 +163,15 @@ public:
     void addSource(string sourcefile, bool isCloud = true,  mat4 m = mat4::Identity());
     bool isInitialized();
 
+    void loadSet();
+
     void runTests();
 
     void display(pcl::visualization::PCLVisualizer::Ptr p_viewer, vector<int> &viewports);
 
     void applyRandomTransforms();
     void preprocessClouds();
-    void saveObjectsPLY();
+    void saveObjectsPLY(int set_id);
     void writeTestSet(ofstream &output);
 
     void writeResults();
