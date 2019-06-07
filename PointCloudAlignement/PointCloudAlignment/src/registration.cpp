@@ -675,8 +675,12 @@ Eigen::MatrixXf Registration::planeTuplesWithPFH(int source_nb)
 vector<PlaneTuples> Registration::planeTuplesWithFPFH()
 {
     // Compute fpfh forall planes' centers
-    FPFHCloud source_signs = PFHEvaluation::computeFPFHSignature(source);
-    FPFHCloud target_signs = PFHEvaluation::computeFPFHSignature(target);
+    //FPFHCloud source_signs = PFHEvaluation::computeFPFHSignature(source);
+    //FPFHCloud target_signs = PFHEvaluation::computeFPFHSignature(target);
+
+    // TEST
+    FeatureCloud<625> source_signs = PFHEvaluation::computeAPFHSignature(source);
+    FeatureCloud<625> target_signs = PFHEvaluation::computeAPFHSignature(target);
 
     // Construct indice list of planes
     vector<size_t> source_indices = getSortedIndicesGiven(source_surfaces);
@@ -792,21 +796,24 @@ mat4 Registration::refineAlignment()
     float stdDev = getStdDeviation(new_distances);
 
     // Exclude tuples based on new_distances
+    // Copy vector in case all are removed
+    auto tmp_selected_planes = this->selected_planes;
     size_t i = 0;
-    auto it = remove_if(selected_planes.begin(), selected_planes.end(), [&i, &new_distances, &stdDev](tuple<size_t, size_t, float> t){
+    auto it = remove_if(tmp_selected_planes.begin(), tmp_selected_planes.end(), [&i, &new_distances, &stdDev](tuple<size_t, size_t, float> t){
         bool ret = (new_distances[i] > STD_DEV_MULT * stdDev);
         i++;
         return ret;
     });
 
     // If tuples have been excluded that means that the alignement can possibly be enhanced
-    if(it == selected_planes.begin())
+    if(it == tmp_selected_planes.begin())
     {
         cout << "Error: every plane has been removed from selected tuples list, not realigning" << endl;
     }
-    else if(it != selected_planes.end())
+    else if(it != tmp_selected_planes.end())
     {
-        selected_planes.erase(it, selected_planes.end());
+        tmp_selected_planes.erase(it, tmp_selected_planes.end());
+        this->selected_planes.swap(tmp_selected_planes);
 
         //recompute M with updated tuples
         M = buildM(selected_planes);

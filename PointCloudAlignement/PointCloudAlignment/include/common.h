@@ -20,8 +20,11 @@ typedef Eigen::Matrix3f mat3;
 typedef Eigen::Matrix2f mat2;
 typedef Eigen::MatrixXf matX;
 
+typedef pcl::Histogram<625> APFHSignature625;
+
 typedef pcl::PointCloud<pcl::PFHSignature125> PFHCloud;
 typedef pcl::PointCloud<pcl::FPFHSignature33> FPFHCloud;
+typedef pcl::PointCloud<APFHSignature625> APFHCloud;
 
 inline float squaredDistance(vec3 p1, vec3 p2) {
     vec3 p = p1 - p2;
@@ -85,6 +88,16 @@ inline vec3 pclToVec3(pcl::PointXYZRGB p)
 inline vec3 pclToVec3(PointNormalK p)
 {
     return vec3(p.x, p.y, p.z);
+}
+
+inline vec4 pointToVec4(pcl::PointNormal &p)
+{
+    return vec4(p.x, p.y, p.z, 0);
+}
+
+inline vec4 normalToVec4(pcl::PointNormal &p)
+{
+    return vec4(p.normal_x, p.normal_y, p.normal_z, 0);
 }
 
 inline float roundTo(float x, int n)

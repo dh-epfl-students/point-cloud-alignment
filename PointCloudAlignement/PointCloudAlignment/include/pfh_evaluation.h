@@ -10,6 +10,8 @@ typedef pcl::PointCloud<pcl::PointNormal> PointNormalCloud;
 typedef pcl::PointNormal PointNormal;
 typedef pcl::KdTreeFLANN<PointNormal, flann::L2_Simple<float>> KdTreeFlann;
 
+template<int N> using FeatureCloud = pcl::PointCloud<pcl::Histogram<N>>;
+
 class PFHEvaluation {
 public:
     PFHEvaluation(){}
@@ -21,12 +23,77 @@ public:
 
     static FPFHCloud computeFPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
 
+    static APFHCloud computeAPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
+
     static size_t getMinTarget(size_t i, PFHCloud source_signs, PFHCloud target_signs, float &out_error);
 
-    static int getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, FPFHCloud &source_signs, FPFHCloud &target_signs, float &out_error);
+    template<int N>
+    static int getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, FeatureCloud<N> &source_signs, FeatureCloud<N> &target_signs, float &out_error);
 
-    static float computeFPFHError(size_t s_id, size_t t_id, FPFHCloud &source_signs, FPFHCloud &target_signs);
+    template<int N>
+    static float computeFeatureError(size_t s_id, size_t t_id, FeatureCloud<N> &source_signs, FeatureCloud<N> &target_signs);
 
 private:
     static PointNormalCloud::Ptr buildPointCloud(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
+
+    static void computePairAPF(PointNormal &pi, PointNormal &pj, PointNormal &pk, float &f1, float &f2, float &f3, float &f4);
+
+    static void fillHist(float f1, float f2, float f3, float f4, APFHSignature625 &apf);
+
+    static int getBinIndex(float feature);
 };
+
+// IMPLEMENTATIONS OF TEMPLATE FUNCTIONS
+
+template<int N>
+int PFHEvaluation::getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, FeatureCloud<N> &source_signs, FeatureCloud<N> &target_signs, float &out_error)
+{
+    int j = -1;
+    float min_error = numeric_limits<float>::infinity();
+
+    // Get subset of target planes that are in surface interval of source surface
+    vector<size_t> target_indices;
+    for(size_t t_id = 0; t_id < t_surfs.size(); ++t_id)
+    {
+        if(abs(s_surf - t_surfs[t_id]) < SURFACE_INTERVAL)
+        {
+            target_indices.push_back(t_id);
+        }
+    }
+
+    for(size_t it: target_indices)
+    {
+        float curr_error = PFHEvaluation::computeFeatureError(i, it, source_signs, target_signs);
+
+        if(curr_error < min_error /*&& abs(s_surf - t_surfs[j]) > abs(s_surf - t_surfs[it])*/)
+        {
+            min_error = curr_error;
+            j = it;
+        }
+        else if (curr_error == min_error && (abs(s_surf - t_surfs[j]) > abs(s_surf - t_surfs[it]))) {
+            // In case of same error, keep target plane that has the nearest surface
+            min_error = curr_error;
+            j = it;
+        }
+    }
+
+    out_error = min_error;
+    return j;
+}
+
+template<int N>
+float PFHEvaluation::computeFeatureError(size_t s_id, size_t t_id, FeatureCloud<N> &source_signs, FeatureCloud<N> &target_signs)
+{
+    float error = 0;
+
+    auto s_bin = source_signs.points[s_id];
+    auto t_bin = target_signs.points[t_id];
+
+    for(int i = 0; i < s_bin.descriptorSize(); ++i)
+    {
+        error += abs(s_bin.histogram[i] - t_bin.histogram[i]);
+        //error = max(error, abs(s_bin.histogram[i] - t_bin.histogram[i]));
+    }
+
+    return error;
+}
