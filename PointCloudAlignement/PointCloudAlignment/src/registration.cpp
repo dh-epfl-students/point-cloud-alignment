@@ -679,8 +679,8 @@ vector<PlaneTuples> Registration::planeTuplesWithFPFH()
     //FPFHCloud target_signs = PFHEvaluation::computeFPFHSignature(target);
 
     // TEST
-    FeatureCloud<625> source_signs = PFHEvaluation::computeAPFHSignature(source);
-    FeatureCloud<625> target_signs = PFHEvaluation::computeAPFHSignature(target);
+    auto source_signs = PFHEvaluation::computeAPFHSignature(source);
+    auto target_signs = PFHEvaluation::computeAPFHSignature(target);
 
     // Construct indice list of planes
     vector<size_t> source_indices = getSortedIndicesGiven(source_surfaces);

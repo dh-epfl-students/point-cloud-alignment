@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pcl/features/pfh.h>
+#include <pcl/features/fpfh.h>
 #include <pcl/features/fpfh_omp.h>
 
 #include "common.h"
@@ -21,7 +22,12 @@ public:
 
     static PFHCloud computePFHSignatures(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
 
-    static FPFHCloud computeFPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
+    static void computeFPFHSignature(PointNormalCloud::Ptr p_cloud,
+                                     pcl::search::KdTree<PointNormal>::Ptr p_kdTree,
+                                     vector<SegmentedPointsContainer::SegmentedPlane> &l_planes,
+                                     FPFHCloud::Ptr p_output_cloud);
+
+    static void computeFPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes, FPFHCloud::Ptr p_output_cloud);
 
     static APFHCloud computeAPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
 
@@ -36,9 +42,13 @@ public:
 private:
     static PointNormalCloud::Ptr buildPointCloud(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
 
+    static float computeF4(PointNormal &pi, PointNormal &pj, PointNormal &pk);
+
+    static APFHSignature concatenateHists(pcl::FPFHSignature33 &fpfh, pcl::Histogram<NB_BINS_APFH> &f4h);
+
     static void computePairAPF(PointNormal &pi, PointNormal &pj, PointNormal &pk, float &f1, float &f2, float &f3, float &f4);
 
-    static void fillHist(float f1, float f2, float f3, float f4, APFHSignature625 &apf);
+    static void fillHist(float f1, float f2, float f3, float f4, APFHSignature &apf);
 
     static int getBinIndex(float feature);
 };

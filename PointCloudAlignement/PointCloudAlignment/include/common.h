@@ -20,11 +20,11 @@ typedef Eigen::Matrix3f mat3;
 typedef Eigen::Matrix2f mat2;
 typedef Eigen::MatrixXf matX;
 
-typedef pcl::Histogram<625> APFHSignature625;
+typedef pcl::Histogram<NB_BINS_APFH * 4> APFHSignature;
 
 typedef pcl::PointCloud<pcl::PFHSignature125> PFHCloud;
 typedef pcl::PointCloud<pcl::FPFHSignature33> FPFHCloud;
-typedef pcl::PointCloud<APFHSignature625> APFHCloud;
+typedef pcl::PointCloud<APFHSignature> APFHCloud;
 
 inline float squaredDistance(vec3 p1, vec3 p2) {
     vec3 p = p1 - p2;

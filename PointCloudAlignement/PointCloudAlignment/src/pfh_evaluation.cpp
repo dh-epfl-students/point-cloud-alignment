@@ -41,7 +41,26 @@ PFHCloud PFHEvaluation::computePFHSignatures(vector<SegmentedPointsContainer::Se
     return pfh_cloud;
 }
 
-FPFHCloud PFHEvaluation::computeFPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes)
+void PFHEvaluation::computeFPFHSignature(PointNormalCloud::Ptr p_cloud,
+                                              pcl::search::KdTree<PointNormal>::Ptr p_kdTree,
+                                              vector<SegmentedPointsContainer::SegmentedPlane> &l_planes,
+                                              FPFHCloud::Ptr p_output_cloud)
+{
+    // Output cloud
+    FPFHCloud fpfh_cloud;
+
+    // Compute the signatures
+    pcl::FPFHEstimationOMP<PointNormal, PointNormal, pcl::FPFHSignature33> fpfh;
+    fpfh.setInputCloud(p_cloud);
+    fpfh.setInputNormals(p_cloud);
+    fpfh.setSearchMethod(p_kdTree);
+    // K is a percentage of number of points in cloud: to test: 5%, 10%, 15%, 20%
+    int K = static_cast<int>(ceil(l_planes.size() * 0.1));
+    fpfh.setKSearch(K);
+    fpfh.compute(*p_output_cloud);
+}
+
+void PFHEvaluation::computeFPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes, FPFHCloud::Ptr p_output_cloud)
 {
     // First, build cloud of points+normals of every planes' centers and normals.
     PointNormalCloud::Ptr cloud = PFHEvaluation::buildPointCloud(l_planes);
@@ -49,20 +68,7 @@ FPFHCloud PFHEvaluation::computeFPFHSignature(vector<SegmentedPointsContainer::S
     // Fill kdTree to optimise neigboring search
     pcl::search::KdTree<PointNormal>::Ptr p_kdTree(new pcl::search::KdTree<PointNormal>());
 
-    // Output cloud
-    FPFHCloud fpfh_cloud;
-
-    // Compute the signatures
-    pcl::FPFHEstimationOMP<PointNormal, PointNormal, pcl::FPFHSignature33> fpfh;
-    fpfh.setInputCloud(cloud);
-    fpfh.setInputNormals(cloud);
-    fpfh.setSearchMethod(p_kdTree);
-    // K is a percentage of number of points in cloud: to test: 5%, 10%, 15%, 20%
-    int K = static_cast<int>(ceil(l_planes.size() * 0.1));
-    fpfh.setKSearch(K);
-    fpfh.compute(fpfh_cloud);
-
-    return fpfh_cloud;
+    PFHEvaluation::computeFPFHSignature(cloud, p_kdTree, l_planes, p_output_cloud);
 }
 
 APFHCloud PFHEvaluation::computeAPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes)
@@ -70,43 +76,85 @@ APFHCloud PFHEvaluation::computeAPFHSignature(vector<SegmentedPointsContainer::S
     PointNormalCloud::Ptr cloud = PFHEvaluation::buildPointCloud(l_planes);
 
     pcl::search::KdTree<PointNormal>::Ptr p_kdTree(new pcl::search::KdTree<PointNormal>());
-    p_kdTree->setInputCloud(cloud);
-    int K = static_cast<int>(ceil(l_planes.size() * 0.1));
 
-    //Output cloud
-    APFHCloud apfh_cloud;
+    // Usual fpfh signatures
+    FPFHCloud::Ptr fpfh_cloud(new FPFHCloud);
+    PFHEvaluation::computeFPFHSignature(cloud, p_kdTree, l_planes, fpfh_cloud);
+
+
+
+    FeatureCloud<NB_BINS_APFH>::Ptr f4_cloud(new FeatureCloud<NB_BINS_APFH>);
+
+    // Increment constant
+    float hist_incr = 100.0f / static_cast<float>(cloud->size () - 1);
+    int K = static_cast<int>(ceil(l_planes.size() * 0.1));
 
     //For each plane in list:
     for(int i = 0; i < cloud->size(); ++i)
     {
+        //Computing 4th feature
+        pcl::Histogram<NB_BINS_APFH> f4_hist;
+        for(int i = 0; i < f4_hist.descriptorSize(); ++i)
+        {
+            f4_hist.histogram[i] = 0;
+        }
+
         //  - get K Neighborhood
         vector<int> indices; vector<float> sqr_distances;
         p_kdTree->nearestKSearch(i, K+1, indices, sqr_distances);
 
-        APFHSignature625 apf;
-        // Init everything at 0...
-        for(size_t j = 0; j < apf.descriptorSize(); ++j)
-        {
-            apf.histogram[j] = 0;
-        }
-
         // Indices are already sorted by distance order
         for (size_t j = 1; j < indices.size(); ++j)
         {
-            //  - compute features for every pair (pi, pj) and angle with pk
-            float f1, f2, f3, f4;
+            //  - compute feature angle between pipj and pipk
             size_t k = j == (indices.size() - 1) ? 1 : j+1;
-            PFHEvaluation::computePairAPF(cloud->at(i), cloud->at(j), cloud->at(k), f1, f2, f3, f4);
+            float f4 = PFHEvaluation::computeF4(cloud->at(i), cloud->at(j), cloud->at(k));
 
-            //  - Fill Signature histogram
-            PFHEvaluation::fillHist(f1, f2, f3, f4, apf);
+            // Increment histogram
+            int b4 = PFHEvaluation::getBinIndex(f4);
+            f4_hist.histogram[b4] += hist_incr;
         }
 
-        //  - Push Signature in cloud
-        apfh_cloud.push_back(apf);
+        f4_cloud->push_back(f4_hist);
     }
 
+    // Concatenate both histograms
+    APFHCloud apfh_cloud;
+    for (size_t i = 0; i < l_planes.size(); ++i) {
+        APFHSignature apfh = PFHEvaluation::concatenateHists(fpfh_cloud->points[i], f4_cloud->points[i]);
+        apfh_cloud.push_back(apfh);
+    }
     return apfh_cloud;
+}
+
+APFHSignature PFHEvaluation::concatenateHists(pcl::FPFHSignature33 &fpfh, pcl::Histogram<NB_BINS_APFH> &f4h)
+{
+    pcl::Histogram<44> apfh;
+    for(size_t i = 0; i < fpfh.descriptorSize(); ++i)
+    {
+        apfh.histogram[i] = fpfh.histogram[i];
+    }
+    for(size_t i = 0; i < f4h.descriptorSize(); ++i)
+    {
+        apfh.histogram[i + fpfh.descriptorSize()] = f4h.histogram[i];
+    }
+
+    return apfh;
+}
+
+float PFHEvaluation::computeF4(PointNormal &pi, PointNormal &pj, PointNormal &pk)
+{
+    vec4 p1 = pointToVec4(pi);
+    vec4 p2 = pointToVec4(pj);
+    vec4 p3 = pointToVec4(pk);
+
+    // Angle between pipj and pipk
+    vec4 t = p2 - p1;
+    vec4 s = p3 - p1;
+    vec3 t1 = vec3(t.x(), t.y(), t.z()).normalized();
+    vec3 t2 = vec3(s.x(), s.y(), s.z()).normalized();
+    float f4 = acos(t1.dot(t2));
+    return f4;
 }
 
 void PFHEvaluation::computePairAPF(PointNormal &pi, PointNormal &pj, PointNormal &pk, float &f1, float &f2, float &f3, float &f4)
@@ -120,6 +168,7 @@ void PFHEvaluation::computePairAPF(PointNormal &pi, PointNormal &pj, PointNormal
     float d;
     pcl::computePairFeatures(p1, n1, p2, n2, f1, f2, f3, d);
 
+
     // DEBUG print to see angles
     //cout << f1 << " " << f2 << " " << f3 << endl;
 
@@ -131,7 +180,7 @@ void PFHEvaluation::computePairAPF(PointNormal &pi, PointNormal &pj, PointNormal
     f4 = acos(t1.dot(t2));
 }
 
-void PFHEvaluation::fillHist(float f1, float f2, float f3, float f4, APFHSignature625 &apf)
+void PFHEvaluation::fillHist(float f1, float f2, float f3, float f4, APFHSignature &apf)
 {
     // Compute bin number for each feature
     int b1 = PFHEvaluation::getBinIndex(f1);
