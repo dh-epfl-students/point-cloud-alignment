@@ -44,13 +44,13 @@ private:
 
     static float computeF4(PointNormal &pi, PointNormal &pj, PointNormal &pk);
 
-    static APFHSignature concatenateHists(pcl::FPFHSignature33 &fpfh, pcl::Histogram<NB_BINS_APFH> &f4h);
+    static APFHSignature concatenateHists(pcl::FPFHSignature33 &fpfh, pcl::Histogram<NB_BINS_APFH> &f4h, pcl::Histogram<NB_BINS_APFH> &f5h);
 
     static void computePairAPF(PointNormal &pi, PointNormal &pj, PointNormal &pk, float &f1, float &f2, float &f3, float &f4);
 
     static void fillHist(float f1, float f2, float f3, float f4, APFHSignature &apf);
 
-    static int getBinIndex(float feature);
+    static int getBinIndex(float feature, float interval_size, float interval_lb);
 };
 
 // IMPLEMENTATIONS OF TEMPLATE FUNCTIONS
@@ -71,6 +71,7 @@ int PFHEvaluation::getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, 
         }
     }
 
+    // Choose best target plane
     for(size_t it: target_indices)
     {
         float curr_error = PFHEvaluation::computeFeatureError(i, it, source_signs, target_signs);

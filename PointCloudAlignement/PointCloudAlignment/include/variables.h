@@ -70,8 +70,10 @@
 #define PROGRESSION_TRESHOLD 20
 /// Upper bound on the distance allowed between to associated centers after the first alignment, to be used for the realignment. // NOT USED
 #define MAX_ACCEPTED_DISTANCE 20
-/// Number of bins in the APF histogram
+/// Number of bins in the APF histogram for each features
 #define NB_BINS_APFH 11
+/// Number of features in the APF histogram
+#define NB_FEATURES_APFH 5
 
 ///================================ TESTING PROCESS =======================================================================================///
 

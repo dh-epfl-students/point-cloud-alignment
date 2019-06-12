@@ -81,9 +81,10 @@ APFHCloud PFHEvaluation::computeAPFHSignature(vector<SegmentedPointsContainer::S
     FPFHCloud::Ptr fpfh_cloud(new FPFHCloud);
     PFHEvaluation::computeFPFHSignature(cloud, p_kdTree, l_planes, fpfh_cloud);
 
-
-
+    // 4th Feature: Angle between a point and each of it's neighbors.
     FeatureCloud<NB_BINS_APFH>::Ptr f4_cloud(new FeatureCloud<NB_BINS_APFH>);
+    // 5th Feature: Distance between a point and each of it's neighbors.
+    FeatureCloud<NB_BINS_APFH>::Ptr f5_cloud(new FeatureCloud<NB_BINS_APFH>);
 
     // Increment constant
     float hist_incr = 100.0f / static_cast<float>(cloud->size () - 1);
@@ -92,11 +93,13 @@ APFHCloud PFHEvaluation::computeAPFHSignature(vector<SegmentedPointsContainer::S
     //For each plane in list:
     for(int i = 0; i < cloud->size(); ++i)
     {
-        //Computing 4th feature
+        //Initializing 4th and 5th feature
         pcl::Histogram<NB_BINS_APFH> f4_hist;
+        pcl::Histogram<NB_BINS_APFH> f5_hist;
         for(int i = 0; i < f4_hist.descriptorSize(); ++i)
         {
             f4_hist.histogram[i] = 0;
+            f5_hist.histogram[i] = 0;
         }
 
         //  - get K Neighborhood
@@ -111,25 +114,29 @@ APFHCloud PFHEvaluation::computeAPFHSignature(vector<SegmentedPointsContainer::S
             float f4 = PFHEvaluation::computeF4(cloud->at(i), cloud->at(j), cloud->at(k));
 
             // Increment histogram
-            int b4 = PFHEvaluation::getBinIndex(f4);
+            int b4 = PFHEvaluation::getBinIndex(f4, 2.0 * M_PI, -M_PI);
             f4_hist.histogram[b4] += hist_incr;
+
+            int b5 = PFHEvaluation::getBinIndex(sqr_distances[j], sqr_distances.back(), 0);
+            f5_hist.histogram[b5] += hist_incr;
         }
 
         f4_cloud->push_back(f4_hist);
+        f5_cloud->push_back(f5_hist);
     }
 
     // Concatenate both histograms
     APFHCloud apfh_cloud;
     for (size_t i = 0; i < l_planes.size(); ++i) {
-        APFHSignature apfh = PFHEvaluation::concatenateHists(fpfh_cloud->points[i], f4_cloud->points[i]);
+        APFHSignature apfh = PFHEvaluation::concatenateHists(fpfh_cloud->points[i], f4_cloud->points[i], f5_cloud->points[i]);
         apfh_cloud.push_back(apfh);
     }
     return apfh_cloud;
 }
 
-APFHSignature PFHEvaluation::concatenateHists(pcl::FPFHSignature33 &fpfh, pcl::Histogram<NB_BINS_APFH> &f4h)
+APFHSignature PFHEvaluation::concatenateHists(pcl::FPFHSignature33 &fpfh, pcl::Histogram<NB_BINS_APFH> &f4h, pcl::Histogram<NB_BINS_APFH> &f5h)
 {
-    pcl::Histogram<44> apfh;
+    pcl::Histogram<NB_BINS_APFH * NB_FEATURES_APFH> apfh;
     for(size_t i = 0; i < fpfh.descriptorSize(); ++i)
     {
         apfh.histogram[i] = fpfh.histogram[i];
@@ -137,6 +144,10 @@ APFHSignature PFHEvaluation::concatenateHists(pcl::FPFHSignature33 &fpfh, pcl::H
     for(size_t i = 0; i < f4h.descriptorSize(); ++i)
     {
         apfh.histogram[i + fpfh.descriptorSize()] = f4h.histogram[i];
+    }
+    for(size_t i = 0; i < f5h.descriptorSize(); ++i)
+    {
+        apfh.histogram[i + fpfh.descriptorSize() + f4h.descriptorSize()] = f5h.histogram[i];
     }
 
     return apfh;
@@ -183,24 +194,24 @@ void PFHEvaluation::computePairAPF(PointNormal &pi, PointNormal &pj, PointNormal
 void PFHEvaluation::fillHist(float f1, float f2, float f3, float f4, APFHSignature &apf)
 {
     // Compute bin number for each feature
-    int b1 = PFHEvaluation::getBinIndex(f1);
-    int b2 = PFHEvaluation::getBinIndex(f2);
-    int b3 = PFHEvaluation::getBinIndex(f3);
-    int b4 = PFHEvaluation::getBinIndex(f4);
+    int b1 = PFHEvaluation::getBinIndex(f1, 2.0 * M_PI, -M_PI);
+    int b2 = PFHEvaluation::getBinIndex(f2, 2.0 * M_PI, -M_PI);
+    int b3 = PFHEvaluation::getBinIndex(f3, 2.0 * M_PI, -M_PI);
+    int b4 = PFHEvaluation::getBinIndex(f4, 2.0 * M_PI, -M_PI);
 
     // Find flattened bin index
     int i = b1 * pow(NB_BINS_APFH, 3) + b2 * pow(NB_BINS_APFH, 2) + b3 * NB_BINS_APFH + b4;
     apf.histogram[i]++;
 }
 
-int PFHEvaluation::getBinIndex(float feature)
+int PFHEvaluation::getBinIndex(float feature, float interval_size, float interval_lb)
 {
-    // 5 intervals by angle. -Pi -> Pi
-    float interval = 2.0 * M_PI / NB_BINS_APFH;
+    // NB_BINS intervals by angle.
+    float interval = interval_size / NB_BINS_APFH;
 
     int index = 0;
 
-    while(feature >= -M_PI + (index * interval))
+    while(feature >= interval_lb + (index * interval))
     {
         ++index;
     }

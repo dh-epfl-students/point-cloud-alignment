@@ -20,7 +20,7 @@ typedef Eigen::Matrix3f mat3;
 typedef Eigen::Matrix2f mat2;
 typedef Eigen::MatrixXf matX;
 
-typedef pcl::Histogram<NB_BINS_APFH * 4> APFHSignature;
+typedef pcl::Histogram<NB_BINS_APFH * NB_FEATURES_APFH> APFHSignature;
 
 typedef pcl::PointCloud<pcl::PFHSignature125> PFHCloud;
 typedef pcl::PointCloud<pcl::FPFHSignature33> FPFHCloud;
