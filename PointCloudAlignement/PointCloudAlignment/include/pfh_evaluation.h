@@ -29,7 +29,7 @@ public:
 
     static void computeFPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes, FPFHCloud::Ptr p_output_cloud);
 
-    static APFHCloud computeAPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes);
+    static APFHCloud computeAPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes, vector<float> &surfaces);
 
     static size_t getMinTarget(size_t i, PFHCloud source_signs, PFHCloud target_signs, float &out_error);
 

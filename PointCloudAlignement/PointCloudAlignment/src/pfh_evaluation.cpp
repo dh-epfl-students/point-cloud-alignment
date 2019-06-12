@@ -71,7 +71,7 @@ void PFHEvaluation::computeFPFHSignature(vector<SegmentedPointsContainer::Segmen
     PFHEvaluation::computeFPFHSignature(cloud, p_kdTree, l_planes, p_output_cloud);
 }
 
-APFHCloud PFHEvaluation::computeAPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes)
+APFHCloud PFHEvaluation::computeAPFHSignature(vector<SegmentedPointsContainer::SegmentedPlane> &l_planes, vector<float> &surfaces)
 {
     PointNormalCloud::Ptr cloud = PFHEvaluation::buildPointCloud(l_planes);
 
@@ -115,10 +115,10 @@ APFHCloud PFHEvaluation::computeAPFHSignature(vector<SegmentedPointsContainer::S
 
             // Increment histogram
             int b4 = PFHEvaluation::getBinIndex(f4, 2.0 * M_PI, -M_PI);
-            f4_hist.histogram[b4] += hist_incr;
+            f4_hist.histogram[b4] += hist_incr / surfaces[i];
 
             int b5 = PFHEvaluation::getBinIndex(sqr_distances[j], sqr_distances.back(), 0);
-            f5_hist.histogram[b5] += hist_incr;
+            f5_hist.histogram[b5] += hist_incr / surfaces[i];
         }
 
         f4_cloud->push_back(f4_hist);
@@ -127,7 +127,8 @@ APFHCloud PFHEvaluation::computeAPFHSignature(vector<SegmentedPointsContainer::S
 
     // Concatenate both histograms
     APFHCloud apfh_cloud;
-    for (size_t i = 0; i < l_planes.size(); ++i) {
+    for (size_t i = 0; i < l_planes.size(); ++i)
+    {
         APFHSignature apfh = PFHEvaluation::concatenateHists(fpfh_cloud->points[i], f4_cloud->points[i], f5_cloud->points[i]);
         apfh_cloud.push_back(apfh);
     }
