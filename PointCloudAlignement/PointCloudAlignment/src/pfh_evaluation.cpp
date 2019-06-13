@@ -91,30 +91,30 @@ APFHCloud PFHEvaluation::computeAPFHSignature(vector<SegmentedPointsContainer::S
     int K = static_cast<int>(ceil(l_planes.size() * 0.1));
 
     //For each plane in list:
-    for(int i = 0; i < cloud->size(); ++i)
+    for(size_t i = 0; i < cloud->size(); ++i)
     {
         //Initializing 4th and 5th feature
         pcl::Histogram<NB_BINS_APFH> f4_hist;
         pcl::Histogram<NB_BINS_APFH> f5_hist;
-        for(int i = 0; i < f4_hist.descriptorSize(); ++i)
+        for(int j = 0; j < f4_hist.descriptorSize(); ++j)
         {
-            f4_hist.histogram[i] = 0;
-            f5_hist.histogram[i] = 0;
+            f4_hist.histogram[j] = 0;
+            f5_hist.histogram[j] = 0;
         }
 
         //  - get K Neighborhood
         vector<int> indices; vector<float> sqr_distances;
-        p_kdTree->nearestKSearch(i, K+1, indices, sqr_distances);
+        p_kdTree->nearestKSearch(static_cast<int>(i), K+1, indices, sqr_distances);
 
         // Indices are already sorted by distance order
-        for (size_t j = 1; j < indices.size(); ++j)
+        for(size_t j = 1; j < indices.size(); ++j)
         {
             //  - compute feature angle between pipj and pipk
             size_t k = j == (indices.size() - 1) ? 1 : j+1;
             float f4 = PFHEvaluation::computeF4(cloud->at(i), cloud->at(j), cloud->at(k));
 
             // Increment histogram
-            int b4 = PFHEvaluation::getBinIndex(f4, 2.0 * M_PI, -M_PI);
+            int b4 = PFHEvaluation::getBinIndex(f4, static_cast<float>(2.0 * M_PI), static_cast<float>(-M_PI));
             f4_hist.histogram[b4] += hist_incr / surfaces[i];
 
             int b5 = PFHEvaluation::getBinIndex(sqr_distances[j], sqr_distances.back(), 0);
@@ -138,15 +138,15 @@ APFHCloud PFHEvaluation::computeAPFHSignature(vector<SegmentedPointsContainer::S
 APFHSignature PFHEvaluation::concatenateHists(pcl::FPFHSignature33 &fpfh, pcl::Histogram<NB_BINS_APFH> &f4h, pcl::Histogram<NB_BINS_APFH> &f5h)
 {
     pcl::Histogram<NB_BINS_APFH * NB_FEATURES_APFH> apfh;
-    for(size_t i = 0; i < fpfh.descriptorSize(); ++i)
+    for(int i = 0; i < fpfh.descriptorSize(); ++i)
     {
         apfh.histogram[i] = fpfh.histogram[i];
     }
-    for(size_t i = 0; i < f4h.descriptorSize(); ++i)
+    for(int i = 0; i < f4h.descriptorSize(); ++i)
     {
         apfh.histogram[i + fpfh.descriptorSize()] = f4h.histogram[i];
     }
-    for(size_t i = 0; i < f5h.descriptorSize(); ++i)
+    for(int i = 0; i < f5h.descriptorSize(); ++i)
     {
         apfh.histogram[i + fpfh.descriptorSize() + f4h.descriptorSize()] = f5h.histogram[i];
     }

@@ -12,6 +12,9 @@ TODOs:
 	-	Wahba's problem : http://www.stat.wisc.edu/~wahba/ftp1/oldie/wahbasproblem.pdf
 	-	With solution -> Davenport's Q-Method : https://math.stackexchange.com/questions/1634113/davenports-q-method-finding-an-orientation-matching-a-set-of-point-samples?rq=1
 		Davenport's paper: https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/19680021122.pdf
+		30 years of Wahba's problem: https://www.researchgate.net/publication/23876857_30_Years_of_Wahba's_Problem
+		Similar problem, with added translation: http://post.queensu.ca/~sdb2/PAPERS/PAMI-3DLS-1987.pdf
+		Variant with unknown point correspondances: https://papers.nips.cc/paper/977-new-algorithms-for-2d-and-3d-point-matching-pose-estimation-and-correspondence.pdf
 -	Find Translation
 -	Test results
 -	Report
