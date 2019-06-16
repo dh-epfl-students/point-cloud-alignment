@@ -96,7 +96,13 @@ Related Work:
 
 	- Global: These methods make no prior assumptions about the transformation or overlap. These are often used to initialise local methods.
 		1. 3D-surface-feature-based algorithms: Consist of the following steps. Extract local features, obtain matches between features in the 2 PCs and finally estimate the relative pose using RANSAC[10] or other robust estimators[15].
-			a. FPFH[11].
+			a. RANSAC variations:
+				- Parallel RANSAC for PC registration: https://www.researchgate.net/publication/319618906_Parallel_RANSAC_for_Point_Cloud_Registration
+				- Sac-ia in [11] using FPFH.
+				- Prerejective condition: https://ieeexplore.ieee.org/abstract/document/6630856
+				- td,d test: https://www.sciencedirect.com/science/article/pii/S0262885604000514
+				
+			
 			b. Global registration using a new local descriptor: Integral volume descriptor[12].
 			c. Computing spin images for each point, but is based on meshes[13].
 			d. 4-Points congruent sets[14]. 4PCS is the state-of-the-art global registration algorithm.
