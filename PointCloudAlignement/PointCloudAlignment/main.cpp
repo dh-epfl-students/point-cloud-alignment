@@ -25,7 +25,7 @@ static MeshSegmentation mesh_source_segmentation;
 static Registration registration;
 static pcl::visualization::PCLVisualizer::Ptr p_viewer;
 
-bool targetIsMesh = false;
+bool targetIsMesh = true;
 bool sourceIsMesh = false;
 bool isNormalDisplayed = false;
 bool isDualViewDisplayed = false;
@@ -461,7 +461,7 @@ pcl::visualization::PCLVisualizer::Ptr setupViewer()
 }
 
 int main()
-{
+{   
     // Target meshes
     string mesh_region3_1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg1_shifted_float.ply");
     string mesh_region3_2("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg2_shifted_float.ply");
@@ -470,9 +470,14 @@ int main()
     string mesh_region3_5("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg5_shifted_float.ply");
     string mesh_region3_2_extended1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg2_extended1_shifted.ply");
 
+    string mesh_region4_big("/home/loris/Documents/EPFL/Master/master-project-2019/Data/mesh_region4_big.ply");
+    string mesh_region4_big_tranformed("/home/loris/Documents/EPFL/Master/master-project-2019/Data/mesh_region4_big_transformed.ply");
+    string cloud_region4_big("/home/loris/Documents/EPFL/Master/master-project-2019/Data/cloud_region4_big.ply");
+    string cloud_region4_big_transformed("/home/loris/Documents/EPFL/Master/master-project-2019/Data/cloud_region4_big_transformed.ply");
+
     string mesh_region3_1_rot1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/BUILDING_Geneva/geneva_region-03/region-03_2018_seg1_shifted_float_rot1.ply");
-    target_mesh_filename = mesh_region3_2;
-    source_mesh_filename = mesh_region3_1_rot1;
+    target_mesh_filename = mesh_region4_big;
+    source_mesh_filename = mesh_region4_big_tranformed;
 
     // Original PC sources
     string pcLIDAR_region3_2017_seg1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg1_shifted_float.ply");
@@ -506,7 +511,7 @@ int main()
 
     if(!sourceIsMesh)
     {
-        pc_source_segmentation.init(pcLIDAR_region3_2017_seg3_r1, true);
+        pc_source_segmentation.init(cloud_region4_big_transformed, true);
         pc_source_segmentation.setViewerUpdateCallback(display_update_callable);
         pc_source_segmentation.setAddPlaneCallback(add_plane_callable);
         pc_source_segmentation.setUpdateNormalCloudCallback(update_normal_cloud_callable);
@@ -520,7 +525,7 @@ int main()
 
     if(!targetIsMesh)
     {
-        pc_target_segmentation.init(pcLIDAR_region3_2017_seg3, false);
+        pc_target_segmentation.init(cloud_region4_big, false);
         pc_target_segmentation.setViewerUpdateCallback(display_update_callable);
 
         pc_target_merger.init(display_update_callable, false);
