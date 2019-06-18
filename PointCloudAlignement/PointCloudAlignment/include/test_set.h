@@ -2,6 +2,8 @@
 
 #include <sstream>
 
+#include <time.h>
+
 #include <omp.h>
 
 #include <pcl/visualization/pcl_visualizer.h>
@@ -16,6 +18,19 @@
 #include "registration.h"
 
 using namespace std;
+
+struct AlignmentResults
+{
+    mat4 initialTransform;
+    mat4 transform;
+    vector<SegmentedPointsContainer::SegmentedPlane> source_planes;
+    int nb_points_source = 0;
+    int nb_points_target = 0;
+    int nb_planes_source = 0;
+    int nb_planes_target = 0;
+    vector<float> pair_distances;
+    double elapsed_time = 0;
+};
 
 class AlignObjectInterface
 {
@@ -49,6 +64,8 @@ public:
     virtual void saveObject(string suffix, int set_id) = 0;
 
     virtual bool isCloud() = 0;
+
+    virtual int getNbPoints() = 0;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -99,6 +116,8 @@ public:
 
     bool isCloud();
 
+    int getNbPoints() { return p_object->size(); }
+
 private:
     PointNormalKCloud::Ptr p_object;
 };
@@ -140,14 +159,11 @@ public:
 
     bool isCloud();
 
+    /// Return the number of vertices for triangle mesh
+    int getNbPoints() { return p_object->polygons.size() * 3; }
+
 private:
     pcl::PolygonMesh::Ptr p_object;
-};
-
-struct AlignmentResults
-{
-    mat4 transform;
-    vector<SegmentedPointsContainer::SegmentedPlane> source_planes;
 };
 
 /**
@@ -174,7 +190,7 @@ public:
     void saveObjectsPLY(int set_id);
     void writeTestSet(ofstream &output);
 
-    void writeResults();
+    void writeResults(int test_id);
 
 private:
     shared_ptr<AlignObjectInterface> p_target;

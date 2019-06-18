@@ -116,7 +116,7 @@ static bool parseTestingFile(string file_path)
 
 int main()
 {
-    if(!parseTestingFile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/MonM_test_list.txt"))
+    if(!parseTestingFile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/ConC_test_list.txt"))
     {
         cout << "Error while parsing input file" << endl;
         exit(EXIT_FAILURE);
@@ -126,7 +126,7 @@ int main()
     for(size_t i = 0; i < testing_set.size(); ++i)
     {
         testing_set[i].runTests();
-        testing_set[i].writeResults();
+        testing_set[i].writeResults(i);
     }
 
     // Display final alignments

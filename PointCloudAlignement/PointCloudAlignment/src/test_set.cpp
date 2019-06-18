@@ -289,12 +289,19 @@ void TestingSet::runTests()
     // Load the objects before going in parallel sections. Workaround for crash when loading polygonfile in parallel
     this->loadSet();
 
+    double target_elapsed_time = 0;
+
     // First the objects are segmented
-    #pragma omp parallel sections
+    #pragma omp parallel sections shared(target_elapsed_time)
     {
         #pragma omp section
         {
+            struct timespec start_target, finish_target;
+            clock_gettime(CLOCK_MONOTONIC, &start_target);
             p_target->segment(this->target_planes);
+            clock_gettime(CLOCK_MONOTONIC, &finish_target);
+            target_elapsed_time = (finish_target.tv_sec - start_target.tv_sec);
+            target_elapsed_time += (finish_target.tv_nsec - start_target.tv_nsec) / 1000000000.0;
         }
 
         #pragma omp section
@@ -304,9 +311,26 @@ void TestingSet::runTests()
             #pragma omp parallel for
             for(size_t i = 0; i < this->sources.size(); ++i)
             {
+                struct timespec start_src, end_src;
+                clock_gettime(CLOCK_MONOTONIC, &start_src);
                 this->sources[i]->segment(this->results[i].source_planes);
+                clock_gettime(CLOCK_MONOTONIC, &end_src);
+
+                this->results[i].elapsed_time += (end_src.tv_sec - start_src.tv_sec);
+                this->results[i].elapsed_time += (end_src.tv_nsec - start_src.tv_nsec) / 1000000000.0;
             }
         }
+    }
+
+    // Add the time it took to segment the target
+    for(size_t i = 0; i < this->sources.size(); ++i)
+    {
+        this->results[i].elapsed_time += target_elapsed_time;
+        this->results[i].nb_points_source = this->sources[i]->getNbPoints();
+        this->results[i].nb_points_target = this->p_target->getNbPoints();
+        this->results[i].nb_planes_source = this->results[i].source_planes.size();
+        this->results[i].nb_planes_target = this->target_planes.size();
+        this->results[i].initialTransform = this->sources[i]->getOriginalTransform();
     }
 
     cout << "Plane segmentation finished, starting alignment..." << endl;
@@ -317,7 +341,13 @@ void TestingSet::runTests()
     #pragma omp parallel for
     for(size_t i = 0; i < this->sources.size(); ++i)
     {
+        struct timespec start_src, end_src;
+        clock_gettime(CLOCK_MONOTONIC, &start_src);
         this->runAlignment(i);
+        clock_gettime(CLOCK_MONOTONIC, &end_src);
+
+        this->results[i].elapsed_time += (end_src.tv_sec - start_src.tv_sec);
+        this->results[i].elapsed_time += (end_src.tv_nsec - start_src.tv_nsec) / 1000000000.0;
     }
 }
 
@@ -381,6 +411,7 @@ void TestingSet::runAlignment(size_t source_id)
     // TEST: compare distance between selected pairs, and nearest centers to see if they correspond
     auto pair_list = registration.getSelectedPlanes();
     auto distances = registration.computeDistanceErrors();
+    this->results[source_id].pair_distances = distances;
 
     // Create a cloud with target planes centers
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -428,7 +459,7 @@ void TestingSet::applyRandomTransforms()
         mat4 R = mat4::Identity();
         R.block(0,0,3,3) << getRandomRotation();
         mat4 T = getRandomTranslation();
-        mat4 M = T * R;
+        mat4 M = R * T;
 
         this->sources[i]->setOriginalTransform(M);
         this->sources[i]->transform(M);
@@ -476,11 +507,55 @@ string TestingSet::getMatStr(mat4 &m)
     return ss.str();
 }
 
-void TestingSet::writeResults()
+void TestingSet::writeResults(int test_id)
 {
     // Name of the file in which to write the stats
+    stringstream ss;
+    ss << "results_" << (this->p_target->isCloud()? "tCloud_" : "tMesh_") << (this->sources[0]->isCloud()? "sCloud_" : "sMesh_") << test_id << ".txt";
+    string statsFile = ss.str();
 
-    // Rotation error
+    cout << "Printing results in " << statsFile << endl;
 
-    // Sum of distances between each points
+    ofstream file(statsFile);
+
+    for(size_t i = 0; i < this->results.size(); ++i)
+    {
+        auto r = this->results[i];
+
+        // Points - Planes - Time
+        file << "Alignment " << (test_id * this->results.size() + i)  << ":" << endl;
+        file << "Target nb points and nb planes: " << r.nb_points_target << ", " << r.nb_planes_target << endl;
+        file << "Source nb points nb planes and time_elapsed: " << r.nb_points_source << ", " << r.nb_planes_source << ", " << r.elapsed_time << endl;
+
+        // Rotation error
+        mat3 initR = r.initialTransform.block(0, 0, 3, 3).matrix();
+        mat3 optR = r.transform.block(0, 0, 3, 3).matrix();
+        mat3 errR = optR * initR - mat3::Identity();
+        file << "Rotation error: " << errR.maxCoeff() << endl;
+
+        // Translation error
+        vec4 errp = r.transform * r.initialTransform * vec4(0, 0, 0, 1);
+        vec3 err3 = vec3(errp.x(), errp.y(), errp.z());
+        file << "Translation error: " << err3.norm() << endl;
+
+        // Sum of distances between each points
+        float mean_dist = 0;
+        for(float j: r.pair_distances)
+        {
+            mean_dist += j;
+        }
+        mean_dist /= r.pair_distances.size();
+
+        file << "Mean distance between pairs: " << mean_dist << endl;
+
+        // Write every pair distances
+        file << "Pair distance list: " << endl;
+        for(float j: r.pair_distances)
+        {
+            file << j << ", ";
+        }
+        file << endl;
+    }
+
+    file.close();
 }
