@@ -25,7 +25,7 @@ static MeshSegmentation mesh_source_segmentation;
 static Registration registration;
 static pcl::visualization::PCLVisualizer::Ptr p_viewer;
 
-bool targetIsMesh = true;
+bool targetIsMesh = false;
 bool sourceIsMesh = false;
 bool isNormalDisplayed = false;
 bool isDualViewDisplayed = false;
@@ -324,10 +324,19 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
             target = pc_target_merger.getSegmentedPlanes();
         }
 
-        // Find Rotation
         registration.setClouds(source, target, targetIsMesh, sourceIsMesh, pc_source_segmentation.getPointCloud(), pc_target_segmentation.getPointCloud());
 
-        mat4 finalTransform = registration.findAlignment();
+        mat4 firstTransform = registration.findAlignment();
+        registration.applyTransform(firstTransform);
+
+        // Try to refine the initial alignment by excluding center pairs
+        mat4 realignTransform = registration.refineAlignment();
+        registration.applyTransform(realignTransform);
+
+        mat4 icpTransform = registration.finalICP();
+        registration.applyTransform(icpTransform);
+
+        mat4 finalTransform = icpTransform * realignTransform * firstTransform;
 
         // Apply the transformation to the source
         if(sourceIsMesh)
@@ -352,15 +361,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
         }
         else
         {
-            // Update list of normals and centroids
-            mat4 firstTransform = finalTransform;
-            registration.applyTransform(finalTransform);
 
-            // Try to refine the initial alignment by excluding center pairs
-            mat4 realignTransform = registration.refineAlignment();
-            registration.applyTransform(realignTransform);
-
-            finalTransform = realignTransform * finalTransform;
 
             PointNormalKCloud::Ptr p_transformed_cloud = PointNormalKCloud().makeShared();
             pcl::transformPointCloud(*pc_source_segmentation.getPointCloud(), *p_transformed_cloud, finalTransform);
@@ -507,11 +508,22 @@ int main()
     string pcLIDAR_region3_2017_seg2_RT2("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg2_RT2_shifted_float.ply");
     string pcLIDAR_region3_2017_seg2_RT3("/home/loris/Documents/EPFL/Master/master-project-2019/Data/LIDAR_Geneva/geneva_region-03/region-03_2017-aerial/2504000_1116000_seg2_RT3_shifted_float.ply");
 
+
+    string mesh_pair_dists1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/MESH/27_region-04_2018_seg1_source_2.ply");
+    string mesh_pair_dists1_target("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/MESH/27_region-04_2018_seg1_extended_target.ply");
+    string cloud_pair_dists1("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/LIDAR/5_2499000_1115000_seg1_source_0.ply");
+    string cloud_pair_dists1_target("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/LIDAR/5_2499000_1115000_seg1_target.ply");
+
+    string cloud_pair_dists_CM_source("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/LIDAR/41_2504000_1116000_seg4_source_0.ply");
+    string cloud_pair_dists_CM_target("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/MESH/41_region-03_2018_seg4_target.ply");
+    target_mesh_filename = cloud_pair_dists_CM_target;
+    source_mesh_filename = mesh_pair_dists1;
+
     p_viewer = setupViewer();
 
     if(!sourceIsMesh)
     {
-        pc_source_segmentation.init(cloud_region4_big_transformed, true);
+        pc_source_segmentation.init(cloud_pair_dists1, true);
         pc_source_segmentation.setViewerUpdateCallback(display_update_callable);
         pc_source_segmentation.setAddPlaneCallback(add_plane_callable);
         pc_source_segmentation.setUpdateNormalCloudCallback(update_normal_cloud_callable);
@@ -525,7 +537,7 @@ int main()
 
     if(!targetIsMesh)
     {
-        pc_target_segmentation.init(cloud_region4_big, false);
+        pc_target_segmentation.init(cloud_pair_dists1_target, false);
         pc_target_segmentation.setViewerUpdateCallback(display_update_callable);
 
         pc_target_merger.init(display_update_callable, false);
@@ -611,6 +623,35 @@ int main()
             cout << "Target segmentation loop started by thread " << omp_get_thread_num() << endl;
             pc_target_segmentation.runMainLoop();
         }
+    }
+
+    p_viewer = setupViewer();
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr p_source_centers(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr p_target_centers(new pcl::PointCloud<pcl::PointXYZ>);
+
+    registration.getCenterClouds(p_source_centers, p_target_centers);
+    auto selected_planes = registration.getSelectedPlanes();
+
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> red(p_source_centers, 255, 0, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> green(p_target_centers, 0, 255, 0);
+
+    p_viewer->addPointCloud(p_target_centers, green, "target_centers");
+    p_viewer->addPointCloud(p_source_centers, red, "source_centers");
+
+    int i = 0;
+    for(auto p: selected_planes) {
+        stringstream ss;
+        ss << "line" << i;
+        p_viewer->addLine(get<0>(p).plane.getCenterPCL(), get<1>(p).plane.getCenterPCL(), 0, 0, 255, ss.str());
+        ++i;
+    }
+
+    //p_viewer->resetCamera();
+
+    while(!p_viewer->wasStopped())
+    {
+        p_viewer->spinOnce(100);
     }
 
     return 0;

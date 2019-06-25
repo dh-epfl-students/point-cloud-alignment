@@ -21,6 +21,8 @@ using namespace std;
 
 struct AlignmentResults
 {
+    vec3 target_center;
+    vec3 source_center;
     mat4 initialTransform;
     mat4 transform;
     vector<SegmentedPointsContainer::SegmentedPlane> source_planes;

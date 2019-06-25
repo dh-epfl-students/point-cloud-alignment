@@ -407,12 +407,31 @@ void TestingSet::runAlignment(size_t source_id)
     // store the transformed object
     this->sources_aligned[source_id] = source_aligned;
 
-    //TODO: save alignment statistics in results[i]
-    // TEST: compare distance between selected pairs, and nearest centers to see if they correspond
+    // save alignment statistics in results[i]
     auto pair_list = registration.getSelectedPlanes();
     auto distances = registration.computeDistanceErrors();
     this->results[source_id].pair_distances = distances;
 
+    vec3 source_centroid(0, 0, 0);
+    vec3 target_centroid(0, 0, 0);
+
+    for(auto pair: pair_list)
+    {
+        auto s = get<0>(pair);
+        auto t = get<1>(pair);
+
+        // Get source selected centers centroid
+        source_centroid += s.plane.getCenter();
+        // Get target selected centers centroid
+        target_centroid += t.plane.getCenter();
+    }
+    source_centroid /= pair_list.size();
+    target_centroid /= pair_list.size();
+
+    this->results[source_id].source_center = source_centroid;
+    this->results[source_id].target_center = target_centroid;
+
+    /*
     // Create a cloud with target planes centers
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
     for(auto i: this->target_planes)
@@ -434,7 +453,7 @@ void TestingSet::runAlignment(size_t source_id)
 
         cout << "Before ICP: source id " << s_plane.id << " with target id " << t_plane.id << ": " << distances[i]
                 << ". After ICP: found target id " << this->target_planes[indices[0]].id << ": " << sqrt(dists[0]) << endl;
-    }
+    }*/
 }
 
 void TestingSet::display(pcl::visualization::PCLVisualizer::Ptr p_viewer, vector<int> &viewports)
@@ -530,12 +549,17 @@ void TestingSet::writeResults(int test_id)
         // Rotation error
         mat3 initR = r.initialTransform.block(0, 0, 3, 3).matrix();
         mat3 optR = r.transform.block(0, 0, 3, 3).matrix();
-        mat3 errR = optR * initR - mat3::Identity();
-        file << "Rotation error: " << errR.maxCoeff() << endl;
+        mat3 errR = optR * initR;// - mat3::Identity();
+
+        // 3 euler angles
+        double thetaX = atan2(errR(2, 1), errR(2, 2));
+        double thetaY = atan2(-errR(2,0),sqrt(errR(2, 1)*errR(2, 1) + errR(2, 2)*errR(2, 2)));
+        double thetaZ = atan2(errR(1, 0), errR(0, 0));
+        double m =  max(abs(thetaX), abs(thetaY));
+        file << "Rotation error: " << max(m, abs(thetaZ)) << endl;
 
         // Translation error
-        vec4 errp = r.transform * r.initialTransform * vec4(0, 0, 0, 1);
-        vec3 err3 = vec3(errp.x(), errp.y(), errp.z());
+        vec3 err3 = r.target_center - r.source_center;
         file << "Translation error: " << err3.norm() << endl;
 
         // Sum of distances between each points

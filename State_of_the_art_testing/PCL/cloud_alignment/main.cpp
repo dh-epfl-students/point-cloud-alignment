@@ -82,7 +82,7 @@ int main()
 
     // Find the best template alignment
     TemplateAlignment::Result best_alignment;
-    int best_index = template_align.findBestAlignment (best_alignment, "KFPCS");
+    int best_index = template_align.findBestAlignment (best_alignment, "SACIA");
 
     // Print the alignment fitness score
     std::printf ("Best fitness score: %f\n", best_alignment.fitness_score);

@@ -38,6 +38,8 @@ public:
 
     float getAlignmentError();
 
+    void getCenterClouds(pcl::PointCloud<pcl::PointXYZ>::Ptr p_source_centers, pcl::PointCloud<pcl::PointXYZ>::Ptr p_target_centers);
+
     vector<tuple<SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer::SegmentedPlane> > getSelectedPlanes();
     vector<float> computeDistanceErrors();
 

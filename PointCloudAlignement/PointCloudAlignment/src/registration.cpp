@@ -15,6 +15,19 @@ vector<tuple<SegmentedPointsContainer::SegmentedPlane, SegmentedPointsContainer:
     return planes;
 }
 
+void Registration::getCenterClouds(pcl::PointCloud<pcl::PointXYZ>::Ptr p_source_centers, pcl::PointCloud<pcl::PointXYZ>::Ptr p_target_centers)
+{
+    for(auto s: this->source)
+    {
+        p_source_centers->push_back(s.plane.getCenterPCL());
+    }
+
+    for(auto t: this->target)
+    {
+        p_target_centers->push_back(t.plane.getCenterPCL());
+    }
+}
+
 void Registration::filterPlanes(int nb_planes, vector<SegmentedPointsContainer::SegmentedPlane> &planes, vector<float> &surfaces)
 {
     //Build list of available indices that will be sorted in decreasing surface order
