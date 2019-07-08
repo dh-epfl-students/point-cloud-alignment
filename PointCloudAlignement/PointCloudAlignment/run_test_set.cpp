@@ -114,9 +114,18 @@ static bool parseTestingFile(string file_path)
     return !testing_set.empty();
 }
 
-int main()
+int main(int argc, char *argv[])
 {
-    if(!parseTestingFile("/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/ConC_test_list.txt"))
+    if(argc != 2)
+    {
+        cout << "Usage: run_test_set [testing_set_file]" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    //current file: "/home/loris/Documents/EPFL/Master/master-project-2019/Data/TestingSet/ConC_test_list.txt"
+    string testing_set_file = argv[1];
+
+    if(!parseTestingFile(testing_set_file))
     {
         cout << "Error while parsing input file" << endl;
         exit(EXIT_FAILURE);
