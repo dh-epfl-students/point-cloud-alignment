@@ -26,14 +26,12 @@ void PlaneSegmentation::RunProperties::addToNeighborhood(vector<int> &new_points
     if(iteration < PHASE1_ITERATIONS ||
             p_nghbrs_indices->size() < MIN_STABLE_SIZE)
     {
-        cout << "Iteration " << iteration << ": Adding points to neighborhood list only." << endl;
         new_points.swap(*p_nghbrs_indices);
     }
     else
     {
         if(p_new_points_indices->empty())
         {
-            cout << "Iteration " << iteration << ": First time adding to new point list." << endl;
             // It is the first time new_points vector will be used
             new_points.swap(*p_nghbrs_indices);
             p_new_points_indices->reserve(p_nghbrs_indices->size());
@@ -43,8 +41,6 @@ void PlaneSegmentation::RunProperties::addToNeighborhood(vector<int> &new_points
         }
         else
         {
-            cout << "Iteration " << iteration << ": Swaping to new point list and adding to neighborhood list." << endl;
-
             new_points.swap(*p_new_points_indices);
             p_nghbrs_indices->reserve(p_nghbrs_indices->size() +
                                               p_new_points_indices->size());
@@ -53,8 +49,6 @@ void PlaneSegmentation::RunProperties::addToNeighborhood(vector<int> &new_points
                                              p_new_points_indices->end());
         }
     }
-
-    cout << "End of neighborhood add. Current status is " << p_nghbrs_indices->size() << " points in neighborhood and " << p_new_points_indices->size() << " points in new points list." << endl;
 }
 
 // ========================================================================================== //
@@ -347,7 +341,6 @@ bool PlaneSegmentation::regionGrowthOneStep()
 
         // We are on a plane -> increase search radius to speed things up
         current_run.max_search_distance *= 2.0f;
-        //current_run.epsilon *= 2.0f;
     }
 
     // Check if neighborhood has shrinked
@@ -394,7 +387,6 @@ bool PlaneSegmentation::regionGrowthOneStep()
     cout << "Epsilon = " << current_run.epsilon << endl;
 
     // Test them with current plane
-    // TODO: Move that to its own function
     vector<int> points_in_plane;
 
     for(size_t i = 0; i < candidates.size(); ++i)
@@ -513,24 +505,11 @@ int PlaneSegmentation::getRegionGrowingStartLocation()
         return this->p_cloud->points[lhs].curvature < this->p_cloud->points[rhs].curvature;
     });
 
-    /*
-    ofstream myfile;
-    myfile.open ("/home/loris/Documents/EPFL/Master/master-project-2019/Data/Plots/curvature.txt");
-    int j = 1;
-    for_each(tmp_indices.begin(), tmp_indices.end(), [this, &myfile, &j](const int &i){
-        myfile << j << ";" << this->p_cloud->points[i].curvature << endl;
-        ++j;
-    });
-    myfile.close();
-    */
-
     return tmp_indices.at(0);
 }
 
 void PlaneSegmentation::getNeighborsOf(boost::shared_ptr<vector<int>> indices_in, float search_d, vector<int> &indices_out)
 {
-    //cout << "Searching distance : " << search_d << endl;
-
     vector<vector<int>> candidates_lists(indices_in->size());
     size_t total_size = 0;
 
@@ -539,7 +518,6 @@ void PlaneSegmentation::getNeighborsOf(boost::shared_ptr<vector<int>> indices_in
     {
         int p_id = indices_in->at(i);
         vector<float> distances;
-        //p_kdtree->radiusSearch(p_cloud->points[p_id], search_d, candidates_lists[i], distances);
 
         // Nearest K search is way faster than radius search for kdtrees
         p_kdtree->nearestKSearch(p_cloud->points[p_id], p_cloud->points[p_id].k, candidates_lists[i], distances);
@@ -705,14 +683,7 @@ void PlaneSegmentation::fillSegmentedPointsContainer()
 
     if(allSegmented)
     {
-        //TODO: compute segmented plane parameters
-
         isSegmented = true;
-    }
-    else
-    {
-        // TODO: Setup cloud to resume segmentation.
-        //      - Set available indices list for kdtree
     }
 }
 

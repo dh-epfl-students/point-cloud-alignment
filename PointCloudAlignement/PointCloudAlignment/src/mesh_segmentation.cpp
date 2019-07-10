@@ -33,7 +33,6 @@ void MeshSegmentation::segmentPlanes()
 {
     ivec3 color(0, 0, 0);
 
-    //#pragma omp parallel for
     for (size_t i = 0; i < p_mesh->polygons.size(); ++i)
     {
         // Get vertices
@@ -102,8 +101,6 @@ void MeshSegmentation::mergePlanes()
 
 void MeshSegmentation::mergeRecursive()
 {
-    cout << "Starting one level of merge. Available indices: " << p_available_indices->size() << endl;
-
     vector<int> merged_planes;
 
     for(size_t i = 0; i < p_available_indices->size(); ++i)

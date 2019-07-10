@@ -54,8 +54,6 @@ void PlaneMerging::filter_small_planes(vector<SegmentedPointsContainer::Segmente
 
 void PlaneMerging::merge()
 {
-    cout << "Starting to merge" << endl;
-
     bool continue_merging = false;
 
     for(size_t i = 0; i < plane_list.size(); ++i)
@@ -84,12 +82,8 @@ void PlaneMerging::merge()
                     // Filter by plane normal vector and then plane overlap
                     if(ni.dot(n) >= cos(NORMAL_ERROR) && planeOverlap(plane, plane_list[j], DISTANCE_ERROR))
                     {
-                        cout << "Plane " << plane.id << " is merged with plane " << plane_list[j].id << endl;
-
                         //  - change color of points
                         callDisplayCallback(p_point_cloud, plane.color, plane_list[j].indices_list, isSource);
-
-                        //TODO:  - change plane_id for merged points
 
                         //  - merge indices lists
                         plane_list[i].indices_list.insert(plane_list[i].indices_list.end(), plane_list[j].indices_list.begin(), plane_list[j].indices_list.end());
@@ -97,8 +91,6 @@ void PlaneMerging::merge()
                         //  - recompute center
                         plane_list[i].plane.setCenter(computePlaneCenter(p_point_cloud, plane_list[i].indices_list));
                         p_plane_cloud->points[i] = plane_list[i].plane.getCenterPCL();
-
-                        //  - recompute plane parameters??? -> not for now
 
                         //  - add merged plane id to remove list
                         remove_list.push_back(j);

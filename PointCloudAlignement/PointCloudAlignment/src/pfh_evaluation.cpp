@@ -7,15 +7,6 @@ bool PFHEvaluation::isValidPlane(PointNormalKCloud::Ptr points, vector<int> &ind
     pfh.computePointPFHSignature(*points, *points, indices, 5, pfh_histogram);
 
     // Test the histogram for plane
-    /*
-    cout << "PFHSignature125 dimensions: " << pfh_histogram.rows() << ", " << pfh_histogram.cols() << endl;
-    for(int i = 0; i < pfh_histogram.rows(); ++i)
-    {
-        cout << i << ": " << pfh_histogram[i] << " ";
-    }
-    cout << endl;
-    */
-
     return pfh_histogram[62] > PLANE_TRESHOLD;
 }
 
@@ -180,10 +171,6 @@ void PFHEvaluation::computePairAPF(PointNormal &pi, PointNormal &pj, PointNormal
     float d;
     pcl::computePairFeatures(p1, n1, p2, n2, f1, f2, f3, d);
 
-
-    // DEBUG print to see angles
-    //cout << f1 << " " << f2 << " " << f3 << endl;
-
     // Angle between pipj and pipk
     vec4 t = p2 - p1;
     vec4 s = p3 - p1;
@@ -266,57 +253,3 @@ size_t PFHEvaluation::getMinTarget(size_t i, PFHCloud source_signs, PFHCloud tar
     out_error = min_error;
     return j;
 }
-
-
-//template<int N>
-//int PFHEvaluation::getMinTarget(size_t i, float s_surf, vector<float> &t_surfs, FeatureCloud<N> &source_signs, FeatureCloud<N> &target_signs, float &out_error)
-//{
-//    int j = -1;
-//    float min_error = numeric_limits<float>::infinity();
-
-//    // Get subset of target planes that are in surface interval of source surface
-//    vector<size_t> target_indices;
-//    for(size_t t_id = 0; t_id < t_surfs.size(); ++t_id)
-//    {
-//        if(abs(s_surf - t_surfs[t_id]) < SURFACE_INTERVAL)
-//        {
-//            target_indices.push_back(t_id);
-//        }
-//    }
-
-//    for(size_t it: target_indices)
-//    {
-//        float curr_error = PFHEvaluation::computeFPFHError(i, it, source_signs, target_signs);
-
-//        if(curr_error < min_error /*&& abs(s_surf - t_surfs[j]) > abs(s_surf - t_surfs[it])*/)
-//        {
-//            min_error = curr_error;
-//            j = it;
-//        }
-//        else if (curr_error == min_error && (abs(s_surf - t_surfs[j]) > abs(s_surf - t_surfs[it]))) {
-//            // In case of same error, keep target plane that has the nearest surface
-//            min_error = curr_error;
-//            j = it;
-//        }
-//    }
-
-//    out_error = min_error;
-//    return j;
-//}
-
-//template<int N>
-//float PFHEvaluation::computeFeatureError(size_t s_id, size_t t_id, FeatureCloud<N> &source_signs, FeatureCloud<N> &target_signs)
-//{
-//    float error = 0;
-
-//    auto s_bin = source_signs.points[s_id];
-//    auto t_bin = target_signs.points[t_id];
-
-//    for(int i = 0; i < s_bin.descriptorSize(); ++i)
-//    {
-//        error += abs(s_bin.histogram[i] - t_bin.histogram[i]);
-//        //error = max(error, abs(s_bin.histogram[i] - t_bin.histogram[i]));
-//    }
-
-//    return error;
-//}

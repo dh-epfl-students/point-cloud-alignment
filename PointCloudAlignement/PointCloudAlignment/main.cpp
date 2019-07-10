@@ -285,7 +285,6 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
             vector<SegmentedPointsContainer::SegmentedPlane> planes_list = pc_source_segmentation.getSegmentedPlanes();
             // Merge similar planes
             pc_source_merger.start_merge(planes_list, pc_source_segmentation.getPointCloud());
-            //merger.printVectorsInFile("/home/loris/Documents/EPFL/Master/master-project-2019/Scripts/cloud_normals.txt");
         }
         else
         {
@@ -372,9 +371,6 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
             p_viewer->removePointCloud("transformed_cloud");
             p_viewer->addPointCloud(p_transformed_cloud, color, "transformed_cloud");
             p_viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "transformed_cloud");
-
-            // Update point cloud
-            //pc_source_segmentation.setPointCloud(p_transformed_cloud);
         }
     }
     else if(event.getKeySym() == "k" && event.keyDown())
@@ -618,8 +614,6 @@ int main(int argc, char *argv[])
         p_viewer->addLine(get<0>(p).plane.getCenterPCL(), get<1>(p).plane.getCenterPCL(), 0, 0, 255, ss.str());
         ++i;
     }
-
-    //p_viewer->resetCamera();
 
     while(!p_viewer->wasStopped())
     {

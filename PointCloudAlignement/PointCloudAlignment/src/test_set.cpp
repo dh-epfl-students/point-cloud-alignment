@@ -430,30 +430,6 @@ void TestingSet::runAlignment(size_t source_id)
 
     this->results[source_id].source_center = source_centroid;
     this->results[source_id].target_center = target_centroid;
-
-    /*
-    // Create a cloud with target planes centers
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-    for(auto i: this->target_planes)
-    {
-        cloud->push_back(i.plane.getCenterPCL());
-    }
-    pcl::KdTreeFLANN<pcl::PointXYZ, flann::L2_Simple<float>>::Ptr kdtree(new pcl::KdTreeFLANN<pcl::PointXYZ, flann::L2_Simple<float>>);
-    kdtree->setInputCloud(cloud);
-
-    // Now for each point in source list, get nearest center and compute distance
-    for(size_t i = 0; i < pair_list.size(); ++i)
-    {
-        auto s_plane = get<0>(pair_list[i]);
-        auto t_plane = get<1>(pair_list[i]);
-
-        vector<int> indices;
-        vector<float> dists;
-        kdtree->nearestKSearch(s_plane.plane.getCenterPCL(), 1, indices, dists);
-
-        cout << "Before ICP: source id " << s_plane.id << " with target id " << t_plane.id << ": " << distances[i]
-                << ". After ICP: found target id " << this->target_planes[indices[0]].id << ": " << sqrt(dists[0]) << endl;
-    }*/
 }
 
 void TestingSet::display(pcl::visualization::PCLVisualizer::Ptr p_viewer, vector<int> &viewports)

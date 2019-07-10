@@ -103,7 +103,6 @@ float PFHEvaluation::computeFeatureError(size_t s_id, size_t t_id, FeatureCloud<
     for(int i = 0; i < s_bin.descriptorSize(); ++i)
     {
         error += abs(s_bin.histogram[i] - t_bin.histogram[i]);
-        //error = max(error, abs(s_bin.histogram[i] - t_bin.histogram[i]));
     }
 
     return error;

@@ -129,12 +129,11 @@ mat4 Registration::findAlignment()
     R = findRotation(M);
 
     float init_error = getAlignmentError();
-    cout << "Initial error: " << init_error << endl;
 
     T = findAndAddTranslation(R);
 
     cout << "R: " << endl << R << endl;
-    cout << "T: " << endl << T << endl;
+    cout << "Complete transformation: " << endl << T << endl;
 
     return T;
 }
@@ -172,43 +171,7 @@ mat4 Registration::findRotation(matX aggregation_matrix)
             l_nT = computeNormalsDifSet(target, nT, targetIsMesh);
         }
     }
-/*
-    #pragma omp parallel sections
-    {
-        #pragma omp section
-        {
-            angles_S = computeAngleDifs(l_cS, source);
-        }
 
-        #pragma omp section
-        {
-            angles_T = computeAngleDifs(l_cT, target);
-        }
-
-        #pragma omp section
-        {
-            angles_cS = computeCenterAngles(l_cS);
-        }
-
-        #pragma omp section
-        {
-            angles_cT = computeCenterAngles(l_cT);
-        }
-    }
-*/
-    //computeMwithCentroids(l_cS, l_cT, angles_S, angles_T, angles_cS, angles_cT);
-
-    //M = computeMWithPFHSignature(MAX_SOURCE_PLANES);
-    //M = planeTuplesWithFPFH();
-
-    // Write M to file
-    string filename("myMatrixMFile.txt");
-    ofstream myFile;
-    myFile.open(filename);
-    myFile << M << endl;
-    myFile.close();
-
-    //mat3 H = computeHwithNormals(l_nS, l_nT);
     mat3 H = computeHwithCentroids(aggregation_matrix, l_cS, l_cT);
     mat3 R3 = computeR(H);
 
@@ -280,12 +243,8 @@ void Registration::computeMwithNormals()
                 // Works of for small rotations but can get stuck in local minimas
                 M(i, j) = 1.0f / sqd;
             }
-            //M(i, j) = exp(-0.5*sqd);
-
         }
     }
-
-    cout << "M:" << endl << M.block(0, 0, 5, 5).matrix() << endl;
 }
 
 void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT, vector<float> &l_aS, vector<float> &l_aT, vector<float> &angles_cS, vector<float> &angles_cT)
@@ -294,7 +253,6 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
 
     M.resize(l_cS.size(), l_cT.size());
 
-    //#pragma omp parallel for
     for(size_t i = 0; i < l_cS.size(); ++i)
     {
         float normCSi = l_cS[i].norm();
@@ -304,13 +262,6 @@ void Registration::computeMwithCentroids(vector<vec3> &l_cS, vector<vec3> &l_cT,
             M(i, j) = exp(-abs(((normCSi - l_cT[j].norm()) + /*(l_aS[i] - l_aT[j]) +*/ (source_surfaces[i] - target_surfaces[j])) /* (angles_cS[i] - angles_cT[j])*/));
         }
     }
-
-    // Write M to file
-//    string filename("myMatrixMFile.txt");
-//    ofstream myFile;
-//    myFile.open(filename);
-//    myFile << M << endl;
-//    myFile.close();
 }
 
 mat3 Registration::computeHwithNormals(vector<vec3> qs, vector<vec3> qt)
@@ -506,7 +457,7 @@ float Registration::estimatePlaneSurface(PointNormalKCloud::Ptr p_cloud, Segment
     s = s.array().abs().sqrt().matrix();
 
     // compute surface estimation
-    return s.x() * s.y() * 4 * 3; // ???
+    return s.x() * s.y() * 4 * 3;
 }
 
 vector<float> Registration::computeDelaunaySurfaces(PointNormalKCloud::Ptr p_cloud, vector<SegmentedPointsContainer::SegmentedPlane> &l_planes)
@@ -543,15 +494,6 @@ float Registration::computeDelaunaySurface(PointNormalKCloud::Ptr p_cloud, Segme
         l_p2f.push_back(cv::Point2f(i.x(), i.y()));
     }
 
-    //DEBUG print points to 2d
-//    ofstream file;
-//    file.open("2dPoints.txt");
-//    for(auto v: l_p2f)
-//    {
-//        file << v.x << " " << v.y << endl;
-//    }
-//    file.close();
-
     // Compute delauney triangle
     cv::Rect rect(min.x() - 1, min.y() - 1, max.x()-min.x() + 2, max.y()-min.y() + 2);
     cv::Subdiv2D sub(rect);
@@ -561,8 +503,6 @@ float Registration::computeDelaunaySurface(PointNormalKCloud::Ptr p_cloud, Segme
     sub.getTriangleList(triangles);
 
     // Sum up every triangles' surface
-//    ofstream file2;
-//    file2.open("triangles.txt");
 
     float surface = 0;
     vec2 x1, x2, x3;
@@ -582,12 +522,9 @@ float Registration::computeDelaunaySurface(PointNormalKCloud::Ptr p_cloud, Segme
             vec2 v2 = x3 - x1;
 
             float surf = 0.5f * fabs(crossProduct(v1, v2));
-
-//            file2 << x1.transpose() << ", " << x2.transpose() << ", " << x3.transpose() << ", surface: " << surf << endl;
             surface += surf;
         }
     }
-//    file2.close();
 
     return surface;
 }
@@ -626,8 +563,6 @@ void Registration::computePlaneBase(SegmentedPointsContainer::SegmentedPlane &pl
     {
         e1 = vec3(-n.z(), 0, n.x()).normalized();
     }
-
-    //e1 = vec3(n.y(), -n.x(), n.z()).normalized();
 
     // Base should be orthogonal
     e2 = n.cross(e1).normalized();
@@ -687,11 +622,7 @@ Eigen::MatrixXf Registration::planeTuplesWithPFH(int source_nb)
 
 vector<PlaneTuples> Registration::planeTuplesWithFPFH()
 {
-    // Compute fpfh forall planes' centers
-    //FPFHCloud source_signs = PFHEvaluation::computeFPFHSignature(source);
-    //FPFHCloud target_signs = PFHEvaluation::computeFPFHSignature(target);
-
-    // TEST
+    // Compute apfh forall planes' centers
     auto source_signs = PFHEvaluation::computeAPFHSignature(source, this->source_surfaces);
     auto target_signs = PFHEvaluation::computeAPFHSignature(target, this->target_surfaces);
 
