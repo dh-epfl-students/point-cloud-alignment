@@ -8,6 +8,8 @@ In order to solve this problem, the idea explored in this project is to perform 
 
 ### Research summary
 
+The first step of the project was to find and test automated state-of-the-art registration algorithms. The algorithms tested are RANSAC, 4PCS and KFPCS. The tests showed that these alogirthms worked well for simple clouds, but the registration obtained on our test set were not precise.
+
 
 
 ### Installation and Usage
