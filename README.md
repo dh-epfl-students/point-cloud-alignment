@@ -19,7 +19,10 @@ The next step is the registration itself. Which must be able to align point clou
 Here are a few examples of the results obtained with this algorithm, 
 
 ![Successfull alignment results.](report/CC_success_align_6.png)
+1. Successfull alignment results.
+
 ![Unsuccessfull alignment results.](report/CC_fail_align1.png)
+2. Unsuccessfull alignment results.
 
 
 ### Installation and Usage
