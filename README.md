@@ -2,21 +2,37 @@
 
 ### Introduction
 
-This is my master project on automated geographical alignment procedure through dense point cloud simplification. Current state of the art algorithms do perform well when aligning relatively simple point clouds. However when the number of points and the complexity of clouds increases, existing algorithms tend to get stuck in local minimas and never find the optimal solution. This is due to the fact that the number of points and topological of the cloud becomes too complex and the number of keypoints involved to optimize the cost function is to high for it to make sense, hence the erratical results.
+This is my master project on automated geographical alignment procedure through dense point cloud simplification. Current state of the art algorithms do perform well when aligning relatively simple point clouds. However when the number of points and the complexity of clouds increases, existing algorithms tend to get stuck in local minimas and never find the optimal solution. This is due to the fact that the number of points and topological of the cloud becomes too complex and the number of keypoints involved to optimize the cost function is to high for it to make sense, hence the erratic results.
 
-In order to solve this problem, the idea explored in this project is to perform the registration on a simplification of the original source and target clouds. The type of clouds at my disposal during this project was ones of the city of Geneva, recorded by aerial view using a LIDAR technology. It is mainly formed by planar surfaces representing the roofs and walls of the city's buildings, as well as the roads. For this reason, the simplification choosed was to segment the point clouds of both the source and target clouds in planes. These formed two sets of segmented planes, each defined by their plane's center coordinates, their normal vector and the points belonging to each of them. The registration algorithm is then performed using these two sets of planes, that are extremely simplified rather than the original clouds.
+In order to solve this problem, the idea explored in this project is to perform the registration on a simplification of the original source and target objects. The type of clouds at my disposal during this project was ones of Geneva's city, recorded by aerial view using a LIDAR technology. It is mainly formed by planar surfaces representing the roofs and walls of the city's buildings, as well as the roads. For this reason, the simplification choosed was to segment the point clouds of both the source and target clouds in planes. These formed two sets of segmented planes, each defined by their plane's center coordinates, their normal vector and the points belonging to each of them. The registration algorithm is then performed using these two sets of planes, that are extremely simplified, rather than the original clouds.
 
 ### Research summary
 
+The first step was to implement the simplification process. A plane segmentation algorithm was chosen because it was adapted to the kind of point clouds available. This algorithm works by region growing, which means that it will choose a point in the cloud and look for neighboring points. If this first set of points represent a planar surface, the algorithm will iteratively expand the set of points by adding new neighboring points that belong to the plane. A plane is completely segmented when no new points can be found. This process is repeated until every plane is segmented, on both the source and target clouds. A similar process is used when segmenting meshes.
+
+The plane segmentation result is a set of planes that covers the entire cloud, without the points that have been excluded because detected as on a non planar surface.  However, it can happen during the region growing steps that the plane computed is not perfectly aligned with the real surface represented by the points. Thus, when the region grows, new points can be slightly out of range to be considered as belonging in the plane. This has for effect that some big surfaces are segmented in multiple planes. To solve this problem, a last phase was added to the cloud segmentation process: Plane Merging. This step will simply try to merge segmented planes that are on the same large planar surface together by comparing their normal vector and checking if they overlap.
+
+The next step is the registration itself. Which must be able to align point clouds and meshes into one another. This is achieved by taking as input a set of planes that must be aligned called the source, and another set of planes that is the target of the alignment. These sets of planes are defined the same way for point clouds and meshes. This phase is divided in three parts. First, plane pairs are selected, then the transformation is decomposed in a rotation and a translation. The plane pair selection is done by computing a point feature historgram for both set of planes, using the each plane's centroid as points, associated with the plane's normal vector. Planes that have the most similar histograms are associated together to form a pair. The rotation matrix has to rotate the set of source plane's centers to match their corresponding target planes' centers. And lastly, the translation has to snap in place the rotated set of source planes'centers into the target set.
+
+Here are a few examples of the results obtained with this algorithm, 
+
+![Successfull alignment results.](Report/CC_success_align_6.png)
+![Unsuccessfull alignment results.](Report/CC_fail_align1.png)
 
 
 ### Installation and Usage
-
-- Dependencies: The code has been developped on Linux Mint. The external libraries are as follows:
-	- pcl 1.9
-	- omp
-	- boost
-
+- CMAKE version 3.6.2 or greater is required to install this software.
+- Dependencies: The code has been developped on Linux Mint. The external libraries to install are:
+	- Point Cloud Library 1.9 (PCL)
+	- OpenMP
+	- OpenCV
+- After that, open a console in the root directory of this project and execute the following commands:
+	- mkdir build
+	- cd build
+	- cmake ..
+	- make
+- Once the installation is finished, the software can be launched with the command: ./PointCloudAlignment [c/m] source_file [c/m] target_file
+With [c/m] being either c or m whether the following file contains a point cloud or a mesh.
 
 ### License
 
@@ -39,8 +55,6 @@ Please structure your repository as follows:
 - a folder **report** where you put... your report
 - a **README**, with the following information:
 
-### Introduction
-_brief introduction of the project_
 
 ### Research summary
 _brief summary of your approaches/implementations_
