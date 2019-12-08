@@ -49,8 +49,9 @@ CMakeLists.txt.user*
 model/*
 
 # Misc
-other/*
-*.csv
-Presentation/*
-State_of_the_art_testing/PCL/cloud_alignment-build/*
-Data
+presentation
+presentations/*
+miscellaneous
+miscellaneous/*
+data
+data/*
