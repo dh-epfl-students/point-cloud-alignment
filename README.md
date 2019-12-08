@@ -8,6 +8,8 @@ In order to solve this problem, the idea explored in this project is to perform 
 
 ### Research summary
 
+The first step of the project was to find and test automated state-of-the-art registration algorithms. The algorithms tested are RANSAC, 4PCS and KFPCS. The tests showed that these alogirthms worked well for simple clouds, but the registration obtained on our test set were not precise, hence the need for a more adapted algorithm.
+
 The first step was to implement the simplification process. A plane segmentation algorithm was chosen because it was adapted to the kind of point clouds available. This algorithm works by region growing, which means that it will choose a point in the cloud and look for neighboring points. If this first set of points represent a planar surface, the algorithm will iteratively expand the set of points by adding new neighboring points that belong to the plane. A plane is completely segmented when no new points can be found. This process is repeated until every plane is segmented, on both the source and target clouds. A similar process is used when segmenting meshes.
 
 The plane segmentation result is a set of planes that covers the entire cloud, without the points that have been excluded because detected as on a non planar surface.  However, it can happen during the region growing steps that the plane computed is not perfectly aligned with the real surface represented by the points. Thus, when the region grows, new points can be slightly out of range to be considered as belonging in the plane. This has for effect that some big surfaces are segmented in multiple planes. To solve this problem, a last phase was added to the cloud segmentation process: Plane Merging. This step will simply try to merge segmented planes that are on the same large planar surface together by comparing their normal vector and checking if they overlap.
@@ -16,8 +18,8 @@ The next step is the registration itself. Which must be able to align point clou
 
 Here are a few examples of the results obtained with this algorithm, 
 
-![Successfull alignment results.](Report/CC_success_align_6.png)
-![Unsuccessfull alignment results.](Report/CC_fail_align1.png)
+![Successfull alignment results.](report/CC_success_align_6.png)
+![Unsuccessfull alignment results.](report/CC_fail_align1.png)
 
 
 ### Installation and Usage
@@ -54,13 +56,3 @@ Please structure your repository as follows:
 - a folder **code** where you put... your code and your resources
 - a folder **report** where you put... your report
 - a **README**, with the following information:
-
-
-### Research summary
-_brief summary of your approaches/implementations_
-_illustration of results_
-
-### Installation and Usage
-- _dependencies: platform, libraries_
-- _compilation (if necessary)_
-- _usage: how to run your code_
