@@ -22,7 +22,7 @@ Here are a few examples of the results obtained with this algorithm,
 1. Successfull alignment results.
 
 ![Unsuccessfull alignment results.](report/CC_fail_align1.png)
-2. Unsuccessfull alignment results.
+2. Unsuccessfull alignment result.
 
 
 ### Installation and Usage
