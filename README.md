@@ -38,6 +38,24 @@ Here are a few examples of the results obtained with this algorithm,
 	- make
 - Once the installation is finished, the software can be launched with the command: ./PointCloudAlignment [c/m] source_file [c/m] target_file
 With [c/m] being either c or m whether the following file contains a point cloud or a mesh.
+- If the two file provided are correctly formated, both objects should appear on the screen.
+- The commands to segment and register the clouds/meshes are then as follows:
+	1. Cloud/Mesh segmentation:
+		a. Resample cloud: **F10**
+		b. Preprocess cloud (to compute the curvature values and normal vectors): **F9**
+		c. Filter out points with high curvature: **F8**
+		d. Start plane segmentation for point clouds: **l**
+		e. Start plane segmentation for meshes: **F5**
+		f. After segmentation, merge similar planes of the cloud: **F11**
+	2. Registration: After both clouds/meshes have been preprocessed and segmented, align the source on the target with key: **a**
+	3. Miscellaneous keys:
+		a. Reset cloud color: **F1**
+		b. Display cloud curvature: **F2**
+		c. Display cloud computed k-neighborhood: **F3**
+		d. Display cloud normal vectors: **F4**
+		e. Save point clouds in files __mySourcePC.ply__ and __myTargetPC.ply__: **F6**
+		f. Display source cloud in red and target cloud in green: **F7**
+		g. After registration, cycle through associated planes and highlight them: **k**
 
 ### License
 

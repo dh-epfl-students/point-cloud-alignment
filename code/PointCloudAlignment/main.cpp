@@ -246,6 +246,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     }
     else if(event.getKeySym() == "F9" && event.keyDown())
     {
+    	// Preprocess cloud
         #pragma omp parallel sections
         {
             #pragma omp section
@@ -300,6 +301,7 @@ void keyboardCallback(const pcl::visualization::KeyboardEvent &event,
     }
     else if(event.getKeySym() == "a" && event.keyDown())
     {
+    	// Registrer cloud/mesh
         if(!(((!sourceIsMesh && pc_source_merger.isCloudMerged()) || mesh_source_segmentation.isMeshSegmented()) &&
              ((!targetIsMesh && pc_target_merger.isCloudMerged()) || mesh_target_segmentation.isMeshSegmented()))) return;
 
